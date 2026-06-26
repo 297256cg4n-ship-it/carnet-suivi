@@ -1802,10 +1802,10 @@
       "id": "mhfycyls",
       "nom": "ABRAHA Ryan-Bayram",
       "classeId": "bexef32g",
-      "status": "rose",
+      "status": "marron",
       "points": 20,
       "zeroStreak": 0,
-      "savedMarche": "rose",
+      "savedMarche": "marron",
       "history": [
         {
           "date": "26/06/2026",
@@ -1816,6 +1816,11 @@
           "date": "26/06/2026",
           "heure": "18:59",
           "label": "Marche modifiée manuellement → Rose."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "19:00",
+          "label": "Marche modifiée manuellement → Marron."
         }
       ]
     },
