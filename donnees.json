@@ -572,8 +572,8 @@
       "id": "iy42lv1g",
       "nom": "ABDALLAH MOHAMED Magdi",
       "classeId": "2imozxeq",
-      "status": "pastille",
-      "points": 0,
+      "status": "jaune",
+      "points": 20,
       "zeroStreak": 0,
       "savedMarche": "jaune",
       "history": [
@@ -674,6 +674,11 @@
           "date": "26/06/2026",
           "heure": "18:58",
           "label": "Mise en pastille manuelle (droits suspendus)."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "19:00",
+          "label": "Pastille levée — retour à la marche Jaune."
         }
       ]
     },
