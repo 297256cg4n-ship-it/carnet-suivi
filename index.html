@@ -203,57 +203,23 @@ let currentClassFilter = "";
 let currentClasseId = null;
 let lastKnownSha = null; // empreinte de version du fichier de données côté GitHub, pour détecter les conflits d'écriture
 
-/* ============== CONFIGURATION GITHUB (à remplir une seule fois) ==============
+/* ============== CONFIGURATION (déjà faite — rien à modifier ici) ==============
    Cette application stocke ses données dans UN SEUL fichier JSON central,
-   "donnees.json", dans un dépôt GitHub — via l'API GitHub (qui autorise les
-   requêtes depuis n'importe quelle page, contrairement à beaucoup d'autres
-   hébergeurs). Tous les collègues qui ouvrent cette même page lisent et
-   écrivent ce même fichier : c'est ce qui rend les données vraiment communes.
-
-   À FAIRE UNE FOIS, avant de partager le lien à tes collègues :
-   1. Crée un compte GitHub si tu n'en as pas (gratuit) : https://github.com/signup
-   2. Crée un nouveau dépôt (bouton "New repository"), par ex. nommé
-      "carnet-suivi". Coche "Public" (nécessaire pour activer GitHub Pages
-      gratuitement). Les données restent malgré tout protégées par mot de
-      passe applicatif — voir plus haut.
-   3. Dépose cette page dans le dépôt en la renommant exactement "index.html"
-      (glisser-déposer dans l'onglet "Code" du dépôt, puis "Commit changes").
-   4. Crée aussi, dans ce même dépôt, un fichier nommé "donnees.json" avec
-      pour seul contenu : {"classes":[],"students":[],"weeks":[],"currentWeekStart":""}
-   5. Active GitHub Pages : Settings > Pages > Source = "Deploy from a
-      branch", branche "main", dossier "/ (root)". Le lien de ton app sera
-      affiché là (du type https://tonpseudo.github.io/carnet-suivi/) — c'est
-      CE lien-là qu'il faut partager à tes collègues.
-   6. Crée un token d'accès : Settings (de ton compte, pas du dépôt) >
-      Developer settings > Personal access tokens > Fine-grained tokens >
-      "Generate new token". Restreins-le à CE SEUL dépôt ("Only select
-      repositories" → "carnet-suivi"), et donne-lui uniquement la permission
-      "Contents: Read and write" (rien d'autre). Donne-lui une date
-      d'expiration longue (ou "No expiration"). Copie le token généré
-      (commence par "github_pat_...") — il ne sera plus jamais affiché
-      ensuite, donc note-le de côté avant de fermer la page.
-   7. Remplace les 3 valeurs ci-dessous avec ton pseudo GitHub, le nom du
-      dépôt, et le token généré.
+   "donnees.json", dans un dépôt GitHub. Pour que le token GitHub ne soit
+   JAMAIS visible dans cette page (qui est publique), les lectures/écritures
+   passent par un petit serveur intermédiaire (un "Cloudflare Worker") qui,
+   lui, garde le token caché et fait l'appel à GitHub à notre place.
 */
-const GITHUB_OWNER = "297256cg4n-ship-it";     // ton identifiant/pseudo GitHub
-const GITHUB_REPO = "carnet-suivi";           // nom du dépôt créé à l'étape 2
-const GITHUB_TOKEN = "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"; // token généré à l'étape 6
+const PROXY_URL = "https://carnet-suivi-proxy.2hhvst2ycz.workers.dev";
 
-function _ghHeaders(extra){
-  return Object.assign({
-    'Authorization': 'Bearer ' + GITHUB_TOKEN,
-    'Accept': 'application/vnd.github+json',
-    'X-GitHub-Api-Version': '2022-11-28'
-  }, extra || {});
-}
-function _ghContentsUrl(filename){
-  return `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${filename}`;
+function _proxyUrl(filename){
+  return `${PROXY_URL}?file=${encodeURIComponent(filename)}`;
 }
 // UTF-8 safe base64 encode/decode (le JSON contient des accents français)
 function _b64encode(str){ return btoa(unescape(encodeURIComponent(str))); }
 function _b64decode(b64){ return decodeURIComponent(escape(atob(b64))); }
 
-/* ============== STORAGE (partagé via l'API GitHub) ==============
+/* ============== STORAGE (partagé via GitHub, à travers le proxy) ==============
    Lecture/écriture directes sur donnees.json dans le dépôt : chaque
    sauvegarde est donc immédiatement visible par tous les collègues qui
    rouvrent ou rafraîchissent la page. Nécessite une connexion internet.
@@ -262,17 +228,18 @@ function _b64decode(b64){ return decodeURIComponent(escape(atob(b64))); }
    on prévient plutôt que d'écraser silencieusement son travail.
 */
 async function _ghReadFile(filename){
-  const res = await fetch(_ghContentsUrl(filename), { headers: _ghHeaders() });
+  const res = await fetch(_proxyUrl(filename));
   if(!res.ok) throw new Error('HTTP '+res.status);
   const json = await res.json();
+  if(!json || !json.content) throw new Error('HTTP 404');
   return { sha: json.sha, content: JSON.parse(_b64decode(json.content)) };
 }
 async function _ghWriteFile(filename, dataObj, sha, message){
   const body = { message: message || 'Mise à jour des données', content: _b64encode(JSON.stringify(dataObj, null, 2)) };
   if(sha) body.sha = sha;
-  const res = await fetch(_ghContentsUrl(filename), {
+  const res = await fetch(_proxyUrl(filename), {
     method: 'PUT',
-    headers: _ghHeaders({ 'Content-Type': 'application/json' }),
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
   if(res.status === 409 || res.status === 422){ throw new Error('CONFLICT'); }
