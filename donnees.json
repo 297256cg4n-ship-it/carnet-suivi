@@ -573,7 +573,7 @@
       "nom": "ABDALLAH MOHAMED Magdi",
       "classeId": "2imozxeq",
       "status": "bleu",
-      "points": 17,
+      "points": 14,
       "zeroStreak": 0,
       "savedMarche": "bleu",
       "history": [
@@ -607,6 +607,15 @@
           "heure": "18:55",
           "label": "-3 point(s) — Comportement (hrule dans les couloirs) (reste 17/20)",
           "motif": "Comportement — hrule dans les couloirs",
+          "sanctionneur": "Quentin",
+          "points": 3,
+          "type": "retrait"
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "18:57",
+          "label": "-3 point(s) — Retard (retard de 35 minutes en cours de maths) (reste 14/20)",
+          "motif": "Retard — retard de 35 minutes en cours de maths",
           "sanctionneur": "Quentin",
           "points": 3,
           "type": "retrait"
