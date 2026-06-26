@@ -36,7 +36,7 @@ input,select{font-family:inherit;}
 .hidden{display:none !important;}
 
 /* ===== Login screen ===== */
-#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:
+#login-screen, #student-login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:
   radial-gradient(circle at 20% 20%, rgba(15,93,79,0.06), transparent 40%),
   radial-gradient(circle at 80% 80%, rgba(185,85,43,0.07), transparent 45%),
   var(--paper);}
@@ -157,6 +157,21 @@ tr.row-link:hover{background:#f3f1e9;}
   </div>
 </div>
 
+<!-- ACCÈS ÉLÈVE (lecture seule, via QR code de la fiche) -->
+<div id="student-login-screen" class="hidden">
+  <div class="login-card">
+    <div class="eyebrow">Carnet de suivi · accès élève</div>
+    <h1 id="student-login-title">Ta fiche de suivi</h1>
+    <div id="student-login-err" class="err"></div>
+    <input type="text" id="student-login-input" placeholder="Ton nom de famille" autofocus style="text-transform:uppercase;">
+    <button class="primary" id="student-login-btn">Voir ma fiche</button>
+    <p class="small" style="margin-top:14px"><a href="#" id="goto-teacher-login">Je suis un(e) enseignant(e) →</a></p>
+  </div>
+</div>
+
+<!-- FICHE ÉLÈVE EN LECTURE SEULE -->
+<div id="student-view-screen" class="hidden"></div>
+
 <!-- APP -->
 <div id="app">
   <header class="topbar">
@@ -194,12 +209,14 @@ const CATEGORIES = [
   {key:"materiel",label:"Matériel / tenue"},
   {key:"respect",label:"Respect"},
   {key:"securite",label:"Sécurité"},
+  {key:"toilette",label:"Toilette"},
 ];
 
 let DATA = {classes:[], students:[]};
 let currentTab = "accueil";
 let currentStudentId = null;
 let currentClassFilter = "";
+let currentSearchQuery = "";
 let currentClasseId = null;
 let lastKnownSha = null; // empreinte de version du fichier de données côté GitHub, pour détecter les conflits d'écriture
 
@@ -355,7 +372,55 @@ async function sha256Hex(text){
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 function trySessionAuth(){
-  if(sessionStorage.getItem('cs-auth') === '1'){ enterApp(); }
+  if(sessionStorage.getItem('cs-auth') === '1'){ enterApp(); return; }
+  // Si on arrive via un QR code de fiche élève (#eleve=ID) sans session
+  // enseignant active, on propose l'accès élève en lecture seule plutôt
+  // que l'écran de mot de passe enseignant.
+  const hash = location.hash;
+  if(hash.startsWith('#eleve=')){
+    showStudentLoginScreen(hash.replace('#eleve=',''));
+  }
+}
+function showStudentLoginScreen(studentId){
+  document.getElementById('login-screen').style.display = 'none';
+  const screen = document.getElementById('student-login-screen');
+  screen.classList.remove('hidden');
+  screen.style.display = 'flex';
+  screen.dataset.studentId = studentId;
+}
+document.getElementById('goto-teacher-login').addEventListener('click', (e)=>{
+  e.preventDefault();
+  document.getElementById('student-login-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+});
+document.getElementById('student-login-btn').addEventListener('click', doStudentLogin);
+document.getElementById('student-login-input').addEventListener('keydown', e=>{ if(e.key==='Enter') doStudentLogin(); });
+async function doStudentLogin(){
+  const btn = document.getElementById('student-login-btn');
+  const studentId = document.getElementById('student-login-screen').dataset.studentId;
+  const val = document.getElementById('student-login-input').value.trim().toUpperCase();
+  const errEl = document.getElementById('student-login-err');
+  btn.disabled = true;
+  errEl.textContent = '';
+  try{
+    if(!DATA.students.length) await loadData(); // chargement minimal si pas déjà fait
+    const s = DATA.students.find(x=>x.id===studentId);
+    if(!s){ errEl.textContent = "Fiche introuvable. Le QR code n'est peut-être plus valide."; return; }
+    // Le mot de passe élève est son nom de famille en majuscules. Si le nom
+    // complet contient un prénom composé, on compare au dernier "mot" du
+    // nom — mais le champ "nom" stocke en général juste le nom de famille,
+    // donc une comparaison directe insensible aux accents/espaces suffit.
+    const normalize = (str)=>str.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    if(normalize(val) === normalize(s.nom)){
+      showStudentReadOnlyView(s.id);
+    } else {
+      errEl.textContent = "Nom incorrect.";
+    }
+  }catch(e){
+    errEl.textContent = "Connexion impossible. Vérifie ta connexion internet.";
+  }finally{
+    btn.disabled = false;
+  }
 }
 document.getElementById('login-btn').addEventListener('click', doLogin);
 document.getElementById('login-input').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
@@ -467,6 +532,10 @@ function renderAccueil(){
   const classesOptions = DATA.classes.map(c=>`<option value="${c.id}" ${currentClassFilter===c.id?'selected':''}>${esc(c.nom)}</option>`).join('');
   let students = DATA.students.slice();
   if(currentClassFilter) students = students.filter(s=>s.classeId===currentClassFilter);
+  if(currentSearchQuery.trim()){
+    const q = currentSearchQuery.trim().toLowerCase();
+    students = students.filter(s=>s.nom.toLowerCase().includes(q));
+  }
   students.sort((a,b)=>a.nom.localeCompare(b.nom));
 
   const rows = students.map(s=>{
@@ -486,9 +555,10 @@ function renderAccueil(){
     <span>Semaine en cours : depuis le <strong>${formatDateFr(DATA.currentWeekStart)}</strong> (aujourd'hui : ${formatDateFr(todayISO())})</span>
     <a href="#" id="goto-semaines" class="small" style="font-weight:700;">Voir l'historique des semaines →</a>
   </div>
-  <div class="row" style="justify-content:space-between;margin-bottom:14px;">
+  <div class="row" style="justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;">
     <h2>Élèves</h2>
     <div class="row">
+      <input type="search" id="search-eleve" placeholder="Rechercher un élève par nom..." value="${esc(currentSearchQuery)}" style="padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;min-width:200px;">
       <select id="filter-classe"><option value="">Toutes les classes</option>${classesOptions}</select>
       <button class="btn primary" id="btn-new-student">+ Ajouter un élève</button>
       <button class="btn" id="btn-new-week">Nouvelle semaine</button>
@@ -496,7 +566,7 @@ function renderAccueil(){
   </div>
   <div class="card">
     ${students.length ? `<table><thead><tr><th>Nom</th><th>Classe</th><th>Marche</th><th>Points</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
-      : `<div class="empty">Aucun élève pour le moment. Crée une classe, puis ajoute des élèves ou importe un fichier depuis le détail de la classe.</div>`}
+      : `<div class="empty">${currentSearchQuery.trim() ? `Aucun élève ne correspond à « ${esc(currentSearchQuery)} ».` : `Aucun élève pour le moment. Crée une classe, puis ajoute des élèves ou importe un fichier depuis le détail de la classe.`}</div>`}
   </div>`;
 }
 
@@ -508,6 +578,16 @@ function statusBadge(s){
 function attachAccueilEvents(){
   document.getElementById('filter-classe').addEventListener('change', e=>{ currentClassFilter = e.target.value; render(); });
   document.getElementById('btn-new-student').addEventListener('click', ()=>openStudentModal());
+  const searchInput = document.getElementById('search-eleve');
+  if(searchInput){
+    searchInput.addEventListener('input', e=>{
+      currentSearchQuery = e.target.value;
+      const cursorPos = e.target.selectionStart;
+      render();
+      const refocused = document.getElementById('search-eleve');
+      if(refocused){ refocused.focus(); refocused.setSelectionRange(cursorPos, cursorPos); }
+    });
+  }
   const gotoSemaines = document.getElementById('goto-semaines');
   if(gotoSemaines) gotoSemaines.addEventListener('click', e=>{ e.preventDefault(); currentTab='semaines'; render(); });
   document.getElementById('btn-new-week').addEventListener('click', ()=>{
@@ -682,6 +762,62 @@ function rowToName(row){
   return joined;
 }
 
+/* ============== ACCÈS ÉLÈVE — VUE LECTURE SEULE ============== */
+function showStudentReadOnlyView(studentId){
+  document.getElementById('student-login-screen').style.display = 'none';
+  const screen = document.getElementById('student-view-screen');
+  screen.classList.remove('hidden');
+  screen.style.display = 'block';
+  renderStudentReadOnlyView(studentId);
+}
+function renderStudentReadOnlyView(studentId){
+  const s = DATA.students.find(x=>x.id===studentId);
+  const screen = document.getElementById('student-view-screen');
+  if(!s){ screen.innerHTML = `<div class="login-card" style="margin:60px auto;"><p>Fiche introuvable.</p></div>`; return; }
+  const classe = DATA.classes.find(c=>c.id===s.classeId);
+  const ladderSteps = MARCHES.map(m=>`<div class="step m-${m} ${s.status===m?'current':''}">${MARCHE_LABEL[m]}</div>`).join('');
+  const pct = s.status==='pastille' ? 0 : Math.round((s.points/20)*100);
+  const histRows = s.history.slice().reverse().slice(0,30).map(h=>`
+    <tr>
+      <td>${esc(h.date)}</td>
+      <td>${esc(h.heure || '—')}</td>
+      <td>${esc(h.motif || h.label)}</td>
+      <td>${esc(h.sanctionneur || '—')}</td>
+    </tr>
+  `).join('');
+  screen.innerHTML = `
+    <header class="topbar">
+      <div class="brand">
+        <span class="step-mark"><span></span><span></span><span></span><span></span></span>
+        <h1>Carnet de suivi — les Marches</h1>
+      </div>
+      <button class="btn" id="student-logout-btn">Quitter</button>
+    </header>
+    <main style="max-width:760px;margin:0 auto;padding:24px 18px;">
+      <h2>${esc(s.nom)}</h2>
+      <p class="small muted">${classe ? esc(classe.nom) : ''} · Consultation seule (accès élève)</p>
+
+      <div class="card">
+        <div class="section-title">Marche actuelle</div>
+        <div class="ladder">${ladderSteps}</div>
+        ${s.status==='pastille'
+          ? `<p><span class="badge m-pastille">Pastille</span> — droits suspendus cette semaine.</p>`
+          : `<div class="row" style="justify-content:space-between;margin-bottom:6px;"><span class="small">Points de la semaine</span><span class="small"><strong>${s.points}</strong> / 20</span></div>
+             <div class="points-meter"><div class="fill" style="width:${pct}%"></div></div>`}
+      </div>
+
+      <div class="card">
+        <div class="section-title">Journal de suivi</div>
+        ${s.history.length ? `<table style="margin-top:12px;"><thead><tr><th>Date</th><th>Heure</th><th>Motif</th><th>Décidé par</th></tr></thead><tbody>${histRows}</tbody></table>`
+          : `<p class="small muted" style="margin-top:12px;">Aucun évènement enregistré.</p>`}
+      </div>
+    </main>`;
+  document.getElementById('student-logout-btn').addEventListener('click', ()=>{
+    location.hash = '';
+    location.reload();
+  });
+}
+
 /* ============== STUDENT MODEL ============== */
 async function deleteStudent(id, {confirmMessage} = {}){
   const s = DATA.students.find(x=>x.id===id);
@@ -716,9 +852,14 @@ function renderFiche(id){
   const classe = DATA.classes.find(c=>c.id===s.classeId);
   const ladderSteps = MARCHES.map(m=>`<div class="step m-${m} ${s.status===m?'current':''}">${MARCHE_LABEL[m]}</div>`).join('');
   const pct = s.status==='pastille' ? 0 : Math.round((s.points/20)*100);
-  const histItems = s.history.slice().reverse().slice(0,30).map(h=>`
-    <div class="hist-item"><span>${esc(h.label)}</span><span class="muted">${h.date}</span></div>
-  `).join('') || `<p class="small muted">Aucun évènement enregistré.</p>`;
+  const histRows = s.history.slice().reverse().slice(0,60).map(h=>`
+    <tr>
+      <td>${esc(h.date)}</td>
+      <td>${esc(h.heure || '—')}</td>
+      <td>${esc(h.motif || h.label)}</td>
+      <td>${esc(h.sanctionneur || '—')}</td>
+    </tr>
+  `).join('');
 
   const catBoxes = CATEGORIES.map(c=>`
     <div class="cat-box">
@@ -769,8 +910,12 @@ function renderFiche(id){
   </div>
 
   <div class="card">
-    <div class="section-title">Historique</div>
-    ${histItems}
+    <div class="row" style="justify-content:space-between;align-items:center;">
+      <div class="section-title" style="margin-bottom:0;">Journal de suivi</div>
+      <button class="btn" id="btn-export-pdf">Générer le récapitulatif PDF (4 dernières semaines)</button>
+    </div>
+    ${s.history.length ? `<table style="margin-top:12px;"><thead><tr><th>Date</th><th>Heure</th><th>Motif</th><th>Sanction décidée par</th></tr></thead><tbody>${histRows}</tbody></table>`
+      : `<p class="small muted" style="margin-top:12px;">Aucun évènement enregistré.</p>`}
   </div>
 
   <div class="card">
@@ -800,6 +945,9 @@ function attachFicheEvents(){
   const editBtn = document.getElementById('btn-edit-student');
   if(editBtn) editBtn.addEventListener('click', ()=>openStudentModal(currentStudentId));
 
+  const pdfBtn = document.getElementById('btn-export-pdf');
+  if(pdfBtn) pdfBtn.addEventListener('click', ()=>exportFichePDF(currentStudentId));
+
   const delBtn = document.getElementById('btn-del-student');
   if(delBtn) delBtn.addEventListener('click', async ()=>{
     const ok = await deleteStudent(currentStudentId);
@@ -809,11 +957,10 @@ function attachFicheEvents(){
   });
 
   document.querySelectorAll('[data-cat]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
+    btn.addEventListener('click', ()=>{
       const cat = btn.dataset.cat;
       const amt = parseInt(btn.dataset.amt,10);
-      await retirerPoints(currentStudentId, cat, amt);
-      render();
+      openSanctionModal(currentStudentId, cat, amt);
     });
   });
 
@@ -865,17 +1012,130 @@ function attachFicheEvents(){
   });
 }
 
-function logEvent(s, label){
-  s.history.push({date: new Date().toLocaleDateString('fr-FR'), label});
+function logEvent(s, label, details){
+  // details (optionnel) : {heure, motif, sanctionneur, type}
+  s.history.push(Object.assign({
+    date: new Date().toLocaleDateString('fr-FR'),
+    heure: new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}),
+    label
+  }, details || {}));
 }
 
-async function retirerPoints(studentId, categorie, montant){
+function openSanctionModal(studentId, categorie, montant){
+  const s = DATA.students.find(x=>x.id===studentId);
+  if(!s || s.status === 'pastille') return;
+  const catLabel = CATEGORIES.find(c=>c.key===categorie).label;
+  openModal(`
+    <h3>Retrait de ${montant} point(s) — ${esc(catLabel)}</h3>
+    <p class="small muted" style="margin-bottom:14px;">Pour ${esc(s.nom)}. Ces informations seront gardées dans le journal de suivi de l'élève.</p>
+    <div class="field"><label>Précision sur le motif (optionnel)</label><input type="text" id="sanction-motif" placeholder="Ex : a parlé pendant l'évaluation"></div>
+    <div class="field"><label>Nom de la personne qui sanctionne</label><input type="text" id="sanction-nom" placeholder="Ex : Mme Dupont"></div>
+    <div id="sanction-err" class="err"></div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="btn" id="modal-cancel">Annuler</button>
+      <button class="btn primary" id="modal-save">Valider le retrait</button>
+    </div>
+  `);
+  document.getElementById('modal-cancel').addEventListener('click', closeModal);
+  document.getElementById('sanction-nom').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('modal-save').click(); });
+  document.getElementById('modal-save').addEventListener('click', async ()=>{
+    const nom = document.getElementById('sanction-nom').value.trim();
+    const motif = document.getElementById('sanction-motif').value.trim();
+    if(!nom){ document.getElementById('sanction-err').textContent = "Indique le nom de la personne qui sanctionne."; return; }
+    await retirerPoints(studentId, categorie, montant, {sanctionneur: nom, motif});
+    closeModal();
+    render();
+  });
+}
+
+async function retirerPoints(studentId, categorie, montant, who){
   const s = DATA.students.find(x=>x.id===studentId);
   if(!s || s.status === 'pastille') return;
   s.points = Math.max(0, s.points - montant);
   const catLabel = CATEGORIES.find(c=>c.key===categorie).label;
-  logEvent(s, `-${montant} point(s) — ${catLabel} (reste ${s.points}/20)`);
+  const who_ = who || {};
+  const detailTxt = who_.motif ? ` (${who_.motif})` : '';
+  logEvent(s, `-${montant} point(s) — ${catLabel}${detailTxt} (reste ${s.points}/20)`, {
+    motif: catLabel + (who_.motif ? ' — ' + who_.motif : ''),
+    sanctionneur: who_.sanctionneur || '',
+    points: montant,
+    type: 'retrait'
+  });
   await saveData();
+}
+
+function exportFichePDF(studentId){
+  const s = DATA.students.find(x=>x.id===studentId);
+  if(!s) return;
+  const classe = DATA.classes.find(c=>c.id===s.classeId);
+
+  // On détermine la date de début des "4 dernières semaines" à partir des
+  // semaines déjà archivées (DATA.weeks), pour rester cohérent avec les
+  // bornes réelles utilisées par l'établissement plutôt qu'un simple "-28 jours".
+  const allWeeksForStudent = DATA.weeks.filter(w=>!w.scope || w.scope === (classe ? classe.nom : null));
+  const last4 = allWeeksForStudent.slice(-4);
+  const periodeDebut = last4.length ? last4[0].dateDebut : DATA.currentWeekStart;
+  const periodeDebutDate = new Date(periodeDebut + 'T00:00:00');
+
+  const histPeriode = s.history.filter(h=>{
+    // h.date est au format JJ/MM/AAAA (toLocaleDateString fr-FR)
+    const parts = h.date.split('/');
+    if(parts.length !== 3) return true; // par sécurité, on inclut si format inattendu
+    const d = new Date(parts[2], parts[1]-1, parts[0]);
+    return d >= periodeDebutDate;
+  }).slice().reverse();
+
+  const weekRows = last4.map(w=>{
+    const snap = w.snapshot.find(x=>x.id===s.id);
+    if(!snap) return '';
+    return `<tr>
+      <td>${formatDateFr(w.dateDebut)} → ${formatDateFr(w.dateFin)}</td>
+      <td>${snap.status==='pastille' ? 'Pastille' : MARCHE_LABEL[snap.status]}</td>
+      <td>${snap.status==='pastille' ? '—' : snap.points + ' / 20'}</td>
+    </tr>`;
+  }).join('');
+
+  const histRowsPdf = histPeriode.map(h=>`
+    <tr>
+      <td>${esc(h.date)}</td>
+      <td>${esc(h.motif || h.label)}</td>
+      <td>${esc(h.sanctionneur || '—')}</td>
+    </tr>`).join('');
+
+  const win = window.open('', '_blank');
+  if(!win){ toast("Le navigateur a bloqué l'ouverture de la fenêtre d'impression. Autorise les pop-ups pour ce site et réessaie."); return; }
+  win.document.write(`
+    <!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+    <title>Récapitulatif — ${esc(s.nom)}</title>
+    <style>
+      body{font-family:Georgia,'Times New Roman',serif;color:#23262b;max-width:720px;margin:30px auto;padding:0 20px;}
+      h1{font-size:22px;margin-bottom:2px;}
+      .sub{color:#666;font-size:13px;margin-bottom:24px;}
+      h2{font-size:15px;border-bottom:2px solid #23262b;padding-bottom:4px;margin-top:28px;}
+      table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}
+      th{text-align:left;padding:6px 8px;border-bottom:2px solid #ccc;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#555;}
+      td{padding:6px 8px;border-bottom:1px solid #e3e3e3;}
+      .empty{color:#888;font-size:13px;margin-top:10px;}
+      .footer{margin-top:40px;font-size:11px;color:#999;}
+      @media print{ body{margin:0;padding:14px;} }
+    </style>
+    </head><body>
+      <h1>Récapitulatif de suivi — ${esc(s.nom)}</h1>
+      <div class="sub">${classe ? esc(classe.nom) : 'Classe non renseignée'} · Période du ${formatDateFr(periodeDebut)} au ${formatDateFr(todayISO())}</div>
+
+      <h2>Évolution sur les 4 dernières semaines</h2>
+      ${weekRows ? `<table><thead><tr><th>Semaine</th><th>Marche en fin de semaine</th><th>Points en fin de semaine</th></tr></thead><tbody>${weekRows}</tbody></table>`
+        : `<p class="empty">Pas encore assez de semaines archivées pour cette période (aucune semaine clôturée ne couvre encore cet élève).</p>`}
+
+      <h2>Détail des évènements sur la période</h2>
+      ${histRowsPdf ? `<table><thead><tr><th>Date</th><th>Motif</th><th>Sanction décidée par</th></tr></thead><tbody>${histRowsPdf}</tbody></table>`
+        : `<p class="empty">Aucun évènement enregistré sur cette période.</p>`}
+
+      <div class="footer">Document généré le ${formatDateFr(todayISO())} depuis le carnet de suivi de l'établissement.</div>
+      <scri` + `pt>window.onload = () => { window.print(); };</scri` + `pt>
+    </body></html>
+  `);
+  win.document.close();
 }
 
 /* ============== NOUVELLE SEMAINE ============== */
