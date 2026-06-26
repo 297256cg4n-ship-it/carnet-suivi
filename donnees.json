@@ -1802,10 +1802,10 @@
       "id": "mhfycyls",
       "nom": "ABRAHA Ryan-Bayram",
       "classeId": "bexef32g",
-      "status": "marron",
+      "status": "orange",
       "points": 20,
       "zeroStreak": 0,
-      "savedMarche": "marron",
+      "savedMarche": "orange",
       "history": [
         {
           "date": "26/06/2026",
@@ -1841,6 +1841,11 @@
           "date": "26/06/2026",
           "heure": "19:00",
           "label": "Pastille levée — retour à la marche Marron."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "19:00",
+          "label": "Marche modifiée manuellement → Orange."
         }
       ]
     },
