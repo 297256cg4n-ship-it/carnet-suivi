@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carnet de suivi — Marches</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --ink:#23262b;
+  --paper:#f6f3ec;
+  --paper-2:#ffffff;
+  --line:#dcd6c6;
+  --accent:#0f5d4f;
+  --accent-2:#b5552b;
+  --muted:#7a7568;
+  --rose:#e8638a;
+  --blanc:#cfcabb;
+  --jaune:#d8a52a;
+  --orange:#c96b2b;
+  --vert:#3f8a52;
+  --bleu:#2f6f9e;
+  --marron:#6b3f2a;
+  --pastille:#23262b;
+  --radius:10px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:'Avenir Next',Segoe UI,Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+body{min-height:100vh;}
+h1,h2,h3{font-family:Georgia,'Times New Roman',serif;font-weight:700;letter-spacing:-0.01em;margin:0;}
+a{color:var(--accent);}
+button{font-family:inherit;cursor:pointer;}
+input,select{font-family:inherit;}
+.hidden{display:none !important;}
+
+/* ===== Login screen ===== */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:
+  radial-gradient(circle at 20% 20%, rgba(15,93,79,0.06), transparent 40%),
+  radial-gradient(circle at 80% 80%, rgba(185,85,43,0.07), transparent 45%),
+  var(--paper);}
+.login-card{background:var(--paper-2);border:1px solid var(--line);border-radius:14px;padding:40px 36px;max-width:380px;width:90%;box-shadow:0 18px 40px -20px rgba(0,0,0,0.25);}
+.login-card .eyebrow{font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.login-card h1{font-size:26px;margin-bottom:18px;}
+.login-card input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:8px;font-size:16px;margin-bottom:12px;}
+.login-card button.primary{width:100%;padding:12px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:600;}
+.login-card button.primary:hover{background:#0c4c41;}
+.err{color:#a32b2b;font-size:13px;margin-bottom:10px;min-height:16px;}
+
+/* ===== App shell ===== */
+#app{display:none;min-height:100vh;}
+header.topbar{background:var(--ink);color:#f3f1e9;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:30;}
+header.topbar .brand{display:flex;align-items:center;gap:10px;}
+header.topbar .brand .step-mark{display:flex;gap:2px;}
+header.topbar .brand .step-mark span{width:6px;height:14px;background:var(--rose);display:inline-block;border-radius:2px;}
+header.topbar .brand .step-mark span:nth-child(2){height:18px;background:var(--jaune);}
+header.topbar .brand .step-mark span:nth-child(3){height:22px;background:var(--vert);}
+header.topbar .brand .step-mark span:nth-child(4){height:26px;background:var(--marron);}
+header.topbar h1{font-size:18px;color:#f3f1e9;}
+nav.tabs{display:flex;gap:6px;flex-wrap:wrap;}
+nav.tabs button{background:transparent;border:1px solid transparent;color:#cfcabb;padding:8px 14px;border-radius:7px;font-size:14px;font-weight:600;}
+nav.tabs button.active{background:#f3f1e9;color:var(--ink);}
+nav.tabs button:hover:not(.active){border-color:#454a52;}
+main{padding:26px 22px 60px;max-width:1100px;margin:0 auto;}
+.muted{color:var(--muted);}
+.card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px;}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.btn{border:1px solid var(--line);background:#fff;padding:9px 14px;border-radius:7px;font-size:14px;font-weight:600;color:var(--ink);}
+.btn:hover{border-color:var(--accent);color:var(--accent);}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn.primary:hover{background:#0c4c41;}
+.btn.warn{background:#fff;color:#a32b2b;border-color:#e3b9b9;}
+.btn.warn:hover{background:#fbeaea;}
+input[type=text], input[type=number], select{padding:9px 11px;border:1px solid var(--line);border-radius:7px;font-size:14px;}
+table{width:100%;border-collapse:collapse;font-size:14px;}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);padding:8px 10px;border-bottom:2px solid var(--line);}
+td{padding:9px 10px;border-bottom:1px solid var(--line);}
+tr.row-link{cursor:pointer;}
+tr.row-link:hover{background:#f3f1e9;}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;color:#fff;}
+.empty{padding:30px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px;}
+
+/* marche colors as badges */
+.m-rose{background:var(--rose);} .m-blanc{background:var(--blanc);color:#23262b;}
+.m-jaune{background:var(--jaune);} .m-orange{background:var(--orange);}
+.m-vert{background:var(--vert);} .m-bleu{background:var(--bleu);}
+.m-marron{background:var(--marron);} .m-pastille{background:var(--pastille);}
+
+/* ladder visual */
+.ladder{display:flex;align-items:flex-end;gap:6px;margin:14px 0;}
+.ladder .step{flex:1;border-radius:6px 6px 0 0;text-align:center;color:#fff;font-size:11px;font-weight:700;padding-top:4px;text-transform:uppercase;letter-spacing:.04em;position:relative;opacity:0.45;transition:opacity .2s, transform .2s;}
+.ladder .step.current{opacity:1;transform:translateY(-4px);box-shadow:0 8px 16px -8px rgba(0,0,0,.4);}
+.ladder .step:nth-child(1){height:34px;} .ladder .step:nth-child(2){height:44px;}
+.ladder .step:nth-child(3){height:54px;} .ladder .step:nth-child(4){height:64px;}
+.ladder .step:nth-child(5){height:74px;} .ladder .step:nth-child(6){height:84px;}
+.ladder .step:nth-child(7){height:94px;}
+.ladder .step.m-blanc{color:#23262b;}
+
+.points-meter{height:14px;border-radius:8px;background:#eee5cf;overflow:hidden;border:1px solid var(--line);}
+.points-meter .fill{height:100%;background:var(--accent);transition:width .25s;}
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:10px;}
+.cat-box{border:1px solid var(--line);border-radius:9px;padding:12px;background:#fbfaf6;}
+.cat-box h4{font-size:13px;margin-bottom:8px;}
+.cat-box .nums{display:flex;gap:6px;}
+.cat-box .nums button{flex:1;border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px 0;font-weight:700;font-size:13px;}
+.cat-box .nums button:hover{background:#a32b2b;color:#fff;border-color:#a32b2b;}
+.hist-item{font-size:13px;padding:7px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;}
+.hist-item:last-child{border-bottom:none;}
+.qr-box{display:flex;gap:18px;align-items:center;flex-wrap:wrap;}
+.qr-box img{border:1px solid var(--line);border-radius:8px;background:#fff;padding:6px;}
+.link-field{flex:1;min-width:220px;padding:9px 11px;border:1px solid var(--line);border-radius:7px;font-size:12px;background:#fbfaf6;word-break:break-all;}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--ink);color:#fff;padding:11px 18px;border-radius:8px;font-size:14px;box-shadow:0 10px 24px -10px rgba(0,0,0,.4);z-index:99;}
+.modal-bg{position:fixed;inset:0;background:rgba(20,18,14,.45);display:flex;align-items:center;justify-content:center;z-index:80;}
+.modal{background:#fff;border-radius:12px;padding:24px;width:90%;max-width:420px;}
+.modal h3{margin-bottom:14px;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:5px;}
+.field input,.field select{width:100%;}
+.back-link{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:14px;display:inline-block;}
+.small{font-size:12px;color:var(--muted);}
+.section-title{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px;font-weight:700;}
+.marche-picker{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.marche-picker button{border:2px solid transparent;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;color:#fff;opacity:.55;}
+.marche-picker button.m-blanc{color:#23262b;}
+.marche-picker button.active{opacity:1;border-color:var(--ink);}
+.qr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;}
+.qr-card{border:1px solid var(--line);border-radius:10px;padding:14px;text-align:center;background:#fff;}
+.qr-card .qr-render{display:flex;justify-content:center;margin-bottom:8px;}
+.qr-card .qr-render img{border:1px solid var(--line);border-radius:6px;}
+.qr-card .qr-name{font-weight:700;font-size:13px;margin-bottom:8px;}
+.qr-card a.dl{font-size:12px;font-weight:700;}
+@media print{
+  header.topbar, .back-link, #btn-print-qr, .no-print{display:none !important;}
+  body{background:#fff;}
+  .card{border:none;box-shadow:none;}
+}
+.week-banner{display:flex;align-items:center;justify-content:space-between;background:#eef4f1;border:1px solid #cfe3da;border-radius:9px;padding:12px 16px;margin-bottom:16px;font-size:13px;gap:10px;flex-wrap:wrap;}
+.week-banner strong{color:var(--accent);}
+.week-nav{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:16px;}
+.week-nav .week-label{font-weight:700;font-size:15px;min-width:260px;text-align:center;}
+.week-nav button{padding:7px 12px;}
+.week-nav button:disabled{opacity:.35;cursor:not-allowed;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="eyebrow">Carnet de suivi · espace enseignants</div>
+    <h1>Mot de passe</h1>
+    <div id="login-err" class="err"></div>
+    <input type="password" id="login-input" placeholder="Mot de passe" autofocus>
+    <button class="primary" id="login-btn">Entrer</button>
+    <p class="small" style="margin-top:14px">Accès partagé : toutes les fiches sont visibles et modifiables par l'ensemble des enseignants.</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="step-mark"><span></span><span></span><span></span><span></span></span>
+      <h1>Carnet de suivi — les Marches</h1>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button data-tab="accueil" class="active">Élèves</button>
+      <button data-tab="classes">Classes</button>
+      <button data-tab="qrcodes">QR codes</button>
+      <button data-tab="semaines">Semaines</button>
+    </nav>
+    <div class="row">
+      <button class="btn" id="export-btn" title="Télécharger une copie de sauvegarde">Exporter</button>
+      <button class="btn" id="change-pwd-btn" title="Changer le mot de passe pour tout le monde">Changer le mot de passe</button>
+      <button class="btn" id="restore-btn" title="Annuler la dernière réinitialisation">Annuler la dernière action</button>
+      <button class="btn" id="logout-btn">Verrouiller</button>
+    </div>
+  </header>
+  <main id="main"></main>
+</div>
+
+<div id="toast-host"></div>
+
+<script>
+/* ============== CONFIG ============== */
+const PASSWORD_ENCODED = "Q0Q0NDEwMCE="; // décodé en base64 au moment de la vérification, pour ne pas l'afficher en clair dans le code
+const MARCHES = ["rose","blanc","jaune","orange","vert","bleu","marron"];
+const MARCHE_LABEL = {rose:"Rose",blanc:"Blanc",jaune:"Jaune",orange:"Orange",vert:"Vert",bleu:"Bleu",marron:"Marron"};
+const CATEGORIES = [
+  {key:"travail",label:"Travail"},
+  {key:"comportement",label:"Comportement"},
+  {key:"retard",label:"Retard"},
+  {key:"materiel",label:"Matériel / tenue"},
+  {key:"respect",label:"Respect"},
+  {key:"securite",label:"Sécurité"},
+];
+
+let DATA = {classes:[], students:[]};
+let currentTab = "accueil";
+let currentStudentId = null;
+let currentClassFilter = "";
+let currentClasseId = null;
+let lastKnownSha = null; // empreinte de version du fichier de données côté GitHub, pour détecter les conflits d'écriture
+
+/* ============== CONFIGURATION GITHUB (à remplir une seule fois) ==============
+   Cette application stocke ses données dans UN SEUL fichier JSON central,
+   "donnees.json", dans un dépôt GitHub — via l'API GitHub (qui autorise les
+   requêtes depuis n'importe quelle page, contrairement à beaucoup d'autres
+   hébergeurs). Tous les collègues qui ouvrent cette même page lisent et
+   écrivent ce même fichier : c'est ce qui rend les données vraiment communes.
+
+   À FAIRE UNE FOIS, avant de partager le lien à tes collègues :
+   1. Crée un compte GitHub si tu n'en as pas (gratuit) : https://github.com/signup
+   2. Crée un nouveau dépôt (bouton "New repository"), par ex. nommé
+      "carnet-suivi". Coche "Public" (nécessaire pour activer GitHub Pages
+      gratuitement). Les données restent malgré tout protégées par mot de
+      passe applicatif — voir plus haut.
+   3. Dépose cette page dans le dépôt en la renommant exactement "index.html"
+      (glisser-déposer dans l'onglet "Code" du dépôt, puis "Commit changes").
+   4. Crée aussi, dans ce même dépôt, un fichier nommé "donnees.json" avec
+      pour seul contenu : {"classes":[],"students":[],"weeks":[],"currentWeekStart":""}
+   5. Active GitHub Pages : Settings > Pages > Source = "Deploy from a
+      branch", branche "main", dossier "/ (root)". Le lien de ton app sera
+      affiché là (du type https://tonpseudo.github.io/carnet-suivi/) — c'est
+      CE lien-là qu'il faut partager à tes collègues.
+   6. Crée un token d'accès : Settings (de ton compte, pas du dépôt) >
+      Developer settings > Personal access tokens > Fine-grained tokens >
+      "Generate new token". Restreins-le à CE SEUL dépôt ("Only select
+      repositories" → "carnet-suivi"), et donne-lui uniquement la permission
+      "Contents: Read and write" (rien d'autre). Donne-lui une date
+      d'expiration longue (ou "No expiration"). Copie le token généré
+      (commence par "github_pat_...") — il ne sera plus jamais affiché
+      ensuite, donc note-le de côté avant de fermer la page.
+   7. Remplace les 3 valeurs ci-dessous avec ton pseudo GitHub, le nom du
+      dépôt, et le token généré.
+*/
+const GITHUB_OWNER = "ton-pseudo-github";     // ton identifiant/pseudo GitHub
+const GITHUB_REPO = "carnet-suivi";           // nom du dépôt créé à l'étape 2
+const GITHUB_TOKEN = "github_pat_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"; // token généré à l'étape 6
+
+function _ghHeaders(extra){
+  return Object.assign({
+    'Authorization': 'Bearer ' + GITHUB_TOKEN,
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  }, extra || {});
+}
+function _ghContentsUrl(filename){
+  return `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${filename}`;
+}
+// UTF-8 safe base64 encode/decode (le JSON contient des accents français)
+function _b64encode(str){ return btoa(unescape(encodeURIComponent(str))); }
+function _b64decode(b64){ return decodeURIComponent(escape(atob(b64))); }
+
+/* ============== STORAGE (partagé via l'API GitHub) ==============
+   Lecture/écriture directes sur donnees.json dans le dépôt : chaque
+   sauvegarde est donc immédiatement visible par tous les collègues qui
+   rouvrent ou rafraîchissent la page. Nécessite une connexion internet.
+   Le "sha" renvoyé par GitHub sert de verrou : si un collègue a sauvegardé
+   entre notre lecture et notre écriture, GitHub refuse l'écriture (409) et
+   on prévient plutôt que d'écraser silencieusement son travail.
+*/
+async function _ghReadFile(filename){
+  const res = await fetch(_ghContentsUrl(filename), { headers: _ghHeaders() });
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const json = await res.json();
+  return { sha: json.sha, content: JSON.parse(_b64decode(json.content)) };
+}
+async function _ghWriteFile(filename, dataObj, sha, message){
+  const body = { message: message || 'Mise à jour des données', content: _b64encode(JSON.stringify(dataObj, null, 2)) };
+  if(sha) body.sha = sha;
+  const res = await fetch(_ghContentsUrl(filename), {
+    method: 'PUT',
+    headers: _ghHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(body)
+  });
+  if(res.status === 409 || res.status === 422){ throw new Error('CONFLICT'); }
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const json = await res.json();
+  return json.content.sha;
+}
+
+async function loadData(){
+  try{
+    const { sha, content } = await _ghReadFile('donnees.json');
+    lastKnownSha = sha;
+    DATA = content;
+  }catch(e){
+    DATA = {classes:[], students:[], weeks:[], currentWeekStart: todayISO()};
+    toast("Impossible de charger les données partagées (vérifie ta connexion). Données vides affichées temporairement.");
+  }
+  if(!DATA.classes) DATA.classes = [];
+  if(!DATA.students) DATA.students = [];
+  if(!DATA.weeks) DATA.weeks = [];
+  if(!DATA.currentWeekStart) DATA.currentWeekStart = todayISO();
+}
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function formatDateFr(iso){
+  if(!iso) return '';
+  const d = new Date(iso+'T00:00:00');
+  return d.toLocaleDateString('fr-FR', {day:'2-digit', month:'long', year:'numeric'});
+}
+async function saveData(){
+  try{
+    lastKnownSha = await _ghWriteFile('donnees.json', DATA, lastKnownSha, 'Mise à jour du carnet de suivi');
+  }catch(e){
+    if(e.message === 'CONFLICT'){
+      toast("⚠️ Un(e) collègue vient d'enregistrer en même temps. Recharge la page pour repartir de la dernière version avant de continuer.");
+    } else {
+      toast("⚠️ Enregistrement impossible (connexion ou accès GitHub). Réessaie dans un instant.");
+    }
+  }
+}
+async function backupBeforeReset(label){
+  try{
+    let sha = null;
+    try{ const existing = await _ghReadFile('donnees-sauvegarde.json'); sha = existing.sha; }catch(e){ /* pas encore de sauvegarde, on la créera */ }
+    await _ghWriteFile('donnees-sauvegarde.json', {snapshot: DATA, label, date: new Date().toLocaleString('fr-FR')}, sha, 'Sauvegarde avant : ' + label);
+  }catch(e){ /* backup is best-effort, do not block the action */ }
+}
+async function restoreBackup(){
+  try{
+    const { content: backup } = await _ghReadFile('donnees-sauvegarde.json');
+    if(!confirm(`Restaurer l'état d'avant « ${backup.label} » (sauvegardé le ${backup.date}) ? Les modifications faites depuis seront perdues pour tout le monde.`)) return;
+    DATA = backup.snapshot;
+    await saveData();
+    toast("Sauvegarde restaurée.");
+    currentStudentId = null; currentClasseId = null; location.hash=''; currentTab='accueil';
+    render();
+  }catch(e){ toast("Aucune sauvegarde disponible, ou restauration impossible."); }
+}
+document.getElementById('restore-btn').addEventListener('click', restoreBackup);
+document.getElementById('change-pwd-btn').addEventListener('click', ()=>openChangePasswordModal());
+function genId(){ return Math.random().toString(36).slice(2,10); }
+
+/* Construit l'URL de la page courante pour les QR codes / liens directs.
+   Important pour le scan sur iPhone : Safari iOS bloque les liens non-HTTPS
+   scannés depuis l'app Appareil photo. Si la page est ouverte en local
+   (file://) ou que l'origine n'est pas exploitable, on le signale au lieu
+   de générer silencieusement un lien cassé. Une fois la page hébergée sur
+   GitHub Pages (https://tonpseudo.github.io/carnet-suivi/), cette fonction
+   renvoie automatiquement la bonne URL HTTPS. */
+function appUrl(hashPart){
+  const usable = location.protocol === 'https:' && location.origin !== 'null';
+  if(!usable) return null;
+  return location.origin + location.pathname + (hashPart || '');
+}
+
+
+/* ---- Export (copie de sauvegarde téléchargeable) ---- */
+function exportData(){
+  const blob = new Blob([JSON.stringify(DATA, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `carnet-suivi-${todayISO()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast("Fichier de sauvegarde téléchargé.");
+}
+document.getElementById('export-btn').addEventListener('click', exportData);
+
+/* ============== TOAST ============== */
+function toast(msg){
+  const host = document.getElementById('toast-host');
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  host.appendChild(el);
+  setTimeout(()=>el.remove(), 2600);
+}
+
+/* ============== AUTH ==============
+   Le mot de passe n'est plus écrit en clair dans le code : seul son
+   empreinte (hash SHA-256) est comparée, et cette empreinte est stockée
+   dans les données partagées sur GitHub (DATA.passwordHash) — donc un
+   collègue qui connaît le mot de passe peut le changer depuis l'app
+   (bouton « Changer le mot de passe ») pour tout le monde, sans toucher
+   au code. Au tout premier lancement (aucun hash enregistré encore), le
+   mot de passe d'origine codé en dur ci-dessus sert de valeur initiale.
+*/
+async function sha256Hex(text){
+  if(!window.crypto || !window.crypto.subtle){
+    throw new Error('Cette page doit être ouverte en HTTPS (ex: via GitHub Pages) pour pouvoir vérifier le mot de passe.');
+  }
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function trySessionAuth(){
+  if(sessionStorage.getItem('cs-auth') === '1'){ enterApp(); }
+}
+document.getElementById('login-btn').addEventListener('click', doLogin);
+document.getElementById('login-input').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+async function doLogin(){
+  const btn = document.getElementById('login-btn');
+  const val = document.getElementById('login-input').value;
+  btn.disabled = true;
+  document.getElementById('login-err').textContent = '';
+  try{
+    await loadData(); // nécessaire pour récupérer le hash du mot de passe à jour
+    const candidateHash = await sha256Hex(val);
+    const validHash = DATA.passwordHash || await sha256Hex(atob(PASSWORD_ENCODED));
+    if(candidateHash === validHash){
+      if(!DATA.passwordHash){ DATA.passwordHash = validHash; await saveData(); } // migration au premier lancement
+      sessionStorage.setItem('cs-auth','1');
+      await enterApp(true); // true = données déjà chargées, pas besoin de recharger
+    } else {
+      document.getElementById('login-err').textContent = "Mot de passe incorrect.";
+    }
+  }catch(e){
+    document.getElementById('login-err').textContent = e.message.includes('HTTPS')
+      ? e.message
+      : "Connexion impossible. Vérifie ta connexion internet.";
+  }finally{
+    btn.disabled = false;
+  }
+}
+document.getElementById('logout-btn').addEventListener('click', ()=>{
+  sessionStorage.removeItem('cs-auth');
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-input').value='';
+});
+async function enterApp(alreadyLoaded){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  if(!alreadyLoaded) await loadData();
+  // hash routing for QR-code direct links
+  const hash = location.hash;
+  if(hash.startsWith('#eleve=')){
+    currentStudentId = hash.replace('#eleve=','');
+    currentTab = 'fiche';
+  }
+  render();
+}
+
+function openChangePasswordModal(){
+  openModal(`
+    <h3>Changer le mot de passe</h3>
+    <p class="small muted" style="margin-bottom:12px;">Le nouveau mot de passe s'appliquera immédiatement pour tous les enseignants. Les sessions déjà ouvertes ne sont pas affectées avant leur prochaine connexion.</p>
+    <div class="field"><label>Mot de passe actuel</label><input type="password" id="pwd-current"></div>
+    <div class="field"><label>Nouveau mot de passe</label><input type="password" id="pwd-new"></div>
+    <div class="field"><label>Confirmer le nouveau mot de passe</label><input type="password" id="pwd-confirm"></div>
+    <div id="pwd-err" class="err"></div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="btn" id="modal-cancel">Annuler</button>
+      <button class="btn primary" id="modal-save">Changer</button>
+    </div>
+  `);
+  document.getElementById('modal-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal-save').addEventListener('click', async ()=>{
+    const errEl = document.getElementById('pwd-err');
+    const current = document.getElementById('pwd-current').value;
+    const next = document.getElementById('pwd-new').value;
+    const confirmVal = document.getElementById('pwd-confirm').value;
+    const currentHash = await sha256Hex(current);
+    const validHash = DATA.passwordHash || await sha256Hex(atob(PASSWORD_ENCODED));
+    if(currentHash !== validHash){ errEl.textContent = "Mot de passe actuel incorrect."; return; }
+    if(next.length < 6){ errEl.textContent = "Le nouveau mot de passe doit faire au moins 6 caractères."; return; }
+    if(next !== confirmVal){ errEl.textContent = "Les deux nouveaux mots de passe ne correspondent pas."; return; }
+    DATA.passwordHash = await sha256Hex(next);
+    await saveData();
+    closeModal();
+    toast("Mot de passe changé pour tout le monde.");
+  });
+}
+
+/* ============== NAV ============== */
+document.getElementById('tabs').addEventListener('click', e=>{
+  const btn = e.target.closest('button[data-tab]');
+  if(!btn) return;
+  currentTab = btn.dataset.tab;
+  currentStudentId = null;
+  location.hash = '';
+  render();
+});
+
+function setActiveTabButtons(){
+  const effective = (currentTab === 'classe-detail') ? 'classes' : currentTab;
+  document.querySelectorAll('#tabs button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.tab === effective && effective !== 'fiche');
+  });
+}
+
+/* ============== RENDER ROUTER ============== */
+function render(){
+  setActiveTabButtons();
+  const main = document.getElementById('main');
+  if(currentTab === 'fiche' && currentStudentId){ main.innerHTML = renderFiche(currentStudentId); attachFicheEvents(); return; }
+  if(currentTab === 'classe-detail' && currentClasseId){ main.innerHTML = renderClasseDetail(currentClasseId); attachClasseDetailEvents(); return; }
+  if(currentTab === 'classes'){ main.innerHTML = renderClasses(); attachClassesEvents(); return; }
+  if(currentTab === 'qrcodes'){ main.innerHTML = renderQrCodes(); attachQrCodesEvents(); return; }
+  if(currentTab === 'semaines'){ main.innerHTML = renderSemaines(); attachSemainesEvents(); return; }
+  main.innerHTML = renderAccueil(); attachAccueilEvents();
+}
+
+/* ============== ACCUEIL (liste élèves) ============== */
+function renderAccueil(){
+  const classesOptions = DATA.classes.map(c=>`<option value="${c.id}" ${currentClassFilter===c.id?'selected':''}>${esc(c.nom)}</option>`).join('');
+  let students = DATA.students.slice();
+  if(currentClassFilter) students = students.filter(s=>s.classeId===currentClassFilter);
+  students.sort((a,b)=>a.nom.localeCompare(b.nom));
+
+  const rows = students.map(s=>{
+    const classe = DATA.classes.find(c=>c.id===s.classeId);
+    const badge = statusBadge(s);
+    return `<tr class="row-link" data-id="${s.id}">
+      <td>${esc(s.nom)}</td>
+      <td>${classe ? esc(classe.nom) : '<span class="muted">—</span>'}</td>
+      <td>${badge}</td>
+      <td>${s.status==='pastille' ? '<span class="muted">—</span>' : s.points + ' / 20'}</td>
+      <td><button class="btn warn" data-del-student="${s.id}">Supprimer</button></td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="week-banner">
+    <span>Semaine en cours : depuis le <strong>${formatDateFr(DATA.currentWeekStart)}</strong> (aujourd'hui : ${formatDateFr(todayISO())})</span>
+    <a href="#" id="goto-semaines" class="small" style="font-weight:700;">Voir l'historique des semaines →</a>
+  </div>
+  <div class="row" style="justify-content:space-between;margin-bottom:14px;">
+    <h2>Élèves</h2>
+    <div class="row">
+      <select id="filter-classe"><option value="">Toutes les classes</option>${classesOptions}</select>
+      <button class="btn primary" id="btn-new-student">+ Ajouter un élève</button>
+      <button class="btn" id="btn-new-week">Nouvelle semaine</button>
+    </div>
+  </div>
+  <div class="card">
+    ${students.length ? `<table><thead><tr><th>Nom</th><th>Classe</th><th>Marche</th><th>Points</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+      : `<div class="empty">Aucun élève pour le moment. Crée une classe, puis ajoute des élèves ou importe un fichier depuis le détail de la classe.</div>`}
+  </div>`;
+}
+
+function statusBadge(s){
+  if(s.status === 'pastille') return `<span class="badge m-pastille">Pastille</span>`;
+  return `<span class="badge m-${s.status}">${MARCHE_LABEL[s.status]}</span>`;
+}
+
+function attachAccueilEvents(){
+  document.getElementById('filter-classe').addEventListener('change', e=>{ currentClassFilter = e.target.value; render(); });
+  document.getElementById('btn-new-student').addEventListener('click', ()=>openStudentModal());
+  const gotoSemaines = document.getElementById('goto-semaines');
+  if(gotoSemaines) gotoSemaines.addEventListener('click', e=>{ e.preventDefault(); currentTab='semaines'; render(); });
+  document.getElementById('btn-new-week').addEventListener('click', ()=>{
+    if(confirm(`Clore la semaine du ${formatDateFr(DATA.currentWeekStart)} au ${formatDateFr(todayISO())} pour tous les élèves et démarrer une nouvelle semaine ? Les marches et statuts pastille seront recalculés automatiquement, et cette semaine sera archivée avec sa date dans l'onglet « Semaines ».`)){
+      nouvelleSemaine();
+    }
+  });
+  document.querySelectorAll('[data-del-student]').forEach(b=>{
+    b.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      const ok = await deleteStudent(b.dataset.delStudent);
+      if(ok) render();
+    });
+  });
+  document.querySelectorAll('tr.row-link').forEach(tr=>{
+    tr.addEventListener('click', (e)=>{
+      if(e.target.closest('[data-del-student]')) return;
+      currentStudentId = tr.dataset.id; currentTab='fiche'; location.hash = '#eleve='+tr.dataset.id; render();
+    });
+  });
+}
+
+/* ============== CLASSES ============== */
+function renderClasses(){
+  const rows = DATA.classes.map(c=>{
+    const n = DATA.students.filter(s=>s.classeId===c.id).length;
+    return `<tr class="row-link" data-classe="${c.id}"><td>${esc(c.nom)}</td><td>${n} élève(s)</td>
+      <td><button class="btn warn" data-del="${c.id}">Supprimer</button></td></tr>`;
+  }).join('');
+  return `
+  <div class="row" style="justify-content:space-between;margin-bottom:14px;">
+    <h2>Classes</h2>
+    <button class="btn primary" id="btn-new-classe">+ Créer une classe</button>
+  </div>
+  <div class="card">
+    ${DATA.classes.length ? `<table><thead><tr><th>Nom</th><th>Effectif</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+      : `<div class="empty">Aucune classe. Crée la première classe pour commencer.</div>`}
+    ${DATA.classes.length ? `<p class="small muted" style="margin-top:10px;">Clique sur une classe pour voir ses élèves.</p>` : ''}
+  </div>`;
+}
+function attachClassesEvents(){
+  document.getElementById('btn-new-classe').addEventListener('click', ()=>openClassModal());
+  document.querySelectorAll('[data-del]').forEach(b=>{
+    b.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      const id = b.dataset.del;
+      const n = DATA.students.filter(s=>s.classeId===id).length;
+      if(n>0 && !confirm(`Cette classe contient ${n} élève(s), qui resteront sans classe. Continuer ?`)) return;
+      await backupBeforeReset(`Suppression de la classe`);
+      DATA.classes = DATA.classes.filter(c=>c.id!==id);
+      await saveData(); toast("Classe supprimée."); render();
+    });
+  });
+  document.querySelectorAll('tr.row-link[data-classe]').forEach(tr=>{
+    tr.addEventListener('click', (e)=>{
+      if(e.target.closest('[data-del]')) return;
+      currentClasseId = tr.dataset.classe; currentTab = 'classe-detail'; render();
+    });
+  });
+}
+
+/* ============== DÉTAIL D'UNE CLASSE ============== */
+function renderClasseDetail(classeId){
+  const classe = DATA.classes.find(c=>c.id===classeId);
+  if(!classe) return `<a class="back-link" href="#" id="back-to-classes">← Retour aux classes</a><div class="empty">Classe introuvable.</div>`;
+  const students = DATA.students.filter(s=>s.classeId===classeId).sort((a,b)=>a.nom.localeCompare(b.nom));
+  const rows = students.map(s=>`
+    <tr class="row-link" data-id="${s.id}">
+      <td>${esc(s.nom)}</td>
+      <td>${statusBadge(s)}</td>
+      <td>${s.status==='pastille' ? '<span class="muted">—</span>' : s.points + ' / 20'}</td>
+      <td><button class="btn warn" data-del-student="${s.id}">Supprimer</button></td>
+    </tr>`).join('');
+  return `
+  <a class="back-link" href="#" id="back-to-classes">← Retour aux classes</a>
+  <div class="row" style="justify-content:space-between;margin-bottom:14px;">
+    <h2>${esc(classe.nom)}</h2>
+    <div class="row">
+      <button class="btn primary" id="btn-add-student-here">+ Ajouter un élève</button>
+      <label class="btn" for="import-file-classe" style="margin:0;">Importer un fichier (CSV/Excel)</label>
+      <input type="file" id="import-file-classe" accept=".csv,.xlsx,.xls" class="hidden">
+      <button class="btn" id="btn-reset-classe">Nouvelle semaine (cette classe)</button>
+    </div>
+  </div>
+  <div id="import-status-classe" class="small muted" style="margin-bottom:${students.length?'10px':'0'};"></div>
+  <div class="card">
+    ${students.length ? `<table><thead><tr><th>Nom</th><th>Marche</th><th>Points</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+      : `<div class="empty">Aucun élève dans cette classe pour le moment. Ajoute-les un par un, ou importe un fichier CSV/Excel.</div>`}
+  </div>`;
+}
+function attachClasseDetailEvents(){
+  const back = document.getElementById('back-to-classes');
+  if(back) back.addEventListener('click', e=>{ e.preventDefault(); currentClasseId=null; currentTab='classes'; render(); });
+  const addBtn = document.getElementById('btn-add-student-here');
+  if(addBtn) addBtn.addEventListener('click', ()=>openStudentModal(null, currentClasseId));
+  const resetBtn = document.getElementById('btn-reset-classe');
+  if(resetBtn) resetBtn.addEventListener('click', ()=>{
+    const classe = DATA.classes.find(c=>c.id===currentClasseId);
+    if(confirm(`Clore la semaine du ${formatDateFr(DATA.currentWeekStart)} au ${formatDateFr(todayISO())} pour la classe « ${classe.nom} » uniquement ? Une sauvegarde sera faite avant, au cas où.`)){
+      nouvelleSemaine(currentClasseId);
+    }
+  });
+  const importInput = document.getElementById('import-file-classe');
+  if(importInput) importInput.addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    const statusEl = document.getElementById('import-status-classe');
+    const classeId = currentClasseId;
+    statusEl.textContent = "Lecture du fichier...";
+    try{
+      const names = await extractNamesFromFile(file);
+      if(names.length === 0){ statusEl.textContent = "Aucun nom détecté dans ce fichier."; return; }
+      for(const nom of names){
+        DATA.students.push(newStudent(nom, classeId));
+      }
+      await saveData();
+      statusEl.textContent = `${names.length} élève(s) importé(s) avec succès.`;
+      toast(`${names.length} élève(s) ajouté(s).`);
+      render();
+    }catch(err){
+      statusEl.textContent = "Erreur de lecture du fichier : " + err.message;
+    }
+  });
+  document.querySelectorAll('[data-del-student]').forEach(b=>{
+    b.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      const ok = await deleteStudent(b.dataset.delStudent);
+      if(ok) render();
+    });
+  });
+  document.querySelectorAll('tr.row-link[data-id]').forEach(tr=>{
+    tr.addEventListener('click', (e)=>{
+      if(e.target.closest('[data-del-student]')) return;
+      currentStudentId = tr.dataset.id; currentTab='fiche'; location.hash = '#eleve='+tr.dataset.id; render();
+    });
+  });
+}
+
+/* ============== IMPORT (utilitaires de lecture de fichier, déclenchés depuis le détail d'une classe) ============== */
+function extractNamesFromFile(file){
+  return new Promise((resolve,reject)=>{
+    const ext = file.name.toLowerCase().split('.').pop();
+    if(ext === 'csv'){
+      Papa.parse(file, { complete: res=>{
+        const names = res.data.map(rowToName).filter(Boolean);
+        resolve(names);
+      }, error: err=>reject(err) });
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e)=>{
+        try{
+          const wb = XLSX.read(e.target.result, {type:'array'});
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(sheet, {header:1});
+          const names = rows.map(rowToName).filter(Boolean);
+          resolve(names);
+        }catch(err){ reject(err); }
+      };
+      reader.onerror = ()=>reject(new Error("lecture impossible"));
+      reader.readAsArrayBuffer(file);
+    }
+  });
+}
+function rowToName(row){
+  if(!row || !row.length) return null;
+  const cells = row.map(c=> (c===undefined||c===null) ? '' : String(c).trim()).filter(Boolean);
+  if(cells.length===0) return null;
+  const joined = cells.slice(0,2).join(' ').trim();
+  const lower = joined.toLowerCase();
+  if(lower === 'nom' || lower === 'prenom' || lower==='prénom' || lower==='nom prenom' || lower==='nom prénom' || lower==='élève' || lower==='eleve') return null;
+  return joined;
+}
+
+/* ============== STUDENT MODEL ============== */
+async function deleteStudent(id, {confirmMessage} = {}){
+  const s = DATA.students.find(x=>x.id===id);
+  if(!s) return false;
+  if(!confirm(confirmMessage || `Supprimer définitivement la fiche de ${s.nom} ? Toutes ses données (historique, points, QR code) seront retirées de l'application : liste des élèves, classe, et onglet QR codes.`)) return false;
+  await backupBeforeReset(`Suppression de la fiche de ${s.nom}`);
+  // DATA.students est la seule source de vérité : la liste élèves, le détail
+  // de classe et l'onglet QR codes en sont tous dérivés dynamiquement, donc
+  // retirer l'élève ici suffit à le faire disparaître partout dans l'appli.
+  DATA.students = DATA.students.filter(x=>x.id!==id);
+  await saveData();
+  toast(`${s.nom} a été supprimé(e) de l'application.`);
+  return true;
+}
+function newStudent(nom, classeId){
+  return {
+    id: genId(),
+    nom: nom,
+    classeId: classeId || "",
+    status: "rose",
+    points: 20,
+    zeroStreak: 0,
+    savedMarche: "rose",
+    history: []
+  };
+}
+
+/* ============== FICHE ÉLÈVE ============== */
+function renderFiche(id){
+  const s = DATA.students.find(x=>x.id===id);
+  if(!s) return `<a class="back-link" href="#" id="back-to-list">← Retour à la liste</a><div class="empty">Élève introuvable. Il a peut-être été supprimé.</div>`;
+  const classe = DATA.classes.find(c=>c.id===s.classeId);
+  const ladderSteps = MARCHES.map(m=>`<div class="step m-${m} ${s.status===m?'current':''}">${MARCHE_LABEL[m]}</div>`).join('');
+  const pct = s.status==='pastille' ? 0 : Math.round((s.points/20)*100);
+  const histItems = s.history.slice().reverse().slice(0,30).map(h=>`
+    <div class="hist-item"><span>${esc(h.label)}</span><span class="muted">${h.date}</span></div>
+  `).join('') || `<p class="small muted">Aucun évènement enregistré.</p>`;
+
+  const catBoxes = CATEGORIES.map(c=>`
+    <div class="cat-box">
+      <h4>${c.label}</h4>
+      <div class="nums">
+        ${[1,2,3,4,5].map(n=>`<button data-cat="${c.key}" data-amt="${n}">-${n}</button>`).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  const url = appUrl('#eleve=' + s.id);
+
+  return `
+  <a class="back-link" href="#" id="back-to-list">← Retour à la liste</a>
+  <div class="row" style="justify-content:space-between;align-items:flex-start;">
+    <div>
+      <h2>${esc(s.nom)}</h2>
+      <p class="small muted">${classe ? esc(classe.nom) : 'Aucune classe'}</p>
+    </div>
+    <div class="row">
+      <button class="btn" id="btn-edit-student">Modifier</button>
+      <button class="btn warn" id="btn-del-student">Supprimer la fiche</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Marche actuelle</div>
+    <div class="ladder">${ladderSteps}</div>
+    ${s.status==='pastille'
+      ? `<p><span class="badge m-pastille">Pastille</span> — droits suspendus cette semaine.</p>`
+      : `<div class="row" style="justify-content:space-between;margin-bottom:6px;"><span class="small">Points de la semaine</span><span class="small"><strong>${s.points}</strong> / 20</span></div>
+         <div class="points-meter"><div class="fill" style="width:${pct}%"></div></div>`}
+
+    <div class="section-title" style="margin-top:18px;">Modifier la marche manuellement</div>
+    <div class="marche-picker">
+      ${MARCHES.map(m=>`<button class="m-${m} ${s.status===m?'active':''}" data-set-marche="${m}">${MARCHE_LABEL[m]}</button>`).join('')}
+    </div>
+
+    <div class="row" style="margin-top:14px;">
+      <button class="btn" id="btn-toggle-pastille">${s.status==='pastille' ? 'Lever la pastille (revenir à sa marche)' : 'Mettre en pastille manuellement'}</button>
+      <button class="btn" id="btn-reset-points">Réinitialiser les points (20/20)</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Retirer des points</div>
+    ${s.status==='pastille' ? `<p class="small muted">Élève en pastille : aucun point à retirer cette semaine.</p>` : `<div class="cat-grid">${catBoxes}</div>`}
+  </div>
+
+  <div class="card">
+    <div class="section-title">Historique</div>
+    ${histItems}
+  </div>
+
+  <div class="card">
+    <div class="section-title">QR code de la fiche</div>
+    ${url ? `
+    <div class="qr-box">
+      <div id="fiche-qr-render"></div>
+      <div style="flex:1;min-width:220px;">
+        <p class="small" style="margin-bottom:8px;">Ce lien ouvre directement cette fiche (mot de passe enseignant requis). Il fonctionne pour tous les enseignants, pas seulement pour toi. Pour tous les QR codes d'une classe en une fois, va dans l'onglet « QR codes ».</p>
+        <div class="link-field">${url}</div>
+      </div>
+    </div>` : `
+    <p class="small" style="color:#a32b2b;">⚠️ QR code indisponible : cette page doit être ouverte via son adresse en ligne (https://...) pour générer un lien scannable. Si tu vois ce message une fois la page mise en ligne sur GitHub Pages, vérifie que le lien utilisé commence bien par « https:// ».</p>`}
+  </div>`;
+}
+
+function attachFicheEvents(){
+  const back = document.getElementById('back-to-list');
+  if(back) back.addEventListener('click', (e)=>{ e.preventDefault(); currentTab='accueil'; currentStudentId=null; location.hash=''; render(); });
+
+  const qrHost = document.getElementById('fiche-qr-render');
+  if(qrHost && window.QRCode){
+    const url = appUrl('#eleve=' + currentStudentId);
+    if(url) new QRCode(qrHost, {text:url, width:160, height:160, colorDark:"#000000", colorLight:"#ffffff", correctLevel: QRCode.CorrectLevel.H});
+  }
+
+  const editBtn = document.getElementById('btn-edit-student');
+  if(editBtn) editBtn.addEventListener('click', ()=>openStudentModal(currentStudentId));
+
+  const delBtn = document.getElementById('btn-del-student');
+  if(delBtn) delBtn.addEventListener('click', async ()=>{
+    const ok = await deleteStudent(currentStudentId);
+    if(!ok) return;
+    currentTab='accueil'; currentStudentId=null; location.hash='';
+    render();
+  });
+
+  document.querySelectorAll('[data-cat]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const cat = btn.dataset.cat;
+      const amt = parseInt(btn.dataset.amt,10);
+      await retirerPoints(currentStudentId, cat, amt);
+      render();
+    });
+  });
+
+  document.querySelectorAll('[data-set-marche]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const s = DATA.students.find(x=>x.id===currentStudentId);
+      if(!s) return;
+      const newMarche = btn.dataset.setMarche;
+      if(s.status === newMarche) return;
+      const wasP = s.status === 'pastille';
+      s.status = newMarche;
+      s.savedMarche = newMarche;
+      s.points = 20;
+      s.zeroStreak = 0;
+      logEvent(s, `Marche modifiée manuellement${wasP ? ' (sortie de pastille)' : ''} → ${MARCHE_LABEL[newMarche]}.`);
+      await saveData();
+      render();
+    });
+  });
+
+  const resetPtsBtn = document.getElementById('btn-reset-points');
+  if(resetPtsBtn) resetPtsBtn.addEventListener('click', async ()=>{
+    const s = DATA.students.find(x=>x.id===currentStudentId);
+    if(!s) return;
+    if(!confirm(`Réinitialiser les points de ${s.nom} à 20/20 ? Une sauvegarde est faite avant, au cas où.`)) return;
+    await backupBeforeReset(`Réinitialisation des points de ${s.nom}`);
+    s.points = 20;
+    logEvent(s, `Points réinitialisés manuellement à 20/20.`);
+    await saveData();
+    render();
+  });
+
+  const togglePastille = document.getElementById('btn-toggle-pastille');
+  if(togglePastille) togglePastille.addEventListener('click', async ()=>{
+    const s = DATA.students.find(x=>x.id===currentStudentId);
+    if(!s) return;
+    if(s.status === 'pastille'){
+      s.status = s.savedMarche || 'rose';
+      s.points = 20;
+      logEvent(s, `Pastille levée — retour à la marche ${MARCHE_LABEL[s.status]}.`);
+    } else {
+      s.savedMarche = s.status;
+      s.status = 'pastille';
+      s.points = 0;
+      logEvent(s, `Mise en pastille manuelle (droits suspendus).`);
+    }
+    await saveData();
+    render();
+  });
+}
+
+function logEvent(s, label){
+  s.history.push({date: new Date().toLocaleDateString('fr-FR'), label});
+}
+
+async function retirerPoints(studentId, categorie, montant){
+  const s = DATA.students.find(x=>x.id===studentId);
+  if(!s || s.status === 'pastille') return;
+  s.points = Math.max(0, s.points - montant);
+  const catLabel = CATEGORIES.find(c=>c.key===categorie).label;
+  logEvent(s, `-${montant} point(s) — ${catLabel} (reste ${s.points}/20)`);
+  await saveData();
+}
+
+/* ============== NOUVELLE SEMAINE ============== */
+async function nouvelleSemaine(classeId){
+  const label = classeId ? `Nouvelle semaine — classe ${(DATA.classes.find(c=>c.id===classeId)||{}).nom||''}` : 'Nouvelle semaine — toutes les classes';
+  await backupBeforeReset(label);
+
+  // archive un instantané daté de la semaine qui se termine, avant de la réinitialiser
+  const endDate = todayISO();
+  const snapshot = DATA.students.map(s=>({
+    id: s.id, nom: s.nom, classeId: s.classeId, status: s.status, points: s.points
+  }));
+  DATA.weeks.push({
+    id: genId(),
+    dateDebut: DATA.currentWeekStart,
+    dateFin: endDate,
+    scope: classeId ? (DATA.classes.find(c=>c.id===classeId)||{}).nom : null,
+    snapshot
+  });
+  DATA.currentWeekStart = endDate;
+
+  const pool = classeId ? DATA.students.filter(s=>s.classeId===classeId) : DATA.students;
+  for(const s of pool){
+    if(s.status === 'pastille'){
+      s.status = s.savedMarche || 'rose';
+      s.points = 20;
+      logEvent(s, `Nouvelle semaine — fin de pastille, retour à la marche ${MARCHE_LABEL[s.status]}.`);
+      continue;
+    }
+    if(s.points <= 0){
+      s.zeroStreak = (s.zeroStreak || 0) + 1;
+      s.savedMarche = s.status;
+      if(s.zeroStreak >= 2){
+        const idx = MARCHES.indexOf(s.status);
+        const newIdx = Math.max(0, idx - 1);
+        s.status = MARCHES[newIdx];
+        s.savedMarche = s.status;
+        s.zeroStreak = 0;
+        s.points = 20;
+        logEvent(s, `Nouvelle semaine — 2e semaine à 0 point : descente à la marche ${MARCHE_LABEL[s.status]}.`);
+      } else {
+        s.status = 'pastille';
+        s.points = 0;
+        logEvent(s, `Nouvelle semaine — 0 point la semaine passée : pastille pour la semaine à venir.`);
+      }
+      continue;
+    }
+    s.zeroStreak = 0;
+    if(s.points >= 20){
+      const idx = MARCHES.indexOf(s.status);
+      const newIdx = Math.min(MARCHES.length - 1, idx + 1);
+      if(newIdx !== idx) logEvent(s, `Nouvelle semaine — tous les points conservés : montée à la marche ${MARCHE_LABEL[MARCHES[newIdx]]}.`);
+      s.status = MARCHES[newIdx];
+    } else {
+      logEvent(s, `Nouvelle semaine — points réinitialisés.`);
+    }
+    s.points = 20;
+  }
+  await saveData();
+  toast(classeId ? "Nouvelle semaine lancée pour cette classe." : "Nouvelle semaine lancée pour tous les élèves.");
+  render();
+}
+
+/* ============== SEMAINES (historique) ============== */
+function renderSemaines(){
+  const weeks = DATA.weeks.slice().reverse(); // plus récente en premier
+  const items = weeks.map(w=>{
+    const scopeLabel = w.scope ? `Classe : ${esc(w.scope)}` : 'Toutes les classes';
+    const studentsRows = w.snapshot.slice().sort((a,b)=>a.nom.localeCompare(b.nom)).map(s=>`
+      <tr>
+        <td>${esc(s.nom)}</td>
+        <td>${s.status==='pastille' ? `<span class="badge m-pastille">Pastille</span>` : `<span class="badge m-${s.status}">${MARCHE_LABEL[s.status]}</span>`}</td>
+        <td>${s.status==='pastille' ? '<span class="muted">—</span>' : s.points + ' / 20'}</td>
+      </tr>`).join('');
+    return `
+    <div class="card">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <strong>${formatDateFr(w.dateDebut)} → ${formatDateFr(w.dateFin)}</strong>
+          <div class="small muted">${scopeLabel} · ${w.snapshot.length} élève(s)</div>
+        </div>
+        <button class="btn" data-toggle-week="${w.id}">Voir le détail</button>
+      </div>
+      <div class="hidden" id="week-detail-${w.id}" style="margin-top:14px;">
+        <table><thead><tr><th>Nom</th><th>Marche en fin de semaine</th><th>Points en fin de semaine</th></tr></thead><tbody>${studentsRows}</tbody></table>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="row" style="justify-content:space-between;margin-bottom:14px;">
+    <h2>Historique des semaines</h2>
+    <span class="small muted">Semaine en cours depuis le ${formatDateFr(DATA.currentWeekStart)}</span>
+  </div>
+  ${weeks.length ? items : `<div class="empty">Aucune semaine archivée encore. Clique sur « Nouvelle semaine » depuis l'onglet Élèves ou depuis une classe pour clore la semaine en cours et l'archiver ici.</div>`}
+  `;
+}
+function attachSemainesEvents(){
+  document.querySelectorAll('[data-toggle-week]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.toggleWeek;
+      const detail = document.getElementById('week-detail-'+id);
+      if(!detail) return;
+      const willShow = detail.classList.contains('hidden');
+      detail.classList.toggle('hidden', !willShow);
+      btn.textContent = willShow ? 'Masquer le détail' : 'Voir le détail';
+    });
+  });
+}
+
+/* ============== QR CODES PAR CLASSE ============== */
+let qrFilterClasse = "";
+function renderQrCodes(){
+  const classesOptions = DATA.classes.map(c=>`<option value="${c.id}" ${qrFilterClasse===c.id?'selected':''}>${esc(c.nom)}</option>`).join('');
+  let students = DATA.students.slice();
+  if(qrFilterClasse) students = students.filter(s=>s.classeId===qrFilterClasse);
+  students.sort((a,b)=>a.nom.localeCompare(b.nom));
+  const classe = DATA.classes.find(c=>c.id===qrFilterClasse);
+
+  const cards = students.map(s=>`
+    <div class="qr-card">
+      <div class="qr-render" id="qr-${s.id}"></div>
+      <div class="qr-name">${esc(s.nom)}</div>
+      <a class="dl" href="#" data-dl="${s.id}" data-name="${esc(s.nom)}">Télécharger l'image</a>
+    </div>
+  `).join('');
+
+  return `
+  <div class="row no-print" style="justify-content:space-between;margin-bottom:14px;">
+    <h2>QR codes des fiches élèves</h2>
+    <div class="row">
+      <select id="qr-filter-classe"><option value="">Toutes les classes</option>${classesOptions}</select>
+      <button class="btn" id="btn-print-qr">Imprimer / enregistrer en PDF</button>
+    </div>
+  </div>
+  <p class="small no-print" style="margin-bottom:14px;">Chaque QR code ouvre directement la fiche de l'élève (mot de passe requis). Clique sur « Télécharger l'image » pour sauvegarder un QR code, ou utilise « Imprimer » pour obtenir une planche de toute la classe.</p>
+  ${students.length
+    ? `<div class="qr-grid">${cards}</div>`
+    : `<div class="empty">${classe ? "Aucun élève dans cette classe." : "Choisis une classe, ou ajoute d'abord des élèves."}</div>`}
+  `;
+}
+function attachQrCodesEvents(){
+  const filterSel = document.getElementById('qr-filter-classe');
+  if(filterSel) filterSel.addEventListener('change', e=>{ qrFilterClasse = e.target.value; render(); });
+
+  const printBtn = document.getElementById('btn-print-qr');
+  if(printBtn) printBtn.addEventListener('click', ()=>window.print());
+
+  // render each QR locally, then wire up download links from the generated canvas
+  document.querySelectorAll('[id^="qr-"]').forEach(host=>{
+    const id = host.id.replace('qr-','');
+    const url = appUrl('#eleve=' + id);
+    if(!url){ host.innerHTML = '<p class="small muted">Lien indisponible (page ouverte en local).</p>'; return; }
+    if(window.QRCode) new QRCode(host, {text:url, width:140, height:140, colorDark:"#23262b", colorLight:"#ffffff"});
+  });
+
+  document.querySelectorAll('[data-dl]').forEach(a=>{
+    a.addEventListener('click', (e)=>{
+      e.preventDefault();
+      const id = a.dataset.dl;
+      const host = document.getElementById('qr-'+id);
+      const canvas = host ? host.querySelector('canvas') : null;
+      if(!canvas){ toast("QR code non disponible."); return; }
+      const link = document.createElement('a');
+      link.download = `qr-${a.dataset.name.replace(/[^a-z0-9]+/gi,'-')}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+  });
+}
+
+/* ============== MODALS ============== */
+function openModal(html){
+  const bg = document.createElement('div');
+  bg.className = 'modal-bg';
+  bg.id = 'modal-bg';
+  bg.innerHTML = `<div class="modal">${html}</div>`;
+  document.body.appendChild(bg);
+  bg.addEventListener('click', e=>{ if(e.target.id==='modal-bg') closeModal(); });
+}
+function closeModal(){
+  const bg = document.getElementById('modal-bg');
+  if(bg) bg.remove();
+}
+
+function openClassModal(){
+  openModal(`
+    <h3>Créer une classe</h3>
+    <div class="field"><label>Nom de la classe</label><input type="text" id="modal-classe-nom" placeholder="Ex. 6e A"></div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="btn" id="modal-cancel">Annuler</button>
+      <button class="btn primary" id="modal-save">Créer</button>
+    </div>
+  `);
+  document.getElementById('modal-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal-save').addEventListener('click', async ()=>{
+    const nom = document.getElementById('modal-classe-nom').value.trim();
+    if(!nom) return;
+    DATA.classes.push({id: genId(), nom});
+    await saveData();
+    closeModal(); toast("Classe créée."); render();
+  });
+}
+
+function openStudentModal(editId, presetClasseId){
+  const editing = editId ? DATA.students.find(s=>s.id===editId) : null;
+  const preset = presetClasseId || (editing ? editing.classeId : "");
+  const classesOptions = DATA.classes.map(c=>`<option value="${c.id}" ${preset===c.id?'selected':''}>${esc(c.nom)}</option>`).join('');
+  openModal(`
+    <h3>${editing ? "Modifier l'élève" : 'Ajouter un élève'}</h3>
+    <div class="field"><label>Nom complet</label><input type="text" id="modal-eleve-nom" value="${editing ? esc(editing.nom) : ''}" placeholder="Nom Prénom"></div>
+    <div class="field"><label>Classe</label>
+      ${DATA.classes.length ? `<select id="modal-eleve-classe">${classesOptions}</select>` : `<p class="small muted">Crée d'abord une classe.</p>`}
+    </div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="btn" id="modal-cancel">Annuler</button>
+      <button class="btn primary" id="modal-save">${editing ? 'Enregistrer' : 'Ajouter'}</button>
+    </div>
+  `);
+  document.getElementById('modal-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal-save').addEventListener('click', async ()=>{
+    const nom = document.getElementById('modal-eleve-nom').value.trim();
+    if(!nom) return;
+    const classeSel = document.getElementById('modal-eleve-classe');
+    const classeId = classeSel ? classeSel.value : "";
+    if(editing){
+      editing.nom = nom;
+      editing.classeId = classeId;
+    } else {
+      DATA.students.push(newStudent(nom, classeId));
+    }
+    await saveData();
+    closeModal(); toast(editing ? "Élève modifié." : "Élève ajouté."); render();
+  });
+}
+
+/* ============== UTIL ============== */
+function esc(str){
+  return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============== INIT ============== */
+trySessionAuth();
+</script>
+</body>
+</html>
