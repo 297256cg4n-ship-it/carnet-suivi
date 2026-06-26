@@ -62,15 +62,20 @@
       "id": "uo3u81od",
       "nom": "ALLALI Nadya",
       "classeId": "m68anewq",
-      "status": "marron",
+      "status": "rose",
       "points": 20,
       "zeroStreak": 0,
-      "savedMarche": "marron",
+      "savedMarche": "rose",
       "history": [
         {
           "date": "26/06/2026",
           "heure": "18:32",
           "label": "Marche modifiée manuellement → Marron."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "18:32",
+          "label": "Marche modifiée manuellement → Rose."
         }
       ]
     },
