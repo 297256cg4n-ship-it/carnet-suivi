@@ -122,11 +122,17 @@
       "id": "fle71dli",
       "nom": "BADEA Jérémy",
       "classeId": "m68anewq",
-      "status": "rose",
+      "status": "blanc",
       "points": 20,
       "zeroStreak": 0,
-      "savedMarche": "rose",
-      "history": []
+      "savedMarche": "blanc",
+      "history": [
+        {
+          "date": "26/06/2026",
+          "heure": "23:18",
+          "label": "Marche modifiée manuellement → Blanc."
+        }
+      ]
     },
     {
       "id": "ck08nvl3",
