@@ -572,11 +572,17 @@
       "id": "iy42lv1g",
       "nom": "ABDALLAH MOHAMED Magdi",
       "classeId": "2imozxeq",
-      "status": "rose",
+      "status": "orange",
       "points": 20,
       "zeroStreak": 0,
-      "savedMarche": "rose",
-      "history": []
+      "savedMarche": "orange",
+      "history": [
+        {
+          "date": "26/06/2026",
+          "heure": "18:53",
+          "label": "Marche modifiée manuellement → Orange."
+        }
+      ]
     },
     {
       "id": "n2j9dzzn",
