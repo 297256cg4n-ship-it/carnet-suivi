@@ -573,7 +573,7 @@
       "nom": "ABDALLAH MOHAMED Magdi",
       "classeId": "2imozxeq",
       "status": "jaune",
-      "points": 20,
+      "points": 16,
       "zeroStreak": 0,
       "savedMarche": "jaune",
       "history": [
@@ -679,6 +679,15 @@
           "date": "26/06/2026",
           "heure": "19:00",
           "label": "Pastille levée — retour à la marche Jaune."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "19:01",
+          "label": "-4 point(s) — Retard (N'a pas son carnet) (reste 16/20)",
+          "motif": "Retard — N'a pas son carnet",
+          "sanctionneur": "Quentin",
+          "points": 4,
+          "type": "retrait"
         }
       ]
     },
