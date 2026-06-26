@@ -1111,8 +1111,8 @@
       "id": "aosjjfwr",
       "nom": "ABDOULAYE Ashta",
       "classeId": "qfjs7wnm",
-      "status": "vert",
-      "points": 20,
+      "status": "pastille",
+      "points": 0,
       "zeroStreak": 0,
       "savedMarche": "vert",
       "history": [
@@ -1125,6 +1125,11 @@
           "date": "26/06/2026",
           "heure": "18:59",
           "label": "Marche modifiée manuellement → Vert."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "18:59",
+          "label": "Mise en pastille manuelle (droits suspendus)."
         }
       ]
     },
