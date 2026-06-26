@@ -572,10 +572,10 @@
       "id": "iy42lv1g",
       "nom": "ABDALLAH MOHAMED Magdi",
       "classeId": "2imozxeq",
-      "status": "jaune",
+      "status": "blanc",
       "points": 20,
       "zeroStreak": 0,
-      "savedMarche": "jaune",
+      "savedMarche": "blanc",
       "history": [
         {
           "date": "26/06/2026",
@@ -698,6 +698,11 @@
           "date": "26/06/2026",
           "heure": "20:24",
           "label": "Pastille levée — retour à la marche Jaune."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "20:24",
+          "label": "Marche modifiée manuellement → Blanc."
         }
       ]
     },
