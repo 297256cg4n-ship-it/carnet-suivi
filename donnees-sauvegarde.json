@@ -123,11 +123,41 @@
         "id": "fle71dli",
         "nom": "BADEA Jérémy",
         "classeId": "m68anewq",
-        "status": "rose",
-        "points": 20,
+        "status": "jaune",
+        "points": 17,
         "zeroStreak": 0,
-        "savedMarche": "rose",
-        "history": []
+        "savedMarche": "jaune",
+        "history": [
+          {
+            "date": "26/06/2026",
+            "heure": "23:18",
+            "label": "Marche modifiée manuellement → Blanc."
+          },
+          {
+            "date": "26/06/2026",
+            "heure": "23:18",
+            "label": "Marche modifiée manuellement → Jaune."
+          },
+          {
+            "date": "26/06/2026",
+            "heure": "23:18",
+            "label": "Mise en pastille manuelle (droits suspendus)."
+          },
+          {
+            "date": "26/06/2026",
+            "heure": "23:19",
+            "label": "Pastille levée — retour à la marche Jaune."
+          },
+          {
+            "date": "26/06/2026",
+            "heure": "23:19",
+            "label": "-3 point(s) — Retard (Retard de 25mn) (reste 17/20)",
+            "motif": "Retard — Retard de 25mn",
+            "sanctionneur": "M. Girard",
+            "points": 3,
+            "type": "retrait"
+          }
+        ]
       },
       {
         "id": "ck08nvl3",
@@ -573,10 +603,10 @@
         "id": "iy42lv1g",
         "nom": "ABDALLAH MOHAMED Magdi",
         "classeId": "2imozxeq",
-        "status": "jaune",
-        "points": 16,
+        "status": "marron",
+        "points": 20,
         "zeroStreak": 0,
-        "savedMarche": "jaune",
+        "savedMarche": "marron",
         "history": [
           {
             "date": "26/06/2026",
@@ -689,6 +719,64 @@
             "sanctionneur": "Quentin",
             "points": 4,
             "type": "retrait"
+          },
+          {
+            "date": "26/06/2026",
+            "heure": "20:24",
+            "label": "Mise en pastille manuelle (droits suspendus)."
+          },
+          {
+            "date": "26/06/2026",
+            "heure": "20:24",
+            "label": "Pastille levée — retour à la marche Jaune."
+          },
+          {
+            "date": "26/06/2026",
+            "heure": "20:24",
+            "label": "Marche modifiée manuellement → Blanc."
+          },
+          {
+            "date": "26/06/2026",
+            "heure": "20:24",
+            "label": "Marche modifiée manuellement → Marron."
+          },
+          {
+            "date": "26/06/2026",
+            "heure": "20:25",
+            "label": "Marche modifiée manuellement → Rose."
+          },
+          {
+            "date": "26/06/2026",
+            "heure": "20:25",
+            "label": "-5 point(s) — Comportement (Bagarre) (reste 15/20)",
+            "motif": "Comportement — Bagarre",
+            "sanctionneur": "Evgeniya",
+            "points": 5,
+            "type": "retrait"
+          },
+          {
+            "date": "26/06/2026",
+            "heure": "20:25",
+            "label": "-5 point(s) — Comportement (Bagarre) (reste 10/20)",
+            "motif": "Comportement — Bagarre",
+            "sanctionneur": "Evgeniya",
+            "points": 5,
+            "type": "retrait"
+          },
+          {
+            "date": "26/06/2026",
+            "heure": "20:27",
+            "label": "Marche modifiée manuellement → Marron."
+          },
+          {
+            "date": "26/06/2026",
+            "heure": "20:27",
+            "label": "Marche modifiée manuellement → Blanc."
+          },
+          {
+            "date": "26/06/2026",
+            "heure": "20:27",
+            "label": "Marche modifiée manuellement → Marron."
           }
         ]
       },
@@ -2617,7 +2705,18 @@
         "points": 20,
         "zeroStreak": 0,
         "savedMarche": "rose",
-        "history": []
+        "history": [
+          {
+            "date": "26/06/2026",
+            "heure": "20:22",
+            "label": "Marche modifiée manuellement → Blanc."
+          },
+          {
+            "date": "26/06/2026",
+            "heure": "20:22",
+            "label": "Marche modifiée manuellement → Rose."
+          }
+        ]
       },
       {
         "id": "bwwsiqdl",
@@ -3554,6 +3653,6 @@
     "currentWeekStart": "2026-06-26",
     "passwordHash": "7c95d892059a921b7321b0598123c9bb054add80e7539c6ac68e0cfcd56b6a42"
   },
-  "label": "Réinitialisation des points de ABDALLAH MOHAMED Magdi",
-  "date": "26/06/2026 19:01:26"
+  "label": "Réinitialisation des points de BADEA Jérémy",
+  "date": "26/06/2026 23:20:44"
 }
