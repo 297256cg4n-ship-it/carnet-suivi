@@ -122,8 +122,8 @@
       "id": "fle71dli",
       "nom": "BADEA Jérémy",
       "classeId": "m68anewq",
-      "status": "jaune",
-      "points": 20,
+      "status": "pastille",
+      "points": 0,
       "zeroStreak": 0,
       "savedMarche": "jaune",
       "history": [
@@ -136,6 +136,11 @@
           "date": "26/06/2026",
           "heure": "23:18",
           "label": "Marche modifiée manuellement → Jaune."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "23:18",
+          "label": "Mise en pastille manuelle (droits suspendus)."
         }
       ]
     },
