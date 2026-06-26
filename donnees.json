@@ -573,7 +573,7 @@
       "nom": "ABDALLAH MOHAMED Magdi",
       "classeId": "2imozxeq",
       "status": "rose",
-      "points": 20,
+      "points": 15,
       "zeroStreak": 0,
       "savedMarche": "rose",
       "history": [
@@ -713,6 +713,15 @@
           "date": "26/06/2026",
           "heure": "20:25",
           "label": "Marche modifiée manuellement → Rose."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "20:25",
+          "label": "-5 point(s) — Comportement (Bagarre) (reste 15/20)",
+          "motif": "Comportement — Bagarre",
+          "sanctionneur": "Evgeniya",
+          "points": 5,
+          "type": "retrait"
         }
       ]
     },
