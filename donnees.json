@@ -123,7 +123,7 @@
       "nom": "BADEA Jérémy",
       "classeId": "m68anewq",
       "status": "jaune",
-      "points": 20,
+      "points": 17,
       "zeroStreak": 0,
       "savedMarche": "jaune",
       "history": [
@@ -146,6 +146,15 @@
           "date": "26/06/2026",
           "heure": "23:19",
           "label": "Pastille levée — retour à la marche Jaune."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "23:19",
+          "label": "-3 point(s) — Retard (Retard de 25mn) (reste 17/20)",
+          "motif": "Retard — Retard de 25mn",
+          "sanctionneur": "M. Girard",
+          "points": 3,
+          "type": "retrait"
         }
       ]
     },
