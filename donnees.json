@@ -53,7 +53,248 @@
       "nom": "3C"
     }
   ],
-  "students": [],
+  "students": [
+    {
+      "id": "uo3u81od",
+      "nom": "ALLALI Nadya",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "msdmtzea",
+      "nom": "AMELINE Hawaii",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "dsjhruw5",
+      "nom": "BABES Mohamed",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "fle71dli",
+      "nom": "BADEA Jérémy",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "ck08nvl3",
+      "nom": "BAVY Syndjin",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "2bpoxux3",
+      "nom": "BELHACHEMI Jawad",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "z17tc1so",
+      "nom": "BLIDI Maïssa",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "a4hlyqyh",
+      "nom": "BOUZAOUT Issa",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "z830rt2q",
+      "nom": "CHANTA Reda",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "uk6yb3n7",
+      "nom": "CIUNGU Narcisa",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "8hq84ntd",
+      "nom": "DELEMER Kylian",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "rc17w7yb",
+      "nom": "DUAULT GIRONNET Djeanevra",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "ptpgehnj",
+      "nom": "GUNGOR Sahra",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "fs35aqd4",
+      "nom": "HAOUA Abdelkader",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "qd72youo",
+      "nom": "KEROMNES Sacha",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "s1ul976u",
+      "nom": "KHATIRI Ilham",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "hzt4cex7",
+      "nom": "MAISONNEUVE Brian",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "2r9wdfj9",
+      "nom": "MBARGA MBALLA Maëva",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "6dr20iuv",
+      "nom": "MOUMINI Rouchdine",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "ol5ixjw2",
+      "nom": "MUNTU MANZAMBI Allegra",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "h2u1yf83",
+      "nom": "OHRANI Mikele",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "7ltxks40",
+      "nom": "SINAMA-VALLIAMEE Serena",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "wjc24zka",
+      "nom": "TAJER Ines",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    },
+    {
+      "id": "16ih5p21",
+      "nom": "YAHI Adem",
+      "classeId": "m68anewq",
+      "status": "rose",
+      "points": 20,
+      "zeroStreak": 0,
+      "savedMarche": "rose",
+      "history": []
+    }
+  ],
   "weeks": [],
   "currentWeekStart": "2026-06-26",
   "passwordHash": "7c95d892059a921b7321b0598123c9bb054add80e7539c6ac68e0cfcd56b6a42"
