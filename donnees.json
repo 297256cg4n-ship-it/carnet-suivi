@@ -1802,8 +1802,8 @@
       "id": "mhfycyls",
       "nom": "ABRAHA Ryan-Bayram",
       "classeId": "bexef32g",
-      "status": "orange",
-      "points": 20,
+      "status": "pastille",
+      "points": 0,
       "zeroStreak": 0,
       "savedMarche": "orange",
       "history": [
@@ -1846,6 +1846,11 @@
           "date": "26/06/2026",
           "heure": "19:00",
           "label": "Marche modifiée manuellement → Orange."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "19:00",
+          "label": "Mise en pastille manuelle (droits suspendus)."
         }
       ]
     },
