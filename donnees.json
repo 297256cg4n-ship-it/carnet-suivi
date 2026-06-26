@@ -572,8 +572,8 @@
       "id": "iy42lv1g",
       "nom": "ABDALLAH MOHAMED Magdi",
       "classeId": "2imozxeq",
-      "status": "jaune",
-      "points": 16,
+      "status": "pastille",
+      "points": 0,
       "zeroStreak": 0,
       "savedMarche": "jaune",
       "history": [
@@ -688,6 +688,11 @@
           "sanctionneur": "Quentin",
           "points": 4,
           "type": "retrait"
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "20:24",
+          "label": "Mise en pastille manuelle (droits suspendus)."
         }
       ]
     },
