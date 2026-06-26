@@ -573,7 +573,7 @@
       "nom": "ABDALLAH MOHAMED Magdi",
       "classeId": "2imozxeq",
       "status": "jaune",
-      "points": 20,
+      "points": 17,
       "zeroStreak": 0,
       "savedMarche": "jaune",
       "history": [
@@ -693,6 +693,15 @@
           "date": "26/06/2026",
           "heure": "19:01",
           "label": "Points réinitialisés manuellement à 20/20."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "19:05",
+          "label": "-3 point(s) — Travail (Huhh) (reste 17/20)",
+          "motif": "Travail — Huhh",
+          "sanctionneur": "Hjh",
+          "points": 3,
+          "type": "retrait"
         }
       ]
     },
