@@ -124,7 +124,7 @@
         "nom": "BADEA Jérémy",
         "classeId": "m68anewq",
         "status": "jaune",
-        "points": 17,
+        "points": 20,
         "zeroStreak": 0,
         "savedMarche": "jaune",
         "history": [
@@ -156,6 +156,11 @@
             "sanctionneur": "M. Girard",
             "points": 3,
             "type": "retrait"
+          },
+          {
+            "date": "26/06/2026",
+            "heure": "23:20",
+            "label": "Points réinitialisés manuellement à 20/20."
           }
         ]
       },
@@ -3653,6 +3658,6 @@
     "currentWeekStart": "2026-06-26",
     "passwordHash": "7c95d892059a921b7321b0598123c9bb054add80e7539c6ac68e0cfcd56b6a42"
   },
-  "label": "Réinitialisation des points de BADEA Jérémy",
-  "date": "26/06/2026 23:20:44"
+  "label": "Nouvelle semaine — toutes les classes",
+  "date": "26/06/2026 23:23:14"
 }
