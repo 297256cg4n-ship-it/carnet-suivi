@@ -26,10 +26,20 @@
       "nom": "ad",
       "classeId": "",
       "status": "rose",
-      "points": 20,
+      "points": 17,
       "zeroStreak": 0,
       "savedMarche": "rose",
-      "history": []
+      "history": [
+        {
+          "date": "26/06/2026",
+          "heure": "18:20",
+          "label": "-3 point(s) — Travail (Pas de cahier) (reste 17/20)",
+          "motif": "Travail — Pas de cahier",
+          "sanctionneur": "M Girard",
+          "points": 3,
+          "type": "retrait"
+        }
+      ]
     }
   ],
   "weeks": [],
