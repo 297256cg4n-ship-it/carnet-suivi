@@ -1802,8 +1802,8 @@
       "id": "mhfycyls",
       "nom": "ABRAHA Ryan-Bayram",
       "classeId": "bexef32g",
-      "status": "pastille",
-      "points": 0,
+      "status": "marron",
+      "points": 20,
       "zeroStreak": 0,
       "savedMarche": "marron",
       "history": [
@@ -1836,6 +1836,11 @@
           "date": "26/06/2026",
           "heure": "19:00",
           "label": "Mise en pastille manuelle (droits suspendus)."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "19:00",
+          "label": "Pastille levée — retour à la marche Marron."
         }
       ]
     },
