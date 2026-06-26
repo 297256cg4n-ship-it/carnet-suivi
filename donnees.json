@@ -123,7 +123,7 @@
       "nom": "BADEA Jérémy",
       "classeId": "m68anewq",
       "status": "jaune",
-      "points": 17,
+      "points": 20,
       "zeroStreak": 0,
       "savedMarche": "jaune",
       "history": [
@@ -155,6 +155,11 @@
           "sanctionneur": "M. Girard",
           "points": 3,
           "type": "retrait"
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "23:20",
+          "label": "Points réinitialisés manuellement à 20/20."
         }
       ]
     },
