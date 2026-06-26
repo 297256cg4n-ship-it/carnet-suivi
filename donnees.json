@@ -572,8 +572,8 @@
       "id": "iy42lv1g",
       "nom": "ABDALLAH MOHAMED Magdi",
       "classeId": "2imozxeq",
-      "status": "orange",
-      "points": 20,
+      "status": "pastille",
+      "points": 0,
       "zeroStreak": 0,
       "savedMarche": "orange",
       "history": [
@@ -634,6 +634,11 @@
           "date": "26/06/2026",
           "heure": "18:58",
           "label": "Pastille levée — retour à la marche Orange."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "18:58",
+          "label": "Mise en pastille manuelle (droits suspendus)."
         }
       ]
     },
