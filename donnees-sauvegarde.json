@@ -1,0 +1,52 @@
+{
+  "snapshot": {
+    "classes": [],
+    "students": [
+      {
+        "id": "hvtmr4yj",
+        "nom": "a",
+        "classeId": "",
+        "status": "rose",
+        "points": 20,
+        "zeroStreak": 0,
+        "savedMarche": "rose",
+        "history": []
+      },
+      {
+        "id": "izhzluau",
+        "nom": "b",
+        "classeId": "",
+        "status": "rose",
+        "points": 20,
+        "zeroStreak": 0,
+        "savedMarche": "rose",
+        "history": []
+      },
+      {
+        "id": "ghgud05a",
+        "nom": "ad",
+        "classeId": "",
+        "status": "rose",
+        "points": 17,
+        "zeroStreak": 0,
+        "savedMarche": "rose",
+        "history": [
+          {
+            "date": "26/06/2026",
+            "heure": "18:20",
+            "label": "-3 point(s) — Travail (Pas de cahier) (reste 17/20)",
+            "motif": "Travail — Pas de cahier",
+            "sanctionneur": "M Girard",
+            "points": 3,
+            "type": "retrait"
+          }
+        ]
+      }
+    ],
+    "weeks": [],
+    "currentWeekStart": "2026-06-26",
+    "passwordHash": "7c95d892059a921b7321b0598123c9bb054add80e7539c6ac68e0cfcd56b6a42"
+  },
+  "label": "Suppression de la fiche de a",
+  "date": "26/06/2026 18:24:20"
+}
