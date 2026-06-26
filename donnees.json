@@ -654,6 +654,16 @@
           "date": "26/06/2026",
           "heure": "18:58",
           "label": "Mise en pastille manuelle (droits suspendus)."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "18:58",
+          "label": "Pastille levée — retour à la marche Jaune."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "18:58",
+          "label": "Mise en pastille manuelle (droits suspendus)."
         }
       ]
     },
