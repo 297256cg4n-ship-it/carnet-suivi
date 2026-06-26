@@ -573,7 +573,7 @@
       "nom": "ABDALLAH MOHAMED Magdi",
       "classeId": "2imozxeq",
       "status": "bleu",
-      "points": 20,
+      "points": 17,
       "zeroStreak": 0,
       "savedMarche": "bleu",
       "history": [
@@ -601,6 +601,15 @@
           "date": "26/06/2026",
           "heure": "18:55",
           "label": "Marche modifiée manuellement → Bleu."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "18:55",
+          "label": "-3 point(s) — Comportement (hrule dans les couloirs) (reste 17/20)",
+          "motif": "Comportement — hrule dans les couloirs",
+          "sanctionneur": "Quentin",
+          "points": 3,
+          "type": "retrait"
         }
       ]
     },
