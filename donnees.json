@@ -1111,8 +1111,8 @@
       "id": "aosjjfwr",
       "nom": "ABDOULAYE Ashta",
       "classeId": "qfjs7wnm",
-      "status": "pastille",
-      "points": 0,
+      "status": "vert",
+      "points": 20,
       "zeroStreak": 0,
       "savedMarche": "vert",
       "history": [
@@ -1150,6 +1150,11 @@
           "date": "26/06/2026",
           "heure": "18:59",
           "label": "Mise en pastille manuelle (droits suspendus)."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "18:59",
+          "label": "Pastille levée — retour à la marche Vert."
         }
       ]
     },
@@ -1797,11 +1802,17 @@
       "id": "mhfycyls",
       "nom": "ABRAHA Ryan-Bayram",
       "classeId": "bexef32g",
-      "status": "rose",
+      "status": "jaune",
       "points": 20,
       "zeroStreak": 0,
-      "savedMarche": "rose",
-      "history": []
+      "savedMarche": "jaune",
+      "history": [
+        {
+          "date": "26/06/2026",
+          "heure": "18:59",
+          "label": "Marche modifiée manuellement → Jaune."
+        }
+      ]
     },
     {
       "id": "nrvyoj1n",
