@@ -2612,11 +2612,17 @@
       "id": "lq1j6p0w",
       "nom": "ZIDANE Mohamed Lotfi",
       "classeId": "fwkmrg3u",
-      "status": "rose",
+      "status": "blanc",
       "points": 20,
       "zeroStreak": 0,
-      "savedMarche": "rose",
-      "history": []
+      "savedMarche": "blanc",
+      "history": [
+        {
+          "date": "26/06/2026",
+          "heure": "20:22",
+          "label": "Marche modifiée manuellement → Blanc."
+        }
+      ]
     },
     {
       "id": "bwwsiqdl",
