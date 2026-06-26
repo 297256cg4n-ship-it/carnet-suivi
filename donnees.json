@@ -1,5 +1,10 @@
 {
-  "classes": [],
+  "classes": [
+    {
+      "id": "m68anewq",
+      "nom": "6A"
+    }
+  ],
   "students": [],
   "weeks": [],
   "currentWeekStart": "2026-06-26",
