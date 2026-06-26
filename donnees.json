@@ -63,7 +63,7 @@
       "nom": "ALLALI Nadya",
       "classeId": "m68anewq",
       "status": "rose",
-      "points": 20,
+      "points": 15,
       "zeroStreak": 0,
       "savedMarche": "rose",
       "history": [
@@ -86,6 +86,15 @@
           "date": "26/06/2026",
           "heure": "18:33",
           "label": "Pastille levée — retour à la marche Rose."
+        },
+        {
+          "date": "26/06/2026",
+          "heure": "18:34",
+          "label": "-5 point(s) — Travail (ne rend toujours pas son travail après deux délais octroyés) (reste 15/20)",
+          "motif": "Travail — ne rend toujours pas son travail après deux délais octroyés",
+          "sanctionneur": "M. UGUEN",
+          "points": 5,
+          "type": "retrait"
         }
       ]
     },
