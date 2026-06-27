@@ -63,6 +63,36 @@ nav.tabs button{background:transparent;border:1px solid transparent;color:#cfcab
 nav.tabs button.active{background:#f3f1e9;color:var(--ink);}
 nav.tabs button:hover:not(.active){border-color:#454a52;}
 main{padding:26px 22px 60px;max-width:1100px;margin:0 auto;}
+
+/* ===== Menu "..." pour les actions admin (replié sur mobile) ===== */
+.admin-menu{position:relative;}
+.admin-menu-trigger{display:none;}
+.admin-menu-panel{display:contents;}
+.admin-menu-dropdown{display:none;}
+
+/* ===== Responsive mobile : topbar compacte ===== */
+@media (max-width:720px){
+  header.topbar{padding:10px 12px;gap:8px;flex-wrap:wrap;}
+  header.topbar .brand h1{font-size:14px;}
+  header.topbar .brand .step-mark span{width:4px;}
+  header.topbar .brand .step-mark span:nth-child(1){height:10px;}
+  header.topbar .brand .step-mark span:nth-child(2){height:13px;}
+  header.topbar .brand .step-mark span:nth-child(3){height:16px;}
+  header.topbar .brand .step-mark span:nth-child(4){height:19px;}
+  nav.tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:4px;flex:1 1 100%;order:3;padding-bottom:2px;}
+  nav.tabs::-webkit-scrollbar{height:0;}
+  nav.tabs button{padding:7px 11px;font-size:13px;white-space:nowrap;flex-shrink:0;}
+  /* Les 4 boutons admin se replient dans un menu déroulant compact */
+  .admin-menu{order:2;margin-left:auto;}
+  .admin-menu-trigger{display:inline-flex;background:transparent;border:1px solid #454a52;color:#f3f1e9;width:36px;height:36px;border-radius:7px;font-size:18px;align-items:center;justify-content:center;}
+  .admin-menu-panel{display:none;}
+  .admin-menu.open .admin-menu-panel{
+    display:flex;flex-direction:column;position:absolute;top:44px;right:0;background:var(--paper-2);
+    border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.18);
+    padding:8px;gap:4px;min-width:220px;z-index:40;
+  }
+  .admin-menu.open .admin-menu-panel .btn{width:100%;text-align:left;}
+}
 .muted{color:var(--muted);}
 .card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px;}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
@@ -185,11 +215,15 @@ tr.row-link:hover{background:#f3f1e9;}
       <button data-tab="qrcodes">QR codes</button>
       <button data-tab="semaines">Semaines</button>
     </nav>
-    <div class="row">
-      <button class="btn" id="export-btn" title="Télécharger une copie de sauvegarde">Exporter</button>
-      <button class="btn" id="change-pwd-btn" title="Changer le mot de passe pour tout le monde">Changer le mot de passe</button>
-      <button class="btn" id="restore-btn" title="Annuler la dernière réinitialisation">Annuler la dernière action</button>
-      <button class="btn" id="logout-btn">Verrouiller</button>
+    <div class="admin-menu" id="admin-menu">
+      <button class="admin-menu-trigger" id="admin-menu-trigger" aria-label="Menu">⋯</button>
+      <div class="admin-menu-panel">
+        <button class="btn" id="export-btn" title="Télécharger une copie de sauvegarde">Exporter</button>
+        <button class="btn" id="change-pwd-btn" title="Changer le mot de passe pour tout le monde">Changer le mot de passe</button>
+        <button class="btn" id="undo-btn" title="Annuler ta dernière action (et seulement la tienne)">↩ Annuler ma dernière action</button>
+        <button class="btn" id="restore-btn" title="Restaurer l'état d'avant la dernière suppression/réinitialisation (pour tout le monde)">Restaurer avant suppression</button>
+        <button class="btn" id="logout-btn">Verrouiller</button>
+      </div>
     </div>
   </header>
   <main id="main"></main>
@@ -209,7 +243,7 @@ const CATEGORIES = [
   {key:"materiel",label:"Matériel / tenue"},
   {key:"respect",label:"Respect"},
   {key:"securite",label:"Sécurité"},
-  {key:"toilettes",label:"Toilettes"},
+  {key:"toilette",label:"Toilette"},
 ];
 
 let DATA = {classes:[], students:[]};
@@ -219,6 +253,8 @@ let currentClassFilter = "";
 let currentSearchQuery = "";
 let currentClasseId = null;
 let lastKnownSha = null; // empreinte de version du fichier de données côté GitHub, pour détecter les conflits d'écriture
+let lastKnownData = null; // dernière version connue de DATA, pour calculer un diff en cas de conflit
+let undoStack = []; // pile locale (à cette session navigateur) des actions annulables par CETTE personne
 
 /* ============== CONFIGURATION (déjà faite — rien à modifier ici) ==============
    Cette application stocke ses données dans UN SEUL fichier JSON central,
@@ -278,6 +314,7 @@ async function loadData(){
   if(!DATA.students) DATA.students = [];
   if(!DATA.weeks) DATA.weeks = [];
   if(!DATA.currentWeekStart) DATA.currentWeekStart = todayISO();
+  lastKnownData = JSON.parse(JSON.stringify(DATA)); // référence pour calculer les diffs futurs
 }
 function todayISO(){ return new Date().toISOString().slice(0,10); }
 function formatDateFr(iso){
@@ -285,17 +322,111 @@ function formatDateFr(iso){
   const d = new Date(iso+'T00:00:00');
   return d.toLocaleDateString('fr-FR', {day:'2-digit', month:'long', year:'numeric'});
 }
-async function saveData(){
-  try{
-    lastKnownSha = await _ghWriteFile('donnees.json', DATA, lastKnownSha, 'Mise à jour du carnet de suivi');
-  }catch(e){
-    if(e.message === 'CONFLICT'){
-      toast("⚠️ Un(e) collègue vient d'enregistrer en même temps. Recharge la page pour repartir de la dernière version avant de continuer.");
-    } else {
-      toast("⚠️ Enregistrement impossible (connexion ou accès GitHub). Réessaie dans un instant.");
+
+/* ---- Fusion en cas d'écriture concurrente ----
+   Calcule ce qui a changé localement entre "avant" (lastKnownData, l'état
+   au moment de la dernière lecture/écriture réussie) et "après" (DATA,
+   l'état actuel avec l'action de l'utilisateur déjà appliquée), puis
+   réapplique CE SEUL changement par-dessus la version la plus fraîche du
+   serveur. Ainsi, deux collègues qui travaillent sur des élèves/classes
+   différents au même moment ne s'écrasent jamais l'un l'autre.
+*/
+function _diffById(beforeArr, afterArr){
+  const beforeMap = new Map((beforeArr||[]).map(x=>[x.id, x]));
+  const afterMap = new Map((afterArr||[]).map(x=>[x.id, x]));
+  const added = [], updated = [], removedIds = [];
+  for(const [id, item] of afterMap){
+    if(!beforeMap.has(id)) added.push(item);
+    else if(JSON.stringify(beforeMap.get(id)) !== JSON.stringify(item)) updated.push(item);
+  }
+  for(const id of beforeMap.keys()){ if(!afterMap.has(id)) removedIds.push(id); }
+  return { added, updated, removedIds };
+}
+function _applyDiff(serverArr, diff){
+  let result = (serverArr||[]).filter(x=>!diff.removedIds.includes(x.id));
+  for(const upd of diff.updated){
+    const idx = result.findIndex(x=>x.id===upd.id);
+    if(idx >= 0) result[idx] = upd; else result.push(upd); // si supprimé côté serveur entre-temps, on le rajoute
+  }
+  for(const add of diff.added){
+    if(!result.some(x=>x.id===add.id)) result.push(add);
+  }
+  return result;
+}
+function _mergeIntoServerData(serverData, localBefore, localAfter){
+  const merged = JSON.parse(JSON.stringify(serverData));
+  merged.students = _applyDiff(serverData.students, _diffById(localBefore.students, localAfter.students));
+  merged.classes  = _applyDiff(serverData.classes,  _diffById(localBefore.classes,  localAfter.classes));
+  merged.weeks    = _applyDiff(serverData.weeks,    _diffById(localBefore.weeks,    localAfter.weeks));
+  // currentWeekStart / passwordHash : on garde la valeur la plus récente
+  // localement si elle a changé, sinon on garde celle du serveur.
+  if(localAfter.currentWeekStart !== localBefore.currentWeekStart) merged.currentWeekStart = localAfter.currentWeekStart;
+  if(localAfter.passwordHash !== localBefore.passwordHash) merged.passwordHash = localAfter.passwordHash;
+  return merged;
+}
+
+async function saveData(actionLabel){
+  const localBefore = lastKnownData;
+  const localAfter = JSON.parse(JSON.stringify(DATA));
+  const MAX_RETRIES = 4;
+  for(let attempt = 0; attempt <= MAX_RETRIES; attempt++){
+    try{
+      lastKnownSha = await _ghWriteFile('donnees.json', DATA, lastKnownSha, 'Mise à jour du carnet de suivi');
+      lastKnownData = localAfter;
+      if(actionLabel !== false){ // false = action système (restauration, etc.), à ne pas proposer en "annuler"
+        undoStack.push({ before: localBefore, after: localAfter, label: actionLabel || 'Dernière action', date: new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) });
+        if(undoStack.length > 20) undoStack.shift(); // on garde un historique raisonnable, pas illimité
+      }
+      return; // succès
+    }catch(e){
+      if(e.message === 'CONFLICT' && attempt < MAX_RETRIES){
+        // Un(e) collègue a sauvegardé entre-temps : on relit sa version,
+        // on y réapplique NOTRE changement, et on retente — invisible pour
+        // l'utilisateur, sauf en tout dernier recours.
+        try{
+          const { sha, content: serverData } = await _ghReadFile('donnees.json');
+          lastKnownSha = sha;
+          DATA = _mergeIntoServerData(serverData, localBefore, localAfter);
+          render(); // l'affichage reflète aussi les changements faits par le/la collègue
+          continue;
+        }catch(readErr){
+          toast("⚠️ Enregistrement impossible (connexion ou accès GitHub). Réessaie dans un instant.");
+          return;
+        }
+      } else if(e.message === 'CONFLICT'){
+        toast("⚠️ Trop de collègues enregistrent en même temps. Réessaie dans un instant.");
+        return;
+      } else {
+        toast("⚠️ Enregistrement impossible (connexion ou accès GitHub). Réessaie dans un instant.");
+        return;
+      }
     }
   }
 }
+
+/* ---- Annulation de SES PROPRES dernières actions (pile locale au navigateur) ----
+   Chaque personne ne peut annuler que ce qu'elle a fait elle-même dans cette
+   session ; les actions des collègues, faites entre-temps, ne sont jamais
+   affectées — exactement comme pour la fusion en cas d'écriture concurrente.
+*/
+async function undoLastAction(){
+  if(!undoStack.length){ toast("Rien à annuler."); return; }
+  const last = undoStack.pop();
+  try{
+    const { sha, content: serverData } = await _ghReadFile('donnees.json');
+    lastKnownSha = sha;
+    // On applique l'INVERSE du changement : "after" devient "before" et vice-versa
+    DATA = _mergeIntoServerData(serverData, last.after, last.before);
+    lastKnownData = JSON.parse(JSON.stringify(DATA));
+    await _ghWriteFile('donnees.json', DATA, lastKnownSha, 'Annulation : ' + last.label).then(sha=>{ lastKnownSha = sha; });
+    toast(`Action annulée : ${last.label}`);
+    render();
+  }catch(e){
+    undoStack.push(last); // on remet l'action dans la pile, l'annulation n'a pas pu se faire
+    toast("⚠️ Impossible d'annuler pour le moment (connexion ou accès GitHub).");
+  }
+}
+
 async function backupBeforeReset(label){
   try{
     let sha = null;
@@ -308,13 +439,28 @@ async function restoreBackup(){
     const { content: backup } = await _ghReadFile('donnees-sauvegarde.json');
     if(!confirm(`Restaurer l'état d'avant « ${backup.label} » (sauvegardé le ${backup.date}) ? Les modifications faites depuis seront perdues pour tout le monde.`)) return;
     DATA = backup.snapshot;
-    await saveData();
+    await saveData(false);
     toast("Sauvegarde restaurée.");
     currentStudentId = null; currentClasseId = null; location.hash=''; currentTab='accueil';
     render();
   }catch(e){ toast("Aucune sauvegarde disponible, ou restauration impossible."); }
 }
 document.getElementById('restore-btn').addEventListener('click', restoreBackup);
+document.getElementById('undo-btn').addEventListener('click', undoLastAction);
+document.getElementById('admin-menu-trigger').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  document.getElementById('admin-menu').classList.toggle('open');
+});
+document.addEventListener('click', (e)=>{
+  const menu = document.getElementById('admin-menu');
+  if(menu && menu.classList.contains('open') && !menu.contains(e.target)){
+    menu.classList.remove('open');
+  }
+});
+// Refermer le menu après avoir cliqué une action dedans
+document.querySelectorAll('.admin-menu-panel .btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{ const m=document.getElementById('admin-menu'); if(m) m.classList.remove('open'); });
+});
 document.getElementById('change-pwd-btn').addEventListener('click', ()=>openChangePasswordModal());
 function genId(){ return Math.random().toString(36).slice(2,10); }
 
@@ -406,12 +552,12 @@ async function doStudentLogin(){
     if(!DATA.students.length) await loadData(); // chargement minimal si pas déjà fait
     const s = DATA.students.find(x=>x.id===studentId);
     if(!s){ errEl.textContent = "Fiche introuvable. Le QR code n'est peut-être plus valide."; return; }
-    // Le mot de passe élève est son nom de famille en majuscules. Si le nom
-    // complet contient un prénom composé, on compare au dernier "mot" du
-    // nom — mais le champ "nom" stocke en général juste le nom de famille,
-    // donc une comparaison directe insensible aux accents/espaces suffit.
+    // Le mot de passe élève est le PREMIER mot de son nom stocké (le nom de
+    // famille, puisque les fiches sont saisies au format "Nom Prénom"),
+    // en majuscules — plus simple à retenir et à taper qu'un nom complet.
     const normalize = (str)=>str.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-    if(normalize(val) === normalize(s.nom)){
+    const premierMot = (str)=> normalize(str).split(/\s+/)[0] || '';
+    if(normalize(val) === premierMot(s.nom)){
       showStudentReadOnlyView(s.id);
     } else {
       errEl.textContent = "Nom incorrect.";
@@ -434,7 +580,7 @@ async function doLogin(){
     const candidateHash = await sha256Hex(val);
     const validHash = DATA.passwordHash || await sha256Hex(atob(PASSWORD_ENCODED));
     if(candidateHash === validHash){
-      if(!DATA.passwordHash){ DATA.passwordHash = validHash; await saveData(); } // migration au premier lancement
+      if(!DATA.passwordHash){ DATA.passwordHash = validHash; await saveData(false); } // migration au premier lancement
       sessionStorage.setItem('cs-auth','1');
       await enterApp(true); // true = données déjà chargées, pas besoin de recharger
     } else {
@@ -467,17 +613,19 @@ async function enterApp(alreadyLoaded){
   render();
 }
 
+const PASSWORD_VALIDATORS = ["ce.0440286x@ac-nantes.fr", "matteo.girard@ac-nantes.fr"];
+
 function openChangePasswordModal(){
   openModal(`
     <h3>Changer le mot de passe</h3>
-    <p class="small muted" style="margin-bottom:12px;">Le nouveau mot de passe s'appliquera immédiatement pour tous les enseignants. Les sessions déjà ouvertes ne sont pas affectées avant leur prochaine connexion.</p>
+    <p class="small muted" style="margin-bottom:12px;">Pour des raisons de sécurité, ce changement doit être validé par l'un des responsables (${esc(PASSWORD_VALIDATORS.join(' ou '))}). Un code te sera communiqué par cette personne une fois ta demande envoyée.</p>
     <div class="field"><label>Mot de passe actuel</label><input type="password" id="pwd-current"></div>
-    <div class="field"><label>Nouveau mot de passe</label><input type="password" id="pwd-new"></div>
+    <div class="field"><label>Nouveau mot de passe souhaité</label><input type="password" id="pwd-new"></div>
     <div class="field"><label>Confirmer le nouveau mot de passe</label><input type="password" id="pwd-confirm"></div>
     <div id="pwd-err" class="err"></div>
     <div class="row" style="justify-content:flex-end;">
       <button class="btn" id="modal-cancel">Annuler</button>
-      <button class="btn primary" id="modal-save">Changer</button>
+      <button class="btn primary" id="modal-save">Envoyer la demande</button>
     </div>
   `);
   document.getElementById('modal-cancel').addEventListener('click', closeModal);
@@ -491,8 +639,36 @@ function openChangePasswordModal(){
     if(currentHash !== validHash){ errEl.textContent = "Mot de passe actuel incorrect."; return; }
     if(next.length < 6){ errEl.textContent = "Le nouveau mot de passe doit faire au moins 6 caractères."; return; }
     if(next !== confirmVal){ errEl.textContent = "Les deux nouveaux mots de passe ne correspondent pas."; return; }
-    DATA.passwordHash = await sha256Hex(next);
-    await saveData();
+    const code = Math.floor(100000 + Math.random()*900000).toString();
+    openValidationCodeModal(next, code);
+  });
+}
+
+function openValidationCodeModal(newPassword, code){
+  const subject = encodeURIComponent("Carnet de suivi — demande de changement de mot de passe");
+  const body = encodeURIComponent(
+    `Bonjour,\n\nJe souhaite changer le mot de passe du carnet de suivi.\nCode de validation à me transmettre en retour si vous approuvez : ${code}\n\nMerci.`
+  );
+  const mailtoUrl = `mailto:${PASSWORD_VALIDATORS.join(',')}?subject=${subject}&body=${body}`;
+
+  openModal(`
+    <h3>Validation nécessaire</h3>
+    <p class="small muted" style="margin-bottom:12px;">Un email pré-rempli va s'ouvrir, à envoyer à l'un des responsables. Une fois qu'il/elle t'aura communiqué le code en retour (par oral, SMS, etc.), saisis-le ici pour appliquer le changement.</p>
+    <p class="small" style="margin-bottom:12px;"><a href="${mailtoUrl}" target="_blank" id="pwd-mailto-link">→ Ouvrir l'email de demande de validation</a></p>
+    <div class="field"><label>Code de validation reçu</label><input type="text" id="pwd-code-input" placeholder="Ex : 482913" inputmode="numeric" maxlength="6"></div>
+    <div id="pwd-code-err" class="err"></div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="btn" id="modal-cancel">Annuler</button>
+      <button class="btn primary" id="modal-save">Valider le changement</button>
+    </div>
+  `);
+  document.getElementById('modal-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal-save').addEventListener('click', async ()=>{
+    const errEl = document.getElementById('pwd-code-err');
+    const entered = document.getElementById('pwd-code-input').value.trim();
+    if(entered !== code){ errEl.textContent = "Code incorrect."; return; }
+    DATA.passwordHash = await sha256Hex(newPassword);
+    await saveData('Changement du mot de passe');
     closeModal();
     toast("Mot de passe changé pour tout le monde.");
   });
@@ -634,11 +810,12 @@ function attachClassesEvents(){
     b.addEventListener('click', async (e)=>{
       e.stopPropagation();
       const id = b.dataset.del;
+      const classeNom = (DATA.classes.find(c=>c.id===id)||{}).nom || '';
       const n = DATA.students.filter(s=>s.classeId===id).length;
       if(n>0 && !confirm(`Cette classe contient ${n} élève(s), qui resteront sans classe. Continuer ?`)) return;
       await backupBeforeReset(`Suppression de la classe`);
       DATA.classes = DATA.classes.filter(c=>c.id!==id);
-      await saveData(); toast("Classe supprimée."); render();
+      await saveData(`Suppression de la classe « ${classeNom} »`); toast("Classe supprimée."); render();
     });
   });
   document.querySelectorAll('tr.row-link[data-classe]').forEach(tr=>{
@@ -704,7 +881,7 @@ function attachClasseDetailEvents(){
       for(const nom of names){
         DATA.students.push(newStudent(nom, classeId));
       }
-      await saveData();
+      await saveData(`Import de ${names.length} élève(s)`);
       statusEl.textContent = `${names.length} élève(s) importé(s) avec succès.`;
       toast(`${names.length} élève(s) ajouté(s).`);
       render();
@@ -808,7 +985,7 @@ function renderStudentReadOnlyView(studentId){
 
       <div class="card">
         <div class="section-title">Journal de suivi</div>
-        ${s.history.length ? `<table style="margin-top:12px;"><thead><tr><th>Date</th><th>Heure</th><th>Motif</th><th>Décidé par</th></tr></thead><tbody>${histRows}</tbody></table>`
+        ${s.history.length ? `<table style="margin-top:12px;"><thead><tr><th>Date</th><th>Heure</th><th>Motif</th><th>Retrait décidé par</th></tr></thead><tbody>${histRows}</tbody></table>`
           : `<p class="small muted" style="margin-top:12px;">Aucun évènement enregistré.</p>`}
       </div>
     </main>`;
@@ -828,7 +1005,7 @@ async function deleteStudent(id, {confirmMessage} = {}){
   // de classe et l'onglet QR codes en sont tous dérivés dynamiquement, donc
   // retirer l'élève ici suffit à le faire disparaître partout dans l'appli.
   DATA.students = DATA.students.filter(x=>x.id!==id);
-  await saveData();
+  await saveData(`Suppression de la fiche de ${s.nom}`);
   toast(`${s.nom} a été supprimé(e) de l'application.`);
   return true;
 }
@@ -914,7 +1091,7 @@ function renderFiche(id){
       <div class="section-title" style="margin-bottom:0;">Journal de suivi</div>
       <button class="btn" id="btn-export-pdf">Générer le récapitulatif PDF (4 dernières semaines)</button>
     </div>
-    ${s.history.length ? `<table style="margin-top:12px;"><thead><tr><th>Date</th><th>Heure</th><th>Motif</th><th>Sanction décidée par</th></tr></thead><tbody>${histRows}</tbody></table>`
+    ${s.history.length ? `<table style="margin-top:12px;"><thead><tr><th>Date</th><th>Heure</th><th>Motif</th><th>Retrait décidé par</th></tr></thead><tbody>${histRows}</tbody></table>`
       : `<p class="small muted" style="margin-top:12px;">Aucun évènement enregistré.</p>`}
   </div>
 
@@ -976,7 +1153,7 @@ function attachFicheEvents(){
       s.points = 20;
       s.zeroStreak = 0;
       logEvent(s, `Marche modifiée manuellement${wasP ? ' (sortie de pastille)' : ''} → ${MARCHE_LABEL[newMarche]}.`);
-      await saveData();
+      await saveData(`Changement de marche de ${s.nom} → ${MARCHE_LABEL[newMarche]}`);
       render();
     });
   });
@@ -989,7 +1166,7 @@ function attachFicheEvents(){
     await backupBeforeReset(`Réinitialisation des points de ${s.nom}`);
     s.points = 20;
     logEvent(s, `Points réinitialisés manuellement à 20/20.`);
-    await saveData();
+    await saveData(`Réinitialisation des points de ${s.nom}`);
     render();
   });
 
@@ -1007,7 +1184,7 @@ function attachFicheEvents(){
       s.points = 0;
       logEvent(s, `Mise en pastille manuelle (droits suspendus).`);
     }
-    await saveData();
+    await saveData(`${s.status==='pastille' ? 'Mise en pastille de' : 'Levée de pastille pour'} ${s.nom}`);
     render();
   });
 }
@@ -1029,7 +1206,7 @@ function openSanctionModal(studentId, categorie, montant){
     <h3>Retrait de ${montant} point(s) — ${esc(catLabel)}</h3>
     <p class="small muted" style="margin-bottom:14px;">Pour ${esc(s.nom)}. Ces informations seront gardées dans le journal de suivi de l'élève.</p>
     <div class="field"><label>Précision sur le motif (optionnel)</label><input type="text" id="sanction-motif" placeholder="Ex : a parlé pendant l'évaluation"></div>
-    <div class="field"><label>Nom de la personne qui sanctionne</label><input type="text" id="sanction-nom" placeholder="Ex : Mme Dupont"></div>
+    <div class="field"><label>Nom de la personne qui décide du retrait</label><input type="text" id="sanction-nom" placeholder="Ex : Mme Dupont"></div>
     <div id="sanction-err" class="err"></div>
     <div class="row" style="justify-content:flex-end;">
       <button class="btn" id="modal-cancel">Annuler</button>
@@ -1038,10 +1215,16 @@ function openSanctionModal(studentId, categorie, montant){
   `);
   document.getElementById('modal-cancel').addEventListener('click', closeModal);
   document.getElementById('sanction-nom').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('modal-save').click(); });
+  let _submitting = false;
   document.getElementById('modal-save').addEventListener('click', async ()=>{
+    if(_submitting) return; // empêche un double-clic ou un Entrée+clic de créer 2 retraits
     const nom = document.getElementById('sanction-nom').value.trim();
     const motif = document.getElementById('sanction-motif').value.trim();
     if(!nom){ document.getElementById('sanction-err').textContent = "Indique le nom de la personne qui sanctionne."; return; }
+    _submitting = true;
+    const saveBtn = document.getElementById('modal-save');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Enregistrement...';
     await retirerPoints(studentId, categorie, montant, {sanctionneur: nom, motif});
     closeModal();
     render();
@@ -1061,7 +1244,7 @@ async function retirerPoints(studentId, categorie, montant, who){
     points: montant,
     type: 'retrait'
   });
-  await saveData();
+  await saveData(`Retrait de ${montant} point(s) à ${s.nom} (${catLabel})`);
 }
 
 function exportFichePDF(studentId){
@@ -1128,7 +1311,7 @@ function exportFichePDF(studentId){
         : `<p class="empty">Pas encore assez de semaines archivées pour cette période (aucune semaine clôturée ne couvre encore cet élève).</p>`}
 
       <h2>Détail des évènements sur la période</h2>
-      ${histRowsPdf ? `<table><thead><tr><th>Date</th><th>Motif</th><th>Sanction décidée par</th></tr></thead><tbody>${histRowsPdf}</tbody></table>`
+      ${histRowsPdf ? `<table><thead><tr><th>Date</th><th>Motif</th><th>Retrait décidé par</th></tr></thead><tbody>${histRowsPdf}</tbody></table>`
         : `<p class="empty">Aucun évènement enregistré sur cette période.</p>`}
 
       <div class="footer">Document généré le ${formatDateFr(todayISO())} depuis le carnet de suivi de l'établissement.</div>
@@ -1194,7 +1377,7 @@ async function nouvelleSemaine(classeId){
     }
     s.points = 20;
   }
-  await saveData();
+  await saveData(classeId ? `Nouvelle semaine (classe)` : `Nouvelle semaine (tous les élèves)`);
   toast(classeId ? "Nouvelle semaine lancée pour cette classe." : "Nouvelle semaine lancée pour tous les élèves.");
   render();
 }
@@ -1335,7 +1518,7 @@ function openClassModal(){
     const nom = document.getElementById('modal-classe-nom').value.trim();
     if(!nom) return;
     DATA.classes.push({id: genId(), nom});
-    await saveData();
+    await saveData(`Création de la classe « ${nom} »`);
     closeModal(); toast("Classe créée."); render();
   });
 }
@@ -1367,7 +1550,7 @@ function openStudentModal(editId, presetClasseId){
     } else {
       DATA.students.push(newStudent(nom, classeId));
     }
-    await saveData();
+    await saveData(editing ? `Modification de la fiche de ${nom}` : `Ajout de l'élève ${nom}`);
     closeModal(); toast(editing ? "Élève modifié." : "Élève ajouté."); render();
   });
 }
