@@ -2410,10 +2410,10 @@
       "id": "p6k1nuzj",
       "nom": "MIHALACHE Ibraim",
       "classeId": "5x31t3sk",
-      "status": "blanc",
-      "points": 14,
+      "status": "pastille",
+      "points": 0,
       "zeroStreak": 0,
-      "savedMarche": "rose",
+      "savedMarche": "blanc",
       "history": [
         {
           "date": "26/06/2026",
@@ -2437,6 +2437,11 @@
           "sanctionneur": "Yautier Pierre",
           "points": 3,
           "type": "retrait"
+        },
+        {
+          "date": "27/06/2026",
+          "heure": "09:03",
+          "label": "Mise en pastille manuelle (droits suspendus)."
         }
       ]
     },
