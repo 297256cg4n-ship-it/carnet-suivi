@@ -2411,7 +2411,7 @@
       "nom": "MIHALACHE Ibraim",
       "classeId": "5x31t3sk",
       "status": "blanc",
-      "points": 17,
+      "points": 20,
       "zeroStreak": 0,
       "savedMarche": "blanc",
       "history": [
@@ -2456,6 +2456,20 @@
           "sanctionneur": "Yautier Pierre",
           "points": 3,
           "type": "retrait"
+        },
+        {
+          "date": "27/06/2026",
+          "heure": "09:04",
+          "label": "-3 point(s) — Comportement (reste 14/20)",
+          "motif": "Comportement",
+          "sanctionneur": "Yautier Pierre",
+          "points": 3,
+          "type": "retrait"
+        },
+        {
+          "date": "27/06/2026",
+          "heure": "09:06",
+          "label": "Points réinitialisés manuellement à 20/20."
         }
       ]
     },
