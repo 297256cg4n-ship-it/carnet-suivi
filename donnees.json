@@ -2410,8 +2410,8 @@
       "id": "p6k1nuzj",
       "nom": "MIHALACHE Ibraim",
       "classeId": "5x31t3sk",
-      "status": "pastille",
-      "points": 0,
+      "status": "blanc",
+      "points": 20,
       "zeroStreak": 0,
       "savedMarche": "blanc",
       "history": [
@@ -2442,6 +2442,11 @@
           "date": "27/06/2026",
           "heure": "09:03",
           "label": "Mise en pastille manuelle (droits suspendus)."
+        },
+        {
+          "date": "27/06/2026",
+          "heure": "09:03",
+          "label": "Pastille levée — retour à la marche Blanc."
         }
       ]
     },
