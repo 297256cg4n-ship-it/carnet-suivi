@@ -69,6 +69,11 @@ main{padding:26px 22px 60px;max-width:1100px;margin:0 auto;}
 .admin-menu-trigger{display:none;}
 .admin-menu-panel{display:contents;}
 .admin-menu-dropdown{display:none;}
+/* Sur desktop, les actions admin restent visibles mais plus discrètes que
+   les onglets principaux (Élèves, Classes...), pour ne pas leur faire
+   concurrence visuellement. */
+.admin-menu-panel .btn{padding:6px 10px;font-size:12.5px;font-weight:500;color:#cfcabb;border-color:#454a52;background:transparent;}
+.admin-menu-panel .btn:hover{color:#fff;border-color:#6a6f78;background:rgba(255,255,255,0.04);}
 
 /* ===== Responsive mobile : topbar compacte ===== */
 @media (max-width:720px){
@@ -91,7 +96,7 @@ main{padding:26px 22px 60px;max-width:1100px;margin:0 auto;}
     border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.18);
     padding:8px;gap:4px;min-width:220px;z-index:40;
   }
-  .admin-menu.open .admin-menu-panel .btn{width:100%;text-align:left;}
+  .admin-menu.open .admin-menu-panel .btn{width:100%;text-align:left;color:var(--ink);background:#fff;border-color:var(--line);font-size:14px;padding:9px 14px;}
 }
 .muted{color:var(--muted);}
 .card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px;}
@@ -221,7 +226,6 @@ tr.row-link:hover{background:#f3f1e9;}
         <button class="btn" id="export-btn" title="Télécharger une copie de sauvegarde">Exporter</button>
         <button class="btn" id="change-pwd-btn" title="Changer le mot de passe pour tout le monde">Changer le mot de passe</button>
         <button class="btn" id="undo-btn" title="Annuler ta dernière action (et seulement la tienne)">↩ Annuler ma dernière action</button>
-        <button class="btn" id="restore-btn" title="Restaurer l'état d'avant la dernière suppression/réinitialisation (pour tout le monde)">Restaurer avant suppression</button>
         <button class="btn" id="logout-btn">Verrouiller</button>
       </div>
     </div>
@@ -427,25 +431,6 @@ async function undoLastAction(){
   }
 }
 
-async function backupBeforeReset(label){
-  try{
-    let sha = null;
-    try{ const existing = await _ghReadFile('donnees-sauvegarde.json'); sha = existing.sha; }catch(e){ /* pas encore de sauvegarde, on la créera */ }
-    await _ghWriteFile('donnees-sauvegarde.json', {snapshot: DATA, label, date: new Date().toLocaleString('fr-FR')}, sha, 'Sauvegarde avant : ' + label);
-  }catch(e){ /* backup is best-effort, do not block the action */ }
-}
-async function restoreBackup(){
-  try{
-    const { content: backup } = await _ghReadFile('donnees-sauvegarde.json');
-    if(!confirm(`Restaurer l'état d'avant « ${backup.label} » (sauvegardé le ${backup.date}) ? Les modifications faites depuis seront perdues pour tout le monde.`)) return;
-    DATA = backup.snapshot;
-    await saveData(false);
-    toast("Sauvegarde restaurée.");
-    currentStudentId = null; currentClasseId = null; location.hash=''; currentTab='accueil';
-    render();
-  }catch(e){ toast("Aucune sauvegarde disponible, ou restauration impossible."); }
-}
-document.getElementById('restore-btn').addEventListener('click', restoreBackup);
 document.getElementById('undo-btn').addEventListener('click', undoLastAction);
 document.getElementById('admin-menu-trigger').addEventListener('click', (e)=>{
   e.stopPropagation();
@@ -813,7 +798,6 @@ function attachClassesEvents(){
       const classeNom = (DATA.classes.find(c=>c.id===id)||{}).nom || '';
       const n = DATA.students.filter(s=>s.classeId===id).length;
       if(n>0 && !confirm(`Cette classe contient ${n} élève(s), qui resteront sans classe. Continuer ?`)) return;
-      await backupBeforeReset(`Suppression de la classe`);
       DATA.classes = DATA.classes.filter(c=>c.id!==id);
       await saveData(`Suppression de la classe « ${classeNom} »`); toast("Classe supprimée."); render();
     });
@@ -1000,7 +984,6 @@ async function deleteStudent(id, {confirmMessage} = {}){
   const s = DATA.students.find(x=>x.id===id);
   if(!s) return false;
   if(!confirm(confirmMessage || `Supprimer définitivement la fiche de ${s.nom} ? Toutes ses données (historique, points, QR code) seront retirées de l'application : liste des élèves, classe, et onglet QR codes.`)) return false;
-  await backupBeforeReset(`Suppression de la fiche de ${s.nom}`);
   // DATA.students est la seule source de vérité : la liste élèves, le détail
   // de classe et l'onglet QR codes en sont tous dérivés dynamiquement, donc
   // retirer l'élève ici suffit à le faire disparaître partout dans l'appli.
@@ -1162,8 +1145,7 @@ function attachFicheEvents(){
   if(resetPtsBtn) resetPtsBtn.addEventListener('click', async ()=>{
     const s = DATA.students.find(x=>x.id===currentStudentId);
     if(!s) return;
-    if(!confirm(`Réinitialiser les points de ${s.nom} à 20/20 ? Une sauvegarde est faite avant, au cas où.`)) return;
-    await backupBeforeReset(`Réinitialisation des points de ${s.nom}`);
+    if(!confirm(`Réinitialiser les points de ${s.nom} à 20/20 ? Tu pourras annuler cette action via « Annuler ma dernière action » si besoin.`)) return;
     s.points = 20;
     logEvent(s, `Points réinitialisés manuellement à 20/20.`);
     await saveData(`Réinitialisation des points de ${s.nom}`);
@@ -1323,9 +1305,6 @@ function exportFichePDF(studentId){
 
 /* ============== NOUVELLE SEMAINE ============== */
 async function nouvelleSemaine(classeId){
-  const label = classeId ? `Nouvelle semaine — classe ${(DATA.classes.find(c=>c.id===classeId)||{}).nom||''}` : 'Nouvelle semaine — toutes les classes';
-  await backupBeforeReset(label);
-
   // archive un instantané daté de la semaine qui se termine, avant de la réinitialiser
   const endDate = todayISO();
   const snapshot = DATA.students.map(s=>({
