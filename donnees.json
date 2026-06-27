@@ -4591,7 +4591,7 @@
       "nom": "ABDELJAWAD Nour",
       "classeId": "6jzieeqo",
       "status": "orange",
-      "points": 17,
+      "points": 20,
       "zeroStreak": 0,
       "savedMarche": "orange",
       "history": [
@@ -4604,15 +4604,6 @@
           "date": "27/06/2026",
           "heure": "12:07",
           "label": "Marche modifiée manuellement → Orange."
-        },
-        {
-          "date": "27/06/2026",
-          "heure": "12:08",
-          "label": "-3 point(s) — Retard (Retard de 20mn) (reste 17/20)",
-          "motif": "Retard — Retard de 20mn",
-          "sanctionneur": "M. Girard",
-          "points": 3,
-          "type": "retrait"
         }
       ]
     },
