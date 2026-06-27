@@ -2411,7 +2411,7 @@
       "nom": "MIHALACHE Ibraim",
       "classeId": "5x31t3sk",
       "status": "blanc",
-      "points": 17,
+      "points": 14,
       "zeroStreak": 0,
       "savedMarche": "rose",
       "history": [
@@ -2424,6 +2424,15 @@
           "date": "27/06/2026",
           "heure": "09:02",
           "label": "-3 point(s) — Comportement (Insulte ses camarades) (reste 17/20)",
+          "motif": "Comportement — Insulte ses camarades",
+          "sanctionneur": "Yautier Pierre",
+          "points": 3,
+          "type": "retrait"
+        },
+        {
+          "date": "27/06/2026",
+          "heure": "09:02",
+          "label": "-3 point(s) — Comportement (Insulte ses camarades) (reste 14/20)",
           "motif": "Comportement — Insulte ses camarades",
           "sanctionneur": "Yautier Pierre",
           "points": 3,
