@@ -4590,20 +4590,15 @@
       "id": "p5vb8yvp",
       "nom": "ABDELJAWAD Nour",
       "classeId": "6jzieeqo",
-      "status": "orange",
+      "status": "blanc",
       "points": 20,
       "zeroStreak": 0,
-      "savedMarche": "orange",
+      "savedMarche": "rose",
       "history": [
         {
           "date": "26/06/2026",
           "heure": "23:23",
           "label": "Nouvelle semaine — tous les points conservés : montée à la marche Blanc."
-        },
-        {
-          "date": "27/06/2026",
-          "heure": "12:07",
-          "label": "Marche modifiée manuellement → Orange."
         }
       ]
     },
