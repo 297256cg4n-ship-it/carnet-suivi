@@ -176,6 +176,13 @@ tr.row-link:hover{background:#f3f1e9;}
   .card{border:none;box-shadow:none;}
 }
 .week-banner{display:flex;align-items:center;justify-content:space-between;background:#eef4f1;border:1px solid #cfe3da;border-radius:9px;padding:12px 16px;margin-bottom:16px;font-size:13px;gap:10px;flex-wrap:wrap;}
+.pastille-banner{display:flex;align-items:center;background:#fdeceb;border:1px solid #e3b9b9;color:#7a2020;border-radius:9px;padding:12px 16px;margin-bottom:16px;font-size:14px;font-weight:700;}
+tr.pastille-row{background:#fdeceb;font-weight:700;color:#7a2020;}
+tr.pastille-row td{border-bottom-color:#e3b9b9;}
+.pastille-card{border-color:#e3b9b9;}
+.pastille-card table th{color:#a32b2b;}
+nav.tabs button.tab-alert{color:#a32b2b;border-color:#e3b9b9;font-weight:700;}
+nav.tabs button.tab-alert.active{background:#fdeceb;color:#7a2020;}
 .week-banner strong{color:var(--accent);}
 .week-nav{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:16px;}
 .week-nav .week-label{font-weight:700;font-size:15px;min-width:260px;text-align:center;}
@@ -243,6 +250,7 @@ tr.row-link:hover{background:#f3f1e9;}
       <button data-tab="classes">Classes</button>
       <button data-tab="qrcodes">QR codes</button>
       <button data-tab="semaines">Semaines</button>
+      <button data-tab="pastilles" class="tab-alert">⚠ Pastilles</button>
     </nav>
     <div class="admin-menu" id="admin-menu">
       <button class="admin-menu-trigger" id="admin-menu-trigger" aria-label="Menu">⋯</button>
@@ -809,6 +817,7 @@ function render(){
   if(currentTab === 'classes'){ main.innerHTML = renderClasses(); attachClassesEvents(); return; }
   if(currentTab === 'qrcodes'){ main.innerHTML = renderQrCodes(); attachQrCodesEvents(); return; }
   if(currentTab === 'semaines'){ main.innerHTML = renderSemaines(); attachSemainesEvents(); return; }
+  if(currentTab === 'pastilles'){ main.innerHTML = renderPastilles(); attachPastillesEvents(); return; }
   main.innerHTML = renderAccueil(); attachAccueilEvents();
 }
 
@@ -1064,7 +1073,7 @@ function renderStudentReadOnlyView(studentId){
   const ladderSteps = MARCHES.map((m,i)=>`<div class="step m-${m} ${s.status===m?'current':''}">${i+1}. ${MARCHE_LABEL[m]}</div>`).join('');
   const pct = s.status==='pastille' ? 0 : Math.round((s.points/20)*100);
   const histRows = s.history.slice().reverse().slice(0,30).map(h=>`
-    <tr>
+    <tr class="${isPastilleEvent(h) ? 'pastille-row' : ''}">
       <td>${esc(h.date)}</td>
       <td>${esc(h.heure || '—')}</td>
       <td>${esc(h.motif || h.label)}</td>
@@ -1139,7 +1148,7 @@ function renderFiche(id){
   const ladderSteps = MARCHES.map((m,i)=>`<div class="step m-${m} ${s.status===m?'current':''}">${i+1}. ${MARCHE_LABEL[m]}</div>`).join('');
   const pct = s.status==='pastille' ? 0 : Math.round((s.points/20)*100);
   const histRows = s.history.slice().reverse().slice(0,60).map(h=>`
-    <tr>
+    <tr class="${isPastilleEvent(h) ? 'pastille-row' : ''}">
       <td>${esc(h.date)}</td>
       <td>${esc(h.heure || '—')}</td>
       <td>${esc(h.motif || h.label)}</td>
@@ -1555,6 +1564,60 @@ function attachSemainesEvents(){
       const willShow = detail.classList.contains('hidden');
       detail.classList.toggle('hidden', !willShow);
       btn.textContent = willShow ? 'Masquer le détail' : 'Voir le détail';
+    });
+  });
+}
+
+/* ============== PASTILLES (vue de vigilance) ============== */
+function isPastilleEvent(h){
+  // Une entrée de journal "concerne la pastille" si son texte (mise en
+  // pastille, levée, ou fin de pastille en début de semaine) la mentionne —
+  // utilisé pour la mettre en évidence dans le journal de suivi.
+  return (h.label || '').toLowerCase().includes('pastille');
+}
+function pastilleSince(s){
+  // Cherche la dernière entrée du journal correspondant à une MISE en
+  // pastille (pas une levée), pour afficher depuis quand l'élève y est.
+  const entry = s.history.slice().reverse().find(h=>
+    (h.label || '').toLowerCase().includes('pastille') &&
+    !(h.label || '').toLowerCase().includes('fin de pastille') &&
+    !(h.label || '').toLowerCase().includes('levée')
+  );
+  return entry ? entry.date : null;
+}
+function renderPastilles(){
+  const students = DATA.students.filter(s=>s.status==='pastille').sort((a,b)=>a.nom.localeCompare(b.nom));
+  const rows = students.map(s=>{
+    const classe = DATA.classes.find(c=>c.id===s.classeId);
+    const since = pastilleSince(s);
+    return `<tr class="row-link" data-id="${s.id}">
+      <td>${esc(s.nom)}</td>
+      <td>${classe ? esc(classe.nom) : '<span class="muted">—</span>'}</td>
+      <td>${since ? esc(since) : '<span class="muted">—</span>'}</td>
+      <td>${isAdmin() ? `<button class="btn warn" data-del-student="${s.id}">Supprimer</button>` : ''}</td>
+    </tr>`;
+  }).join('');
+  return `
+  <div class="pastille-banner">
+    <span>⚠ ${students.length} élève(s) actuellement en pastille — droits suspendus pour la semaine en cours.</span>
+  </div>
+  <div class="card pastille-card">
+    ${students.length ? `<table><thead><tr><th>Nom</th><th>Classe</th><th>En pastille depuis le</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+      : `<div class="empty">Aucun élève en pastille pour le moment.</div>`}
+  </div>`;
+}
+function attachPastillesEvents(){
+  document.querySelectorAll('[data-del-student]').forEach(b=>{
+    b.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      const ok = await deleteStudent(b.dataset.delStudent);
+      if(ok) render();
+    });
+  });
+  document.querySelectorAll('tr.row-link[data-id]').forEach(tr=>{
+    tr.addEventListener('click', (e)=>{
+      if(e.target.closest('[data-del-student]')) return;
+      currentStudentId = tr.dataset.id; currentTab='fiche'; location.hash = '#eleve='+tr.dataset.id; render();
     });
   });
 }
