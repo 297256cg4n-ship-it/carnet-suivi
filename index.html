@@ -73,6 +73,9 @@ main{padding:26px 22px 60px;max-width:1100px;margin:0 auto;}
    les onglets principaux (Élèves, Classes...), pour ne pas leur faire
    concurrence visuellement. */
 .admin-menu-panel .btn{padding:6px 10px;font-size:12.5px;font-weight:500;color:#cfcabb;border-color:#454a52;background:transparent;}
+.role-badge{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:3px 9px;border-radius:20px;margin-left:10px;background:#454a52;color:#cfcabb;}
+body.is-admin .role-badge{background:var(--accent-2);color:#fff;}
+body:not(.is-admin) .admin-only{display:none !important;}
 .admin-menu-panel .btn:hover{color:#fff;border-color:#6a6f78;background:rgba(255,255,255,0.04);}
 
 /* ===== Responsive mobile : topbar compacte ===== */
@@ -106,6 +109,8 @@ main{padding:26px 22px 60px;max-width:1100px;margin:0 auto;}
 .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
 .btn.primary:hover{background:#0c4c41;}
 .btn.warn{background:#fff;color:#a32b2b;border-color:#e3b9b9;}
+.btn.btn-danger-solid{background:#a32b2b;color:#fff;border-color:#a32b2b;font-weight:700;}
+.btn.btn-danger-solid:hover{background:#8a2222;border-color:#8a2222;}
 .btn.warn:hover{background:#fbeaea;}
 input[type=text], input[type=number], select{padding:9px 11px;border:1px solid var(--line);border-radius:7px;font-size:14px;}
 table{width:100%;border-collapse:collapse;font-size:14px;}
@@ -183,12 +188,30 @@ tr.row-link:hover{background:#f3f1e9;}
 <!-- LOGIN -->
 <div id="login-screen">
   <div class="login-card">
-    <div class="eyebrow">Carnet de suivi · espace enseignants</div>
-    <h1>Mot de passe</h1>
-    <div id="login-err" class="err"></div>
-    <input type="password" id="login-input" placeholder="Mot de passe" autofocus>
-    <button class="primary" id="login-btn">Entrer</button>
-    <p class="small" style="margin-top:14px">Accès partagé : toutes les fiches sont visibles et modifiables par l'ensemble des enseignants.</p>
+    <div id="login-choice-step">
+      <div class="eyebrow">Carnet de suivi</div>
+      <h1>Qui es-tu ?</h1>
+      <button class="primary" id="choose-teacher-btn" style="margin-bottom:10px;">Espace enseignant</button>
+      <button class="btn" id="choose-admin-btn" style="width:100%;">Espace administrateur</button>
+    </div>
+    <div id="login-teacher-step" class="hidden">
+      <div class="eyebrow">Carnet de suivi · espace enseignants</div>
+      <h1>Mot de passe</h1>
+      <div id="login-err" class="err"></div>
+      <input type="password" id="login-input" placeholder="Mot de passe" autofocus>
+      <button class="primary" id="login-btn">Entrer</button>
+      <p class="small" style="margin-top:14px">Accès partagé : toutes les fiches sont visibles et modifiables par l'ensemble des enseignants.</p>
+      <p class="small" style="margin-top:8px"><a href="#" id="back-to-choice-1">← Retour</a></p>
+    </div>
+    <div id="login-admin-step" class="hidden">
+      <div class="eyebrow">Carnet de suivi · espace administrateur</div>
+      <h1>Mot de passe administrateur</h1>
+      <div id="login-admin-err" class="err"></div>
+      <input type="password" id="login-admin-input" placeholder="Mot de passe administrateur">
+      <button class="primary" id="login-admin-btn">Entrer</button>
+      <p class="small" style="margin-top:14px">Droits supplémentaires : suppression d'élèves/classes, changement du mot de passe.</p>
+      <p class="small" style="margin-top:8px"><a href="#" id="back-to-choice-2">← Retour</a></p>
+    </div>
   </div>
 </div>
 
@@ -213,6 +236,7 @@ tr.row-link:hover{background:#f3f1e9;}
     <div class="brand">
       <span class="step-mark"><span></span><span></span><span></span><span></span></span>
       <h1>Carnet de suivi — les Marches</h1>
+      <span class="role-badge" id="role-badge"></span>
     </div>
     <nav class="tabs" id="tabs">
       <button data-tab="accueil" class="active">Élèves</button>
@@ -224,7 +248,7 @@ tr.row-link:hover{background:#f3f1e9;}
       <button class="admin-menu-trigger" id="admin-menu-trigger" aria-label="Menu">⋯</button>
       <div class="admin-menu-panel">
         <button class="btn" id="export-btn" title="Télécharger une copie de sauvegarde">Exporter</button>
-        <button class="btn" id="change-pwd-btn" title="Changer le mot de passe pour tout le monde">Changer le mot de passe</button>
+        <button class="btn admin-only" id="change-pwd-btn" title="Changer le mot de passe pour tout le monde">Changer le mot de passe</button>
         <button class="btn" id="undo-btn" title="Annuler ta dernière action (et seulement la tienne)">↩ Annuler ma dernière action</button>
         <button class="btn" id="logout-btn">Verrouiller</button>
       </div>
@@ -238,6 +262,7 @@ tr.row-link:hover{background:#f3f1e9;}
 <script>
 /* ============== CONFIG ============== */
 const PASSWORD_ENCODED = "Q0Q0NDEwMCE="; // décodé en base64 au moment de la vérification, pour ne pas l'afficher en clair dans le code
+const ADMIN_PASSWORD_ENCODED = "Q0RBRE1JTjQ0MTAwIQ=="; // mot de passe administrateur, même principe
 const MARCHES = ["rose","blanc","jaune","orange","vert","bleu","marron"];
 const MARCHE_LABEL = {rose:"Rose",blanc:"Blanc",jaune:"Jaune",orange:"Orange",vert:"Vert",bleu:"Bleu",marron:"Marron"};
 const CATEGORIES = [
@@ -247,11 +272,12 @@ const CATEGORIES = [
   {key:"materiel",label:"Matériel / tenue"},
   {key:"respect",label:"Respect"},
   {key:"securite",label:"Sécurité"},
-  {key:"toilette",label:"Toilette"},
+  {key:"toilette",label:"Toilettes"},
 ];
 
 let DATA = {classes:[], students:[]};
 let currentTab = "accueil";
+let currentRole = null; // 'teacher' ou 'admin' — déterminé à la connexion
 let currentStudentId = null;
 let currentClassFilter = "";
 let currentSearchQuery = "";
@@ -321,6 +347,16 @@ async function loadData(){
   lastKnownData = JSON.parse(JSON.stringify(DATA)); // référence pour calculer les diffs futurs
 }
 function todayISO(){ return new Date().toISOString().slice(0,10); }
+function mondayOf(isoDate){
+  // Renvoie le lundi (ISO yyyy-mm-dd) de la semaine contenant la date donnée.
+  // En JS, getDay() renvoie 0=dimanche, 1=lundi, ..., 6=samedi.
+  const d = new Date(isoDate + 'T00:00:00');
+  const day = d.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day; // si dimanche, reculer de 6 jours
+  d.setDate(d.getDate() + diffToMonday);
+  return d.toISOString().slice(0,10);
+}
+function currentMondayISO(){ return mondayOf(todayISO()); }
 function formatDateFr(iso){
   if(!iso) return '';
   const d = new Date(iso+'T00:00:00');
@@ -519,10 +555,29 @@ function showStudentLoginScreen(studentId){
   screen.style.display = 'flex';
   screen.dataset.studentId = studentId;
 }
+function trySessionAuth(){
+  const savedRole = sessionStorage.getItem('cs-auth');
+  if(savedRole === 'teacher' || savedRole === 'admin'){ currentRole = savedRole; enterApp(); return; }
+  // Si on arrive via un QR code de fiche élève (#eleve=ID) sans session
+  // enseignant/admin active, on propose l'accès élève en lecture seule
+  // plutôt que l'écran de choix enseignant/admin.
+  const hash = location.hash;
+  if(hash.startsWith('#eleve=')){
+    showStudentLoginScreen(hash.replace('#eleve=',''));
+  }
+}
+function showStudentLoginScreen(studentId){
+  document.getElementById('login-screen').style.display = 'none';
+  const screen = document.getElementById('student-login-screen');
+  screen.classList.remove('hidden');
+  screen.style.display = 'flex';
+  screen.dataset.studentId = studentId;
+}
 document.getElementById('goto-teacher-login').addEventListener('click', (e)=>{
   e.preventDefault();
   document.getElementById('student-login-screen').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
+  showLoginStep('choice');
 });
 document.getElementById('student-login-btn').addEventListener('click', doStudentLogin);
 document.getElementById('student-login-input').addEventListener('keydown', e=>{ if(e.key==='Enter') doStudentLogin(); });
@@ -553,26 +608,49 @@ async function doStudentLogin(){
     btn.disabled = false;
   }
 }
-document.getElementById('login-btn').addEventListener('click', doLogin);
-document.getElementById('login-input').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
-async function doLogin(){
-  const btn = document.getElementById('login-btn');
-  const val = document.getElementById('login-input').value;
+
+/* ---- Choix de l'espace (enseignant / administrateur) ---- */
+function showLoginStep(step){
+  document.getElementById('login-choice-step').classList.toggle('hidden', step !== 'choice');
+  document.getElementById('login-teacher-step').classList.toggle('hidden', step !== 'teacher');
+  document.getElementById('login-admin-step').classList.toggle('hidden', step !== 'admin');
+  if(step === 'teacher') document.getElementById('login-input').focus();
+  if(step === 'admin') document.getElementById('login-admin-input').focus();
+}
+document.getElementById('choose-teacher-btn').addEventListener('click', ()=>showLoginStep('teacher'));
+document.getElementById('choose-admin-btn').addEventListener('click', ()=>showLoginStep('admin'));
+document.getElementById('back-to-choice-1').addEventListener('click', (e)=>{ e.preventDefault(); showLoginStep('choice'); });
+document.getElementById('back-to-choice-2').addEventListener('click', (e)=>{ e.preventDefault(); showLoginStep('choice'); });
+
+document.getElementById('login-btn').addEventListener('click', ()=>doLogin('teacher'));
+document.getElementById('login-input').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin('teacher'); });
+document.getElementById('login-admin-btn').addEventListener('click', ()=>doLogin('admin'));
+document.getElementById('login-admin-input').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin('admin'); });
+
+async function doLogin(role){
+  const isAdmin = role === 'admin';
+  const btn = document.getElementById(isAdmin ? 'login-admin-btn' : 'login-btn');
+  const val = document.getElementById(isAdmin ? 'login-admin-input' : 'login-input').value;
+  const errEl = document.getElementById(isAdmin ? 'login-admin-err' : 'login-err');
   btn.disabled = true;
-  document.getElementById('login-err').textContent = '';
+  errEl.textContent = '';
   try{
-    await loadData(); // nécessaire pour récupérer le hash du mot de passe à jour
+    await loadData(); // nécessaire pour récupérer le(s) hash à jour
     const candidateHash = await sha256Hex(val);
-    const validHash = DATA.passwordHash || await sha256Hex(atob(PASSWORD_ENCODED));
-    if(candidateHash === validHash){
-      if(!DATA.passwordHash){ DATA.passwordHash = validHash; await saveData(false); } // migration au premier lancement
-      sessionStorage.setItem('cs-auth','1');
-      await enterApp(true); // true = données déjà chargées, pas besoin de recharger
+    if(isAdmin){
+      const validAdminHash = DATA.adminPasswordHash || await sha256Hex(atob(ADMIN_PASSWORD_ENCODED));
+      if(candidateHash !== validAdminHash){ errEl.textContent = "Mot de passe administrateur incorrect."; return; }
+      if(!DATA.adminPasswordHash){ DATA.adminPasswordHash = validAdminHash; await saveData(false); }
     } else {
-      document.getElementById('login-err').textContent = "Mot de passe incorrect.";
+      const validHash = DATA.passwordHash || await sha256Hex(atob(PASSWORD_ENCODED));
+      if(candidateHash !== validHash){ errEl.textContent = "Mot de passe incorrect."; return; }
+      if(!DATA.passwordHash){ DATA.passwordHash = validHash; await saveData(false); }
     }
+    currentRole = role;
+    sessionStorage.setItem('cs-auth', role);
+    await enterApp(true); // true = données déjà chargées, pas besoin de recharger
   }catch(e){
-    document.getElementById('login-err').textContent = e.message.includes('HTTPS')
+    errEl.textContent = e.message.includes('HTTPS')
       ? e.message
       : "Connexion impossible. Vérifie ta connexion internet.";
   }finally{
@@ -581,14 +659,20 @@ async function doLogin(){
 }
 document.getElementById('logout-btn').addEventListener('click', ()=>{
   sessionStorage.removeItem('cs-auth');
+  currentRole = null;
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('login-input').value='';
+  document.getElementById('login-admin-input').value='';
+  showLoginStep('choice');
 });
 async function enterApp(alreadyLoaded){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='block';
   if(!alreadyLoaded) await loadData();
+  document.body.classList.toggle('is-admin', currentRole === 'admin');
+  document.getElementById('role-badge').textContent = currentRole === 'admin' ? 'Administrateur' : 'Enseignant';
+  await checkAutoNewWeek();
   // hash routing for QR-code direct links
   const hash = location.hash;
   if(hash.startsWith('#eleve=')){
@@ -598,13 +682,44 @@ async function enterApp(alreadyLoaded){
   render();
 }
 
+/* ---- Clôture automatique de semaine (lundi → dimanche) ----
+   Comme cette page n'a pas de serveur tournant en permanence, la bascule
+   ne peut se déclencher qu'au moment où quelqu'un ouvre l'app. À chaque
+   connexion, on vérifie si le lundi de la semaine en cours est postérieur
+   à la date de début de la semaine enregistrée — si oui, une ou plusieurs
+   semaines ont été "sautées" (ex: personne n'a ouvert l'app du vendredi au
+   mardi suivant) et on les clôture toutes silencieusement, dans l'ordre.
+*/
+async function checkAutoNewWeek(){
+  const thisMonday = currentMondayISO();
+  let safety = 0; // garde-fou pour éviter une boucle infinie en cas de donnée corrompue
+  let closedCount = 0;
+  while(DATA.currentWeekStart < thisMonday && safety < 52){
+    const nextMonday = mondayOf(new Date(new Date(DATA.currentWeekStart+'T00:00:00').getTime() + 7*24*3600*1000).toISOString().slice(0,10));
+    await nouvelleSemaine(null, nextMonday);
+    closedCount++;
+    safety++;
+  }
+  if(closedCount > 0){
+    toast(closedCount === 1 ? "Nouvelle semaine démarrée (lundi)." : `${closedCount} semaines clôturées automatiquement.`);
+  }
+}
+
 const PASSWORD_VALIDATORS = ["ce.0440286x@ac-nantes.fr", "matteo.girard@ac-nantes.fr"];
 
 function openChangePasswordModal(){
+  if(currentRole !== 'admin'){ toast("Seul le compte administrateur peut changer le mot de passe."); return; }
   openModal(`
-    <h3>Changer le mot de passe</h3>
+    <h3>Changer un mot de passe</h3>
     <p class="small muted" style="margin-bottom:12px;">Pour des raisons de sécurité, ce changement doit être validé par l'un des responsables (${esc(PASSWORD_VALIDATORS.join(' ou '))}). Un code te sera communiqué par cette personne une fois ta demande envoyée.</p>
-    <div class="field"><label>Mot de passe actuel</label><input type="password" id="pwd-current"></div>
+    <div class="field">
+      <label>Quel mot de passe veux-tu changer ?</label>
+      <select id="pwd-target">
+        <option value="teacher">Mot de passe enseignant (partagé)</option>
+        <option value="admin">Mot de passe administrateur</option>
+      </select>
+    </div>
+    <div class="field"><label>Mot de passe administrateur actuel (pour confirmer ton identité)</label><input type="password" id="pwd-current"></div>
     <div class="field"><label>Nouveau mot de passe souhaité</label><input type="password" id="pwd-new"></div>
     <div class="field"><label>Confirmer le nouveau mot de passe</label><input type="password" id="pwd-confirm"></div>
     <div id="pwd-err" class="err"></div>
@@ -616,29 +731,34 @@ function openChangePasswordModal(){
   document.getElementById('modal-cancel').addEventListener('click', closeModal);
   document.getElementById('modal-save').addEventListener('click', async ()=>{
     const errEl = document.getElementById('pwd-err');
+    const target = document.getElementById('pwd-target').value; // 'teacher' ou 'admin'
     const current = document.getElementById('pwd-current').value;
     const next = document.getElementById('pwd-new').value;
     const confirmVal = document.getElementById('pwd-confirm').value;
+    // On confirme toujours l'identité avec le mot de passe ADMIN actuel,
+    // même si c'est le mot de passe enseignant qu'on s'apprête à changer —
+    // puisque seul l'admin a le droit de faire ce changement.
     const currentHash = await sha256Hex(current);
-    const validHash = DATA.passwordHash || await sha256Hex(atob(PASSWORD_ENCODED));
-    if(currentHash !== validHash){ errEl.textContent = "Mot de passe actuel incorrect."; return; }
+    const validAdminHash = DATA.adminPasswordHash || await sha256Hex(atob(ADMIN_PASSWORD_ENCODED));
+    if(currentHash !== validAdminHash){ errEl.textContent = "Mot de passe administrateur actuel incorrect."; return; }
     if(next.length < 6){ errEl.textContent = "Le nouveau mot de passe doit faire au moins 6 caractères."; return; }
     if(next !== confirmVal){ errEl.textContent = "Les deux nouveaux mots de passe ne correspondent pas."; return; }
     const code = Math.floor(100000 + Math.random()*900000).toString();
-    openValidationCodeModal(next, code);
+    openValidationCodeModal(next, code, target);
   });
 }
 
-function openValidationCodeModal(newPassword, code){
+function openValidationCodeModal(newPassword, code, target){
   const subject = encodeURIComponent("Carnet de suivi — demande de changement de mot de passe");
+  const targetLabel = target === 'admin' ? 'administrateur' : 'enseignant (partagé)';
   const body = encodeURIComponent(
-    `Bonjour,\n\nJe souhaite changer le mot de passe du carnet de suivi.\nCode de validation à me transmettre en retour si vous approuvez : ${code}\n\nMerci.`
+    `Bonjour,\n\nJe souhaite changer le mot de passe ${targetLabel} du carnet de suivi.\nCode de validation à me transmettre en retour si vous approuvez : ${code}\n\nMerci.`
   );
   const mailtoUrl = `mailto:${PASSWORD_VALIDATORS.join(',')}?subject=${subject}&body=${body}`;
 
   openModal(`
     <h3>Validation nécessaire</h3>
-    <p class="small muted" style="margin-bottom:12px;">Un email pré-rempli va s'ouvrir, à envoyer à l'un des responsables. Une fois qu'il/elle t'aura communiqué le code en retour (par oral, SMS, etc.), saisis-le ici pour appliquer le changement.</p>
+    <p class="small muted" style="margin-bottom:12px;">Un email pré-rempli va s'ouvrir, à envoyer à l'un des responsables. Une fois qu'il/elle t'aura communiqué le code en retour (par oral, SMS, etc.), saisis-le ici pour appliquer le changement du mot de passe ${esc(targetLabel)}.</p>
     <p class="small" style="margin-bottom:12px;"><a href="${mailtoUrl}" target="_blank" id="pwd-mailto-link">→ Ouvrir l'email de demande de validation</a></p>
     <div class="field"><label>Code de validation reçu</label><input type="text" id="pwd-code-input" placeholder="Ex : 482913" inputmode="numeric" maxlength="6"></div>
     <div id="pwd-code-err" class="err"></div>
@@ -652,10 +772,14 @@ function openValidationCodeModal(newPassword, code){
     const errEl = document.getElementById('pwd-code-err');
     const entered = document.getElementById('pwd-code-input').value.trim();
     if(entered !== code){ errEl.textContent = "Code incorrect."; return; }
-    DATA.passwordHash = await sha256Hex(newPassword);
-    await saveData('Changement du mot de passe');
+    if(target === 'admin'){
+      DATA.adminPasswordHash = await sha256Hex(newPassword);
+    } else {
+      DATA.passwordHash = await sha256Hex(newPassword);
+    }
+    await saveData(`Changement du mot de passe ${targetLabel}`);
     closeModal();
-    toast("Mot de passe changé pour tout le monde.");
+    toast(`Mot de passe ${targetLabel} changé.`);
   });
 }
 
@@ -707,7 +831,7 @@ function renderAccueil(){
       <td>${classe ? esc(classe.nom) : '<span class="muted">—</span>'}</td>
       <td>${badge}</td>
       <td>${s.status==='pastille' ? '<span class="muted">—</span>' : s.points + ' / 20'}</td>
-      <td><button class="btn warn" data-del-student="${s.id}">Supprimer</button></td>
+      <td>${isAdmin() ? `<button class="btn warn" data-del-student="${s.id}">Supprimer</button>` : ''}</td>
     </tr>`;
   }).join('');
 
@@ -733,7 +857,7 @@ function renderAccueil(){
 
 function statusBadge(s){
   if(s.status === 'pastille') return `<span class="badge m-pastille">Pastille</span>`;
-  return `<span class="badge m-${s.status}">${MARCHE_LABEL[s.status]}</span>`;
+  return `<span class="badge m-${s.status}">${marcheLabelNum(s.status)}</span>`;
 }
 
 function attachAccueilEvents(){
@@ -776,7 +900,7 @@ function renderClasses(){
   const rows = DATA.classes.map(c=>{
     const n = DATA.students.filter(s=>s.classeId===c.id).length;
     return `<tr class="row-link" data-classe="${c.id}"><td>${esc(c.nom)}</td><td>${n} élève(s)</td>
-      <td><button class="btn warn" data-del="${c.id}">Supprimer</button></td></tr>`;
+      <td>${isAdmin() ? `<button class="btn warn" data-del="${c.id}">Supprimer</button>` : ''}</td></tr>`;
   }).join('');
   return `
   <div class="row" style="justify-content:space-between;margin-bottom:14px;">
@@ -794,6 +918,7 @@ function attachClassesEvents(){
   document.querySelectorAll('[data-del]').forEach(b=>{
     b.addEventListener('click', async (e)=>{
       e.stopPropagation();
+      if(!isAdmin()){ toast("Seul le compte administrateur peut supprimer une classe."); return; }
       const id = b.dataset.del;
       const classeNom = (DATA.classes.find(c=>c.id===id)||{}).nom || '';
       const n = DATA.students.filter(s=>s.classeId===id).length;
@@ -820,7 +945,7 @@ function renderClasseDetail(classeId){
       <td>${esc(s.nom)}</td>
       <td>${statusBadge(s)}</td>
       <td>${s.status==='pastille' ? '<span class="muted">—</span>' : s.points + ' / 20'}</td>
-      <td><button class="btn warn" data-del-student="${s.id}">Supprimer</button></td>
+      <td>${isAdmin() ? `<button class="btn warn" data-del-student="${s.id}">Supprimer</button>` : ''}</td>
     </tr>`).join('');
   return `
   <a class="back-link" href="#" id="back-to-classes">← Retour aux classes</a>
@@ -936,7 +1061,7 @@ function renderStudentReadOnlyView(studentId){
   const screen = document.getElementById('student-view-screen');
   if(!s){ screen.innerHTML = `<div class="login-card" style="margin:60px auto;"><p>Fiche introuvable.</p></div>`; return; }
   const classe = DATA.classes.find(c=>c.id===s.classeId);
-  const ladderSteps = MARCHES.map(m=>`<div class="step m-${m} ${s.status===m?'current':''}">${MARCHE_LABEL[m]}</div>`).join('');
+  const ladderSteps = MARCHES.map((m,i)=>`<div class="step m-${m} ${s.status===m?'current':''}">${i+1}. ${MARCHE_LABEL[m]}</div>`).join('');
   const pct = s.status==='pastille' ? 0 : Math.round((s.points/20)*100);
   const histRows = s.history.slice().reverse().slice(0,30).map(h=>`
     <tr>
@@ -981,6 +1106,7 @@ function renderStudentReadOnlyView(studentId){
 
 /* ============== STUDENT MODEL ============== */
 async function deleteStudent(id, {confirmMessage} = {}){
+  if(!isAdmin()){ toast("Seul le compte administrateur peut supprimer un élève."); return false; }
   const s = DATA.students.find(x=>x.id===id);
   if(!s) return false;
   if(!confirm(confirmMessage || `Supprimer définitivement la fiche de ${s.nom} ? Toutes ses données (historique, points, QR code) seront retirées de l'application : liste des élèves, classe, et onglet QR codes.`)) return false;
@@ -1010,14 +1136,16 @@ function renderFiche(id){
   const s = DATA.students.find(x=>x.id===id);
   if(!s) return `<a class="back-link" href="#" id="back-to-list">← Retour à la liste</a><div class="empty">Élève introuvable. Il a peut-être été supprimé.</div>`;
   const classe = DATA.classes.find(c=>c.id===s.classeId);
-  const ladderSteps = MARCHES.map(m=>`<div class="step m-${m} ${s.status===m?'current':''}">${MARCHE_LABEL[m]}</div>`).join('');
+  const ladderSteps = MARCHES.map((m,i)=>`<div class="step m-${m} ${s.status===m?'current':''}">${i+1}. ${MARCHE_LABEL[m]}</div>`).join('');
   const pct = s.status==='pastille' ? 0 : Math.round((s.points/20)*100);
   const histRows = s.history.slice().reverse().slice(0,60).map(h=>`
     <tr>
       <td>${esc(h.date)}</td>
       <td>${esc(h.heure || '—')}</td>
       <td>${esc(h.motif || h.label)}</td>
+      <td>${h.points ? `-${h.points}` : '<span class="muted">—</span>'}</td>
       <td>${esc(h.sanctionneur || '—')}</td>
+      <td>${h.id ? `<button class="btn warn" data-del-hist="${h.id}" title="Supprimer cette ligne du journal">Supprimer</button>` : ''}</td>
     </tr>
   `).join('');
 
@@ -1041,7 +1169,7 @@ function renderFiche(id){
     </div>
     <div class="row">
       <button class="btn" id="btn-edit-student">Modifier</button>
-      <button class="btn warn" id="btn-del-student">Supprimer la fiche</button>
+      ${isAdmin() ? `<button class="btn warn" id="btn-del-student">Supprimer la fiche</button>` : ''}
     </div>
   </div>
 
@@ -1055,11 +1183,11 @@ function renderFiche(id){
 
     <div class="section-title" style="margin-top:18px;">Modifier la marche manuellement</div>
     <div class="marche-picker">
-      ${MARCHES.map(m=>`<button class="m-${m} ${s.status===m?'active':''}" data-set-marche="${m}">${MARCHE_LABEL[m]}</button>`).join('')}
+      ${MARCHES.map((m,i)=>`<button class="m-${m} ${s.status===m?'active':''}" data-set-marche="${m}">${i+1}. ${MARCHE_LABEL[m]}</button>`).join('')}
     </div>
 
     <div class="row" style="margin-top:14px;">
-      <button class="btn" id="btn-toggle-pastille">${s.status==='pastille' ? 'Lever la pastille (revenir à sa marche)' : 'Mettre en pastille manuellement'}</button>
+      <button class="${s.status==='pastille' ? 'btn' : 'btn btn-danger-solid'}" id="btn-toggle-pastille">${s.status==='pastille' ? 'Lever la pastille (revenir à sa marche)' : '⚠ Mettre en pastille manuellement'}</button>
       <button class="btn" id="btn-reset-points">Réinitialiser les points (20/20)</button>
     </div>
   </div>
@@ -1074,7 +1202,7 @@ function renderFiche(id){
       <div class="section-title" style="margin-bottom:0;">Journal de suivi</div>
       <button class="btn" id="btn-export-pdf">Générer le récapitulatif PDF (4 dernières semaines)</button>
     </div>
-    ${s.history.length ? `<table style="margin-top:12px;"><thead><tr><th>Date</th><th>Heure</th><th>Motif</th><th>Retrait décidé par</th></tr></thead><tbody>${histRows}</tbody></table>`
+    ${s.history.length ? `<table style="margin-top:12px;"><thead><tr><th>Date</th><th>Heure</th><th>Motif</th><th>Points</th><th>Retrait décidé par</th><th></th></tr></thead><tbody>${histRows}</tbody></table>`
       : `<p class="small muted" style="margin-top:12px;">Aucun évènement enregistré.</p>`}
   </div>
 
@@ -1107,6 +1235,10 @@ function attachFicheEvents(){
 
   const pdfBtn = document.getElementById('btn-export-pdf');
   if(pdfBtn) pdfBtn.addEventListener('click', ()=>exportFichePDF(currentStudentId));
+
+  document.querySelectorAll('[data-del-hist]').forEach(b=>{
+    b.addEventListener('click', ()=>deleteHistoryEntry(currentStudentId, b.dataset.delHist));
+  });
 
   const delBtn = document.getElementById('btn-del-student');
   if(delBtn) delBtn.addEventListener('click', async ()=>{
@@ -1172,8 +1304,9 @@ function attachFicheEvents(){
 }
 
 function logEvent(s, label, details){
-  // details (optionnel) : {heure, motif, sanctionneur, type}
+  // details (optionnel) : {heure, motif, sanctionneur, type, points}
   s.history.push(Object.assign({
+    id: genId(),
     date: new Date().toLocaleDateString('fr-FR'),
     heure: new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}),
     label
@@ -1229,6 +1362,23 @@ async function retirerPoints(studentId, categorie, montant, who){
   await saveData(`Retrait de ${montant} point(s) à ${s.nom} (${catLabel})`);
 }
 
+async function deleteHistoryEntry(studentId, entryId){
+  const s = DATA.students.find(x=>x.id===studentId);
+  if(!s) return;
+  const entry = s.history.find(h=>h.id===entryId);
+  if(!entry) return;
+  const isRetrait = entry.type === 'retrait' && entry.points;
+  const confirmMsg = isRetrait
+    ? `Supprimer cette ligne du journal ? Les ${entry.points} point(s) retirés seront recrédités à ${s.nom} (${Math.min(20, s.points + entry.points)}/20).`
+    : `Supprimer cette ligne du journal ? Cette action ne modifie pas les points actuels de ${s.nom}.`;
+  if(!confirm(confirmMsg)) return;
+  s.history = s.history.filter(h=>h.id!==entryId);
+  if(isRetrait){ s.points = Math.min(20, s.points + entry.points); }
+  await saveData(`Suppression d'une ligne du journal de ${s.nom}`);
+  toast("Ligne du journal supprimée.");
+  render();
+}
+
 function exportFichePDF(studentId){
   const s = DATA.students.find(x=>x.id===studentId);
   if(!s) return;
@@ -1255,7 +1405,7 @@ function exportFichePDF(studentId){
     if(!snap) return '';
     return `<tr>
       <td>${formatDateFr(w.dateDebut)} → ${formatDateFr(w.dateFin)}</td>
-      <td>${snap.status==='pastille' ? 'Pastille' : MARCHE_LABEL[snap.status]}</td>
+      <td>${snap.status==='pastille' ? 'Pastille' : marcheLabelNum(snap.status)}</td>
       <td>${snap.status==='pastille' ? '—' : snap.points + ' / 20'}</td>
     </tr>`;
   }).join('');
@@ -1264,6 +1414,7 @@ function exportFichePDF(studentId){
     <tr>
       <td>${esc(h.date)}</td>
       <td>${esc(h.motif || h.label)}</td>
+      <td>${h.points ? `-${h.points}` : '—'}</td>
       <td>${esc(h.sanctionneur || '—')}</td>
     </tr>`).join('');
 
@@ -1293,7 +1444,7 @@ function exportFichePDF(studentId){
         : `<p class="empty">Pas encore assez de semaines archivées pour cette période (aucune semaine clôturée ne couvre encore cet élève).</p>`}
 
       <h2>Détail des évènements sur la période</h2>
-      ${histRowsPdf ? `<table><thead><tr><th>Date</th><th>Motif</th><th>Retrait décidé par</th></tr></thead><tbody>${histRowsPdf}</tbody></table>`
+      ${histRowsPdf ? `<table><thead><tr><th>Date</th><th>Motif</th><th>Points</th><th>Retrait décidé par</th></tr></thead><tbody>${histRowsPdf}</tbody></table>`
         : `<p class="empty">Aucun évènement enregistré sur cette période.</p>`}
 
       <div class="footer">Document généré le ${formatDateFr(todayISO())} depuis le carnet de suivi de l'établissement.</div>
@@ -1304,7 +1455,7 @@ function exportFichePDF(studentId){
 }
 
 /* ============== NOUVELLE SEMAINE ============== */
-async function nouvelleSemaine(classeId){
+async function nouvelleSemaine(classeId, newWeekStart){
   // archive un instantané daté de la semaine qui se termine, avant de la réinitialiser
   const endDate = todayISO();
   const snapshot = DATA.students.map(s=>({
@@ -1317,7 +1468,7 @@ async function nouvelleSemaine(classeId){
     scope: classeId ? (DATA.classes.find(c=>c.id===classeId)||{}).nom : null,
     snapshot
   });
-  DATA.currentWeekStart = endDate;
+  DATA.currentWeekStart = newWeekStart || endDate;
 
   const pool = classeId ? DATA.students.filter(s=>s.classeId===classeId) : DATA.students;
   for(const s of pool){
@@ -1369,7 +1520,7 @@ function renderSemaines(){
     const studentsRows = w.snapshot.slice().sort((a,b)=>a.nom.localeCompare(b.nom)).map(s=>`
       <tr>
         <td>${esc(s.nom)}</td>
-        <td>${s.status==='pastille' ? `<span class="badge m-pastille">Pastille</span>` : `<span class="badge m-${s.status}">${MARCHE_LABEL[s.status]}</span>`}</td>
+        <td>${s.status==='pastille' ? `<span class="badge m-pastille">Pastille</span>` : `<span class="badge m-${s.status}">${marcheLabelNum(s.status)}</span>`}</td>
         <td>${s.status==='pastille' ? '<span class="muted">—</span>' : s.points + ' / 20'}</td>
       </tr>`).join('');
     return `
@@ -1538,6 +1689,8 @@ function openStudentModal(editId, presetClasseId){
 function esc(str){
   return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+function isAdmin(){ return currentRole === 'admin'; }
+function marcheLabelNum(m){ return `${MARCHES.indexOf(m)+1}. ${MARCHE_LABEL[m]}`; }
 
 /* ============== INIT ============== */
 trySessionAuth();
