@@ -354,15 +354,40 @@ async function loadData(){
   if(!DATA.currentWeekStart) DATA.currentWeekStart = todayISO();
   lastKnownData = JSON.parse(JSON.stringify(DATA)); // référence pour calculer les diffs futurs
 }
-function todayISO(){ return new Date().toISOString().slice(0,10); }
+function todayISO(){
+  // Utilise la date LOCALE du navigateur (pas UTC via toISOString, qui
+  // décale d'un jour pour les utilisateurs en France entre minuit et l'heure
+  // UTC — ex: 00h30 un lundi en France peut encore être "dimanche" en UTC).
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${year}-${month}-${day}`;
+}
 function mondayOf(isoDate){
   // Renvoie le lundi (ISO yyyy-mm-dd) de la semaine contenant la date donnée.
   // En JS, getDay() renvoie 0=dimanche, 1=lundi, ..., 6=samedi.
+  // On extrait les composants locaux (getFullYear/getMonth/getDate) plutôt
+  // que toISOString(), qui reconvertit en UTC et peut décaler d'un jour
+  // selon le fuseau horaire de la personne (ex: France en heure d'été).
   const d = new Date(isoDate + 'T00:00:00');
   const day = d.getDay();
   const diffToMonday = day === 0 ? -6 : 1 - day; // si dimanche, reculer de 6 jours
   d.setDate(d.getDate() + diffToMonday);
-  return d.toISOString().slice(0,10);
+  const year = d.getFullYear();
+  const month = String(d.getMonth()+1).padStart(2,'0');
+  const dayNum = String(d.getDate()).padStart(2,'0');
+  return `${year}-${month}-${dayNum}`;
+}
+function addDaysISO(isoDate, days){
+  // Ajoute un nombre de jours à une date ISO, en restant en heure locale
+  // (évite toISOString qui peut décaler d'un jour selon le fuseau horaire).
+  const d = new Date(isoDate + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  const year = d.getFullYear();
+  const month = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${year}-${month}-${day}`;
 }
 function currentMondayISO(){ return mondayOf(todayISO()); }
 function formatDateFr(iso){
@@ -703,7 +728,7 @@ async function checkAutoNewWeek(){
   let safety = 0; // garde-fou pour éviter une boucle infinie en cas de donnée corrompue
   let closedCount = 0;
   while(DATA.currentWeekStart < thisMonday && safety < 52){
-    const nextMonday = mondayOf(new Date(new Date(DATA.currentWeekStart+'T00:00:00').getTime() + 7*24*3600*1000).toISOString().slice(0,10));
+    const nextMonday = mondayOf(addDaysISO(DATA.currentWeekStart, 7));
     await nouvelleSemaine(null, nextMonday);
     closedCount++;
     safety++;
