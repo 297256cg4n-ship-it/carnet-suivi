@@ -64,6 +64,9 @@ header.topbar{background:#23262b;color:#f3f1e9;display:flex;align-items:center;g
 .brand h1{font-size:16px;font-weight:700;color:#f3f1e9;}
 .role-badge{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 9px;border-radius:20px;background:#454a52;color:#cfcabb;}
 body.is-admin .role-badge{background:var(--accent-2);color:#fff;}
+body.is-vie-scolaire .role-badge{background:#5b3fa0;color:#fff;}
+.tab-retenue{color:#d4a017;font-weight:700;}
+.tab-retenue.active{background:#fef9ec;color:#7a5a00;}
 nav.tabs{display:flex;gap:6px;flex:1;}
 nav.tabs button{background:transparent;border:1px solid transparent;color:#cfcabb;padding:7px 13px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
 nav.tabs button.active{background:#f3f1e9;color:var(--ink);}
@@ -76,6 +79,7 @@ nav.tabs button.tab-alert.active{background:#fdeceb;color:#7a2020;}
 .admin-menu-panel .btn{padding:6px 10px;font-size:12px;font-weight:500;color:#cfcabb;border-color:#454a52;background:transparent;}
 .admin-menu-panel .btn:hover{color:#fff;border-color:#6a6f78;}
 body:not(.is-admin) .admin-only{display:none!important;}
+body:not(.is-admin):not(.is-vie-scolaire) .retenues-only{display:none!important;}
 /* MAIN */
 main{padding:26px 22px 60px;max-width:1100px;margin:0 auto;}
 /* CARDS & LAYOUT */
@@ -289,6 +293,7 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
       <button data-tab="classes">Classes</button>
       <button data-tab="semaines">Semaines</button>
       <button data-tab="pastilles" class="tab-alert">⚠ Pastilles</button>
+      <button data-tab="retenues" class="tab-retenue retenues-only">⏱ Retenues</button>
       <button data-tab="memo">Mémo</button>
       <button data-tab="admin" class="admin-only">⚙ Admin</button>
       <button data-tab="qrcodes" style="margin-left:12px;opacity:.7;border-left:1px solid #454a52;padding-left:16px;">QR codes</button>
@@ -738,8 +743,11 @@ async function enterApp(alreadyLoaded){
   document.getElementById('app').classList.remove('hidden');
   if(!alreadyLoaded) await loadData();
   const isAdm=currentUser&&currentUser.role==='admin';
+  const isVieSco=currentUser&&currentUser.role==='vie-scolaire';
   document.body.classList.toggle('is-admin',isAdm);
+  document.body.classList.toggle('is-vie-scolaire',isVieSco);
   const label=isAdm?'Administrateur'
+    :isVieSco?`${currentUser.nom} — Vie scolaire`
     :(currentUser&&currentUser.id!=='teacher-default'
       ?currentUser.nom
       :'Enseignant (commun)');
@@ -887,6 +895,17 @@ async function checkBlocEnd(s){
 function genId(){ return Math.random().toString(36).slice(2,10); }
 function esc(str){ return String(str||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function isAdmin(){ return currentUser&&currentUser.role==='admin'; }
+function isVieScolaire(){ return currentUser&&(currentUser.role==='vie-scolaire'||currentUser.role==='admin'); }
+/* Détecte le rôle depuis la fonction : vie-scolaire si AED, CPE, principal, secrétaire, etc. */
+function detectRole(fonction){
+  const f=(fonction||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  if(f.includes('aed')||f.includes('assistant')||f.includes('education')||
+     f.includes('cpe')||f.includes('principal')||f.includes('adjoint')||
+     f.includes('secretaire')||f.includes('secrétaire')||f.includes('vie scolaire')||
+     f.includes('surveillant')||f.includes('direction'))
+    return 'vie-scolaire';
+  return 'teacher';
+}
 function marcheLabelNum(m){ return `${MARCHES.indexOf(m)+1}. ${MARCHE_LABEL[m]||m}`; }
 
 /* --- Affichage abrégé du nom ---
@@ -1103,6 +1122,7 @@ function render(){
   if(currentTab==='qrcodes'){ main.innerHTML=renderQrCodes(); attachQrCodesEvents(); return; }
   if(currentTab==='semaines'){ main.innerHTML=renderSemaines(); attachSemainesEvents(); return; }
   if(currentTab==='pastilles'){ main.innerHTML=renderPastilles(); attachPastillesEvents(); return; }
+  if(currentTab==='retenues'){ main.innerHTML=renderRetenues(); attachRetenuesEvents(); return; }
   if(currentTab==='memo'){ main.innerHTML=renderMemo(); attachMemoEvents(); return; }
   if(currentTab==='admin'){ main.innerHTML=renderAdmin(); attachAdminEvents(); return; }
   main.innerHTML=renderAccueil(); attachAccueilEvents();
@@ -1580,96 +1600,50 @@ async function retirerPoints(studentId,categorie,pts,motif){
     logEvent(s,`0 point — pastille automatique jusqu'au dimanche ${formatDateFr(finAuto)}.`);
     toast(`${s.nom} passe en pastille automatique (0 point).`);
   }
-  // Vérifier retards pour email automatique
-  if(categorie==='retard') await checkRetardsEmail(s);
+  // Vérifier retards → mettre à jour la liste des retenues
+  if(categorie==='retard') checkRetardsSeuil(s);
   await saveData(`Retrait ${pts}pt(s) — ${s.nom}`);
 }
 
-async function checkRetardsEmail(s){
+/* Vérifie si l'élève atteint un seuil de retards (multiple de 4) dans le bloc
+   et met à jour s.retenuePendante pour l'afficher dans l'onglet Retenues. */
+function checkRetardsSeuil(s){
   const bloc=currentBloc();
-
-  // Convertir les dates du journal (JJ/MM/AAAA) en ISO pour comparaison fiable
   const dateJournalToISO=dateStr=>{
     if(!dateStr) return '';
     const parts=dateStr.split('/');
     if(parts.length!==3) return dateStr;
     return `${parts[2]}-${parts[1]}-${parts[0]}`;
   };
-
-  // Si on est dans un bloc actif, on ne compte que les retards de ce bloc.
-  // Sinon (période de test avant le 31/08), on compte tous les retards.
-  let retardsDansBloc;
-  let blocDebut='';
-  let blocFin='9999';
+  let retardsDansBloc, blocDebut='';
   if(bloc&&bloc.semaines.length){
     blocDebut=bloc.semaines[0].start;
-    blocFin=bloc.semaines[bloc.semaines.length-1].end;
+    const blocFin=bloc.semaines[bloc.semaines.length-1].end;
     retardsDansBloc=s.history.filter(h=>{
       if(h.categorie!=='retard') return false;
       const iso=dateJournalToISO(h.date);
-      return iso>=blocDebut && iso<=blocFin;
+      return iso>=blocDebut&&iso<=blocFin;
     });
   } else {
-    // Hors période de suivi : on compte tous les retards pour le test
     retardsDansBloc=s.history.filter(h=>h.categorie==='retard');
-    blocDebut='test';
+    blocDebut='hors-bloc';
   }
-
   const count=retardsDansBloc.length;
-  const seuil=Math.floor(count/4)*4;
-  console.log(`[Retards] ${displayNom(s)}: ${count} retard(s) dans le bloc, seuil=${seuil}, emailsSent=`, s.retardEmailsSent);
-  if(seuil<4) return;
-
-  if(!s.retardEmailsSent) s.retardEmailsSent=[];
-  const emailId=`${blocDebut}:${seuil}`;
-  if(s.retardEmailsSent.includes(emailId)) return;
-  s.retardEmailsSent.push(emailId);
-
-  const nomAffiche=displayNom(s);
-  const auteur=currentUser?currentUser.nom:'un enseignant';
-  const subject=`⚠ ${count} retard(s) cumulé(s) — ${nomAffiche}`;
-  const body=[
-    `Bonjour,`,
-    ``,
-    `L'élève ${nomAffiche} a cumulé ${count} retard(s)${blocDebut!=='test'?` sur le bloc de 3 semaines en cours (débuté le ${formatDateFr(blocDebut)})`:''}`,
-    ``,
-    `Conformément au protocole, merci de lui poser une heure de retenue.`,
-    ``,
-    `Action signalée par : ${auteur}`,
-    `Date : ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`,
-    ``,
-    `Cordialement,`,
-    `Carnet de suivi — les Marches`,
-    `Collège Claude Debussy`,
-  ].join('\n');
-
-  // Envoi via le Worker Cloudflare (MailChannels)
-  try{
-    const res=await fetch(`${PROXY_URL}?action=send-email`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        to:'girard44400@gmail.com',
-        subject,
-        body,
-        from:'onboarding@resend.dev',
-        fromName:'Carnet de suivi — les Marches',
-      }),
-    });
-    const data=await res.json();
-    if(data.success){
-      toast(`📧 Email envoyé à la vie scolaire (${count} retards — ${nomAffiche})`);
-      logEvent(s,`📧 Email retards envoyé à la vie scolaire (${count} retards).`);
-    } else {
-      console.error('MailChannels response:', data);
-      throw new Error('Échec envoi');
-    }
-  }catch(e){
-    console.warn('Envoi automatique échoué:', e.message);
-    const subjectEnc=encodeURIComponent(subject);
-    const bodyEnc=encodeURIComponent(body);
-    window.open(`mailto:vie.scolaire.claude.debussy@gmail.com?subject=${subjectEnc}&body=${bodyEnc}`,'_blank');
-    toast(`📧 Envoi auto échoué — email de secours ouvert pour ${nomAffiche}`);
+  const nbHeures=Math.floor(count/4); // 1h au 4e, 2h au 8e, etc.
+  if(nbHeures<1) return;
+  // Identifiant unique par bloc + seuil
+  const seuilId=`${blocDebut}:${nbHeures*4}`;
+  if(!s.retenuesSeuils) s.retenuesSeuils=[];
+  if(s.retenuesSeuils.includes(seuilId)) return; // déjà signalé
+  s.retenuesSeuils.push(seuilId);
+  // Créer ou mettre à jour la retenue en attente
+  if(!s.retenuePendante){
+    s.retenuePendante={seuilId, blocDebut, count, nbHeures};
+    toast(`⏱ ${displayNom(s)} : ${nbHeures}h de retenue à poser (${count} retards)`);
+  } else {
+    // Seuil supérieur atteint — met à jour
+    s.retenuePendante={seuilId, blocDebut, count, nbHeures};
+    toast(`⏱ ${displayNom(s)} : ${nbHeures}h de retenue à poser (${count} retards)`);
   }
 }
 
@@ -1857,8 +1831,66 @@ function attachPastillesEvents(){
 }
 
 /* ============================================================
-   MÉMO
+   RETENUES
    ============================================================ */
+function countRetardsDansBloc(s, bloc){
+  if(!bloc||!bloc.semaines.length) return s.history.filter(h=>h.categorie==='retard').length;
+  const debut=bloc.semaines[0].start;
+  const fin=bloc.semaines[bloc.semaines.length-1].end;
+  return s.history.filter(h=>{
+    if(h.categorie!=='retard') return false;
+    const parts=(h.date||'').split('/');
+    const iso=parts.length===3?`${parts[2]}-${parts[1]}-${parts[0]}`:h.date||'';
+    return iso>=debut&&iso<=fin;
+  }).length;
+}
+
+function renderRetenues(){
+  const bloc=currentBloc();
+  // Élèves ayant une retenue en attente
+  const enAttente=DATA.students.filter(s=>s.retenuePendante).sort((a,b)=>a.nom.localeCompare(b.nom));
+  // Recalculer pour s'assurer que les données sont à jour
+  const rows=enAttente.map(s=>{
+    const classe=DATA.classes.find(c=>c.id===s.classeId);
+    const r=s.retenuePendante;
+    const nbRetards=countRetardsDansBloc(s,bloc);
+    return `<tr>
+      <td><strong>${esc(displayNom(s))}</strong></td>
+      <td>${classe?esc(classe.nom):'—'}</td>
+      <td style="text-align:center;font-weight:700;font-size:16px;">${r.nbHeures}h</td>
+      <td>${nbRetards} retard(s) dans ce bloc</td>
+      <td><button class="btn primary" data-retenue-done="${s.id}">✓ Retenue effectuée</button></td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="row" style="justify-content:space-between;margin-bottom:14px;">
+    <h2>⏱ Élèves en retenue pour retards</h2>
+    <span class="small muted">${enAttente.length} élève(s) concerné(s)</span>
+  </div>
+  <p class="small muted" style="margin-bottom:16px;">Un élève apparaît ici dès qu'il cumule 4 retards sur un même bloc de 3 semaines. Le nombre d'heures augmente avec les seuils suivants (8 retards = 2h, 12 retards = 3h…).</p>
+  <div class="card">
+    ${enAttente.length
+      ?`<table><thead><tr><th>Élève</th><th>Classe</th><th>Durée</th><th>Motif</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table>`
+      :`<div class="empty">✓ Aucune retenue en attente pour le moment.</div>`}
+  </div>`;
+}
+
+function attachRetenuesEvents(){
+  document.querySelectorAll('[data-retenue-done]').forEach(b=>{
+    b.addEventListener('click',async()=>{
+      const s=DATA.students.find(x=>x.id===b.dataset.retenueDone);
+      if(!s||!s.retenuePendante) return;
+      const r=s.retenuePendante;
+      if(!confirm(`Confirmer que la retenue de ${r.nbHeures}h de ${displayNom(s)} a bien été effectuée ?`)) return;
+      logEvent(s,`Retenue pour retard effectuée — ${r.nbHeures}h (${r.count} retards cumulés dans le bloc).`);
+      s.retenuePendante=null;
+      await saveData(`Retenue effectuée — ${s.nom}`);
+      toast(`✓ Retenue de ${displayNom(s)} marquée comme effectuée.`);
+      render();
+    });
+  });
+}
 function renderMemo(){
   const attachments=DATA.memoAttachments||{};
   const presentation=DATA.memoPresentation||'';
@@ -1948,8 +1980,7 @@ function attachMemoEvents(){
 function renderAdmin(){
   if(!isAdmin()) return `<div class="empty">Accès réservé à l'administrateur.</div>`;
   const staffRows=DATA.staff.map(s=>`
-    <tr><td>${esc(s.nom)}</td><td><code>${esc(s.code)}</code></td>
-    <td><button class="btn warn" data-del-staff="${s.id}">Supprimer</button></td></tr>`).join('');
+    <tr><td>${esc(s.nom)}</td><td>${esc(s.fonction||'—')}</td><td><code>${esc(s.code)}</code></td><td><button class="btn warn" data-del-staff="${s.id}">Supprimer</button></td></tr>`).join('');
   const vacRows=DATA.vacances.map(v=>`
     <tr><td>${esc(v.label)}</td><td>${formatDateFr(v.debut)}</td><td>${formatDateFr(v.fin)}</td>
     <td><button class="btn warn" data-del-vac="${v.id}">Supprimer</button></td></tr>`).join('');
@@ -1976,17 +2007,18 @@ function renderAdmin(){
   <div class="card">
     <div class="section-title">Personnels & codes d'accès</div>
     <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-      <input type="text" id="staff-nom" placeholder="Nom (ex: Mme Dupont)" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:200px;">
+      <input type="text" id="staff-nom" placeholder="Nom (ex: Mme Dupont)" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:180px;">
+      <input type="text" id="staff-fonction" placeholder="Fonction (ex: Enseignante)" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:180px;">
       <input type="text" id="staff-code" placeholder="Code 5 chiffres" maxlength="5" inputmode="numeric" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:130px;">
       <button class="btn primary" id="btn-add-staff">Ajouter</button>
     </div>
     <div class="row" style="margin-bottom:12px;gap:8px;flex-wrap:wrap;">
       <label class="btn" for="import-staff-file" style="cursor:pointer;">📥 Importer CSV/Excel</label>
       <input type="file" id="import-staff-file" accept=".csv,.xlsx,.xls" class="hidden">
-      <span class="small muted">Colonnes attendues : Nom, Code (5 chiffres)</span>
+      <span class="small muted">Colonnes attendues : Nom, Fonction, Code (5 chiffres) — le rôle est détecté automatiquement depuis la fonction</span>
     </div>
     <div id="import-staff-status" class="small muted" style="margin-bottom:8px;"></div>
-    ${DATA.staff.length?`<table><thead><tr><th>Nom</th><th>Code</th><th></th></tr></thead><tbody>${staffRows}</tbody></table>`
+    ${DATA.staff.length?`<table><thead><tr><th>Nom</th><th>Fonction</th><th>Code</th><th></th></tr></thead><tbody>${staffRows}</tbody></table>`
     :`<div class="empty">Aucun personnel enregistré.</div>`}
   </div>
 
@@ -2081,12 +2113,15 @@ function attachAdminEvents(){
   const as=document.getElementById('btn-add-staff');
   if(as) as.addEventListener('click',async()=>{
     const nom=document.getElementById('staff-nom').value.trim();
+    const fonction=document.getElementById('staff-fonction').value.trim();
     const code=document.getElementById('staff-code').value.trim();
+    const role=detectRole(fonction);
     if(!nom||!code){toast("Remplis tous les champs.");return;}
     if(!/^\d{5}$/.test(code)){toast("Le code doit être exactement 5 chiffres.");return;}
     if(DATA.staff.some(s=>s.code===code)){toast("Ce code est déjà utilisé.");return;}
-    DATA.staff.push({id:genId(),prenom:'',nom,code,role:'teacher'});
+    DATA.staff.push({id:genId(),prenom:'',nom,fonction,code,role});
     document.getElementById('staff-nom').value='';
+    document.getElementById('staff-fonction').value='';
     document.getElementById('staff-code').value='';
     await saveData(`Ajout personnel ${nom}`); toast("Personnel ajouté."); render();
   });
@@ -2113,7 +2148,7 @@ function attachAdminEvents(){
         if(!r.nom||!r.code) return;
         if(!/^\d{5}$/.test(r.code)){ skipped++; return; }
         if(DATA.staff.some(s=>s.code===r.code)){ skipped++; return; }
-        DATA.staff.push({id:genId(),prenom:'',nom:r.nom,code:r.code,role:'teacher'});
+        DATA.staff.push({id:genId(),prenom:'',nom:r.nom,fonction:r.fonction||'',code:r.code,role:detectRole(r.fonction||'')});
         added++;
       });
       await saveData(`Import ${added} personnel(s)`);
@@ -2475,24 +2510,28 @@ async function deleteStudent(id){
 /* ============================================================
    IMPORT CSV/EXCEL
    ============================================================ */
-/* parseStaffFile : lit un CSV/Excel avec colonnes Nom, Code (5 chiffres).
-   Retourne un tableau d'objets {nom, code}. */
+/* parseStaffFile : lit un CSV/Excel avec colonnes Nom, Fonction, Code, Rôle (optionnel).
+   Si la colonne Rôle contient "vie-scolaire", le personnel aura accès à l'onglet Retenues.
+   Retourne un tableau d'objets {nom, fonction, code, role}. */
 function parseStaffFile(file){
   return new Promise((resolve,reject)=>{
     const ext=file.name.toLowerCase().split('.').pop();
+    const norm=s=>String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
     const processRows=rows=>{
       if(!rows.length){ resolve([]); return; }
-      const header=rows[0].map(c=>String(c||'').trim().toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g,''));
+      const header=rows[0].map(c=>norm(c));
       const ni=header.findIndex(h=>h.includes('nom'));
+      const fi=header.findIndex(h=>h.includes('fonction')||h.includes('poste')||h.includes('titre'));
       const ci=header.findIndex(h=>h.includes('code'));
-      const ni2=ni>=0?ni:0, ci2=ci>=0?ci:1;
       const hasHeader=ni>=0||ci>=0;
+      const ni2=ni>=0?ni:0, fi2=fi>=0?fi:1, ci2=ci>=0?ci:(fi>=0?2:1);
       const result=[];
       rows.slice(hasHeader?1:0).forEach(row=>{
         const nom=String(row[ni2]||'').trim();
+        const fonction=String(row[fi2]||'').trim();
         const code=String(row[ci2]||'').trim().replace(/\D/g,'').slice(0,5);
-        if(nom) result.push({nom,code});
+        const role=detectRole(fonction);
+        if(nom) result.push({nom,fonction,code,role});
       });
       resolve(result);
     };
