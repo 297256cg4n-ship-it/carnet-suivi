@@ -1576,36 +1576,41 @@ async function retirerPoints(studentId,categorie,pts,motif){
 
 async function checkRetardsEmail(s){
   const bloc=currentBloc();
-  if(!bloc) return;
 
   // Convertir les dates du journal (JJ/MM/AAAA) en ISO pour comparaison fiable
   const dateJournalToISO=dateStr=>{
     if(!dateStr) return '';
     const parts=dateStr.split('/');
-    if(parts.length!==3) return dateStr; // déjà en ISO ou format inconnu
-    return `${parts[2]}-${parts[1]}-${parts[0]}`; // JJ/MM/AAAA → AAAA-MM-JJ
+    if(parts.length!==3) return dateStr;
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
   };
 
-  const blocDebut=bloc.semaines[0]?.start||'';
-  const blocFin=bloc.semaines[bloc.semaines.length-1]?.end||'9999';
-
-  // Compter les retards dans ce bloc (toutes catégories retard confondues)
-  const retardsDansBloc=s.history.filter(h=>{
-    if(h.categorie!=='retard') return false;
-    const iso=dateJournalToISO(h.date);
-    return iso>=blocDebut && iso<=blocFin;
-  });
+  // Si on est dans un bloc actif, on ne compte que les retards de ce bloc.
+  // Sinon (période de test avant le 31/08), on compte tous les retards.
+  let retardsDansBloc;
+  let blocDebut='';
+  let blocFin='9999';
+  if(bloc&&bloc.semaines.length){
+    blocDebut=bloc.semaines[0].start;
+    blocFin=bloc.semaines[bloc.semaines.length-1].end;
+    retardsDansBloc=s.history.filter(h=>{
+      if(h.categorie!=='retard') return false;
+      const iso=dateJournalToISO(h.date);
+      return iso>=blocDebut && iso<=blocFin;
+    });
+  } else {
+    // Hors période de suivi : on compte tous les retards pour le test
+    retardsDansBloc=s.history.filter(h=>h.categorie==='retard');
+    blocDebut='test';
+  }
 
   const count=retardsDansBloc.length;
-  // Seuil : tous les 4 retards (4, 8, 12...) on envoie un email
   const seuil=Math.floor(count/4)*4;
-  if(seuil<4) return; // pas encore 4 retards
+  if(seuil<4) return;
 
   if(!s.retardEmailsSent) s.retardEmailsSent=[];
-  // Identifiant unique par bloc + seuil pour ne pas renvoyer en boucle
   const emailId=`${blocDebut}:${seuil}`;
   if(s.retardEmailsSent.includes(emailId)) return;
-
   s.retardEmailsSent.push(emailId);
 
   const nomAffiche=displayNom(s);
@@ -1614,7 +1619,7 @@ async function checkRetardsEmail(s){
   const body=[
     `Bonjour,`,
     ``,
-    `L'élève ${nomAffiche} a cumulé ${count} retard(s) sur le bloc de 3 semaines en cours (débuté le ${formatDateFr(blocDebut)}).`,
+    `L'élève ${nomAffiche} a cumulé ${count} retard(s)${blocDebut!=='test'?` sur le bloc de 3 semaines en cours (débuté le ${formatDateFr(blocDebut)})`:''}`,
     ``,
     `Conformément au protocole, merci de lui poser une heure de retenue.`,
     ``,
@@ -1635,23 +1640,24 @@ async function checkRetardsEmail(s){
         to:'vie.scolaire.claude.debussy@gmail.com',
         subject,
         body,
+        from:'suivi.marches.debussy@gmail.com',
         fromName:'Carnet de suivi — les Marches',
       }),
     });
     const data=await res.json();
     if(data.success){
-      toast(`📧 Email envoyé automatiquement à la vie scolaire (${count} retards — ${nomAffiche})`);
-      logEvent(s,`📧 Email retards envoyé automatiquement à la vie scolaire (${count} retards cumulés sur le bloc).`);
+      toast(`📧 Email envoyé à la vie scolaire (${count} retards — ${nomAffiche})`);
+      logEvent(s,`📧 Email retards envoyé à la vie scolaire (${count} retards).`);
     } else {
-      throw new Error('Échec MailChannels');
+      console.error('MailChannels response:', data);
+      throw new Error('Échec envoi');
     }
   }catch(e){
-    // En cas d'échec, ouvrir un mailto de secours
-    console.warn('Envoi automatique échoué, ouverture mailto de secours:', e);
+    console.warn('Envoi automatique échoué:', e.message);
     const subjectEnc=encodeURIComponent(subject);
     const bodyEnc=encodeURIComponent(body);
     window.open(`mailto:vie.scolaire.claude.debussy@gmail.com?subject=${subjectEnc}&body=${bodyEnc}`,'_blank');
-    toast(`📧 Email retards (secours) : vérifiez et envoyez manuellement (${nomAffiche})`);
+    toast(`📧 Envoi auto échoué — email de secours ouvert pour ${nomAffiche}`);
   }
 }
 
