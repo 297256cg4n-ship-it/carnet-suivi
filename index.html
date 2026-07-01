@@ -301,7 +301,7 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
     <div class="admin-menu" id="admin-menu">
       <button class="admin-menu-trigger" id="admin-menu-trigger">⋯</button>
       <div class="admin-menu-panel">
-        <button class="btn" id="export-btn">Exporter</button>
+        <button class="btn admin-only" id="export-btn">Exporter</button>
         <button class="btn" id="undo-btn">↩ Annuler</button>
         <button class="btn" id="logout-btn">Verrouiller</button>
       </div>
@@ -1804,7 +1804,10 @@ function renderPastilles(){
       <td>${badges.join(' ')}</td>
       <td>${debut?formatDateFr(debut):'—'}</td>
       <td>${finP?formatDateFr(finP):'aujourd\'hui'}</td>
-      <td>${isAdmin()?`<button class="btn warn" data-del-student="${s.id}">Supprimer</button>`:''}</td>
+      <td style="white-space:nowrap;">
+        ${estEnPastille(s)&&isAdmin()?`<button class="btn warn" data-lever-pastille="${s.id}" style="margin-bottom:4px;">Lever pastille</button>`:''}
+        ${estEnCarnet(s)?`<button class="btn warn" data-lever-carnet="${s.id}">Lever carnet</button>`:''}
+      </td>
     </tr>`;
   }).join('');
 
@@ -1819,12 +1822,36 @@ function renderPastilles(){
   </div>`;
 }
 function attachPastillesEvents(){
-  document.querySelectorAll('[data-del-student]').forEach(b=>{
-    b.addEventListener('click',async e=>{e.stopPropagation();if(await deleteStudent(b.dataset.delStudent)) render();});
+  // Lever pastille (admin seulement)
+  document.querySelectorAll('[data-lever-pastille]').forEach(b=>{
+    b.addEventListener('click',async e=>{
+      e.stopPropagation();
+      const s=DATA.students.find(x=>x.id===b.dataset.leverPastille);
+      if(!s) return;
+      const t=typePastille(s);
+      if(t==='auto'&&!isAdmin()){toast("Seul l'admin peut lever une pastille automatique.");return;}
+      if(!confirm(`Lever la pastille de ${displayNom(s)} ?`)) return;
+      logEvent(s,`Pastille ${t==='auto'?'automatique':'manuelle'} levée manuellement depuis l'onglet Pastilles.`);
+      s.pastille=null;
+      await saveData(`Levée pastille ${s.nom}`); toast("Pastille levée."); render();
+    });
   });
+  // Lever carnet
+  document.querySelectorAll('[data-lever-carnet]').forEach(b=>{
+    b.addEventListener('click',async e=>{
+      e.stopPropagation();
+      const s=DATA.students.find(x=>x.id===b.dataset.leverCarnet);
+      if(!s) return;
+      if(!confirm(`Retirer la suspension carnet de ${displayNom(s)} ?`)) return;
+      s.carnet=null;
+      logEvent(s,"Suspension carnet retirée depuis l'onglet Pastilles.");
+      await saveData(`Carnet retiré ${s.nom}`); toast("Suspension carnet retirée."); render();
+    });
+  });
+  // Clic sur la ligne → fiche élève
   document.querySelectorAll('tr.row-link[data-id]').forEach(tr=>{
     tr.addEventListener('click',e=>{
-      if(e.target.closest('[data-del-student]')) return;
+      if(e.target.closest('[data-lever-pastille],[data-lever-carnet]')) return;
       currentStudentId=tr.dataset.id;currentTab='fiche';location.hash='#eleve='+tr.dataset.id;render();
     });
   });
@@ -2248,16 +2275,24 @@ function attachAdminEvents(){
     const id=document.getElementById('reset-journal-select').value;
     if(!id){toast("Choisis un élève.");return;}
     const s=DATA.students.find(x=>x.id===id);
-    if(!s||!confirm(`Effacer le journal de ${displayNom(s)} ? Une sauvegarde sera effectuée automatiquement.`)) return;
-    await saveData('Sauvegarde avant reset journal');
+    if(!s||!confirm(`Effacer le journal de ${displayNom(s)} ?\n\nUne sauvegarde sera écrite dans "donnees-sauvegarde.json" avant suppression.`)) return;
+    // Vraie sauvegarde dans un fichier séparé
+    try{
+      await _ghWriteFile('donnees-sauvegarde.json', DATA, null, `Sauvegarde avant reset journal — ${s.nom}`);
+      toast("✓ Sauvegarde effectuée dans donnees-sauvegarde.json");
+    }catch(e){ toast("⚠ Sauvegarde impossible, annulation."); return; }
     s.history=[];
     await saveData(`Reset journal ${s.nom}`); toast("Journal effacé."); render();
   });
   // Reset journal tous
   const rja=document.getElementById('btn-reset-journal-all');
   if(rja) rja.addEventListener('click',async()=>{
-    if(!confirm("Effacer TOUS les journaux de tous les élèves ? Une sauvegarde sera effectuée automatiquement.")) return;
-    await saveData('Sauvegarde avant reset tous journaux');
+    if(!confirm("Effacer TOUS les journaux de tous les élèves ?\n\nUne sauvegarde sera écrite dans \"donnees-sauvegarde.json\" avant suppression.")) return;
+    // Vraie sauvegarde dans un fichier séparé
+    try{
+      await _ghWriteFile('donnees-sauvegarde.json', DATA, null, 'Sauvegarde avant reset tous journaux');
+      toast("✓ Sauvegarde effectuée dans donnees-sauvegarde.json");
+    }catch(e){ toast("⚠ Sauvegarde impossible, annulation."); return; }
     DATA.students.forEach(s=>{ s.history=[]; });
     await saveData('Reset tous journaux'); toast("Tous les journaux effacés."); render();
   });
