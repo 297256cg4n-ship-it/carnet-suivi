@@ -115,26 +115,26 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
 .badge.m1{background:var(--m1);}.badge.m2{background:var(--m2);}.badge.m3{background:var(--m3);}.badge.m4{background:var(--m4);}
 .badge.m-pastille{background:#888;color:#fff;}
 .badge.m-carnet{background:#e67e22;color:#fff;}
-/* LADDER — étages colorés, la marche active en plein, les autres en transparent */
-.ladder{display:flex;flex-direction:column-reverse;gap:5px;margin:14px 0 10px;}
+/* LADDER — design en escalier, hauteur croissante, numéro affiché dessus */
+.ladder{display:flex;flex-direction:row;align-items:flex-end;gap:6px;margin:16px 0 12px;height:110px;}
 .step{
-  padding:10px 16px;border-radius:8px;font-size:14px;font-weight:600;
-  border:2px solid transparent;color:rgba(255,255,255,0.5);
-  background:rgba(0,0,0,0.06);
-  display:flex;align-items:center;gap:8px;
+  flex:1;border-radius:8px 8px 0 0;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-start;padding-top:10px;
+  font-size:12px;font-weight:700;cursor:default;position:relative;
+  transition:transform .1s;
 }
-.step.m1{border-color:var(--m1);color:var(--m1);background:var(--m1-light);}
-.step.m2{border-color:var(--m2);color:var(--m2);background:var(--m2-light);}
-.step.m3{border-color:var(--m3);color:var(--m3);background:var(--m3-light);}
-.step.m4{border-color:var(--m4);color:var(--m4);background:var(--m4-light);}
-.step.current.m1{background:var(--m1);color:#fff;box-shadow:0 3px 12px rgba(192,57,43,.35);}
-.step.current.m2{background:var(--m2);color:#fff;box-shadow:0 3px 12px rgba(230,126,34,.35);}
-.step.current.m3{background:var(--m3);color:#fff;box-shadow:0 3px 12px rgba(41,128,185,.35);}
-.step.current.m4{background:var(--m4);color:#fff;box-shadow:0 3px 12px rgba(39,174,96,.35);}
-.step .step-num{font-size:11px;font-weight:800;opacity:.7;}
-.step.current .step-num{opacity:1;}
-.step .step-arrow{margin-left:auto;font-size:16px;display:none;}
-.step.current .step-arrow{display:block;}
+.step.m1{height:30%;background:var(--m1-light);border:2px solid var(--m1);color:var(--m1);}
+.step.m2{height:50%;background:var(--m2-light);border:2px solid var(--m2);color:var(--m2);}
+.step.m3{height:72%;background:var(--m3-light);border:2px solid var(--m3);color:var(--m3);}
+.step.m4{height:95%;background:var(--m4-light);border:2px solid var(--m4);color:var(--m4);}
+.step.current.m1{background:var(--m1);color:#fff;box-shadow:0 4px 14px rgba(192,57,43,.4);}
+.step.current.m2{background:var(--m2);color:#fff;box-shadow:0 4px 14px rgba(230,126,34,.4);}
+.step.current.m3{background:var(--m3);color:#fff;box-shadow:0 4px 14px rgba(41,128,185,.4);}
+.step.current.m4{background:var(--m4);color:#fff;box-shadow:0 4px 14px rgba(39,174,96,.4);}
+.step .step-num{font-size:20px;font-weight:800;line-height:1;}
+.step .step-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:4px;opacity:.85;}
+.step.current .step-label{opacity:1;}
+.step .step-arrow{position:absolute;bottom:6px;font-size:14px;}
 /* MARCHE PICKER */
 .marche-picker{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
 .marche-picker button{padding:8px 16px;border-radius:8px;border:2px solid transparent;font-size:13px;font-weight:700;color:#fff;cursor:pointer;}
@@ -280,11 +280,11 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
     <nav class="tabs" id="tabs">
       <button data-tab="accueil" class="active">Élèves</button>
       <button data-tab="classes">Classes</button>
-      <button data-tab="qrcodes">QR codes</button>
       <button data-tab="semaines">Semaines</button>
       <button data-tab="pastilles" class="tab-alert">⚠ Pastilles</button>
       <button data-tab="memo">Mémo</button>
       <button data-tab="admin" class="admin-only">⚙ Admin</button>
+      <button data-tab="qrcodes" style="margin-left:12px;opacity:.7;border-left:1px solid #454a52;padding-left:16px;">QR codes</button>
     </nav>
     <div class="admin-menu" id="admin-menu">
       <button class="admin-menu-trigger" id="admin-menu-trigger">⋯</button>
@@ -872,8 +872,19 @@ function marcheLabelNum(m){ return `${MARCHES.indexOf(m)+1}. ${MARCHE_LABEL[m]||
    Le vrai nom n'est jamais modifié en base, c'est uniquement l'affichage.
 */
 function splitNom(fullNom){
+  // Format attendu : "DUPONT DUVAL Lucas Marie" où les mots tout en
+  // majuscules sont le nom de famille, et le reste est le prénom.
+  // On prend UNIQUEMENT le PREMIER mot du nom de famille (même s'il est composé).
   const parts=(fullNom||'').trim().split(/\s+/);
-  return { famille: parts[0]||'', prenom: parts.slice(1).join(' ')||'' };
+  // Sépare les mots qui sont TOUT EN MAJUSCULES (nom) de ceux qui ne le sont pas (prénom)
+  let lastFamilleIdx=-1;
+  for(let i=0;i<parts.length;i++){
+    if(parts[i]===parts[i].toUpperCase()&&parts[i].length>0) lastFamilleIdx=i;
+    else break; // dès qu'on tombe sur un mot non-majuscule, on arrête
+  }
+  const premierNomFamille = lastFamilleIdx>=0 ? parts[0] : '';
+  const prenom = parts.slice(lastFamilleIdx+1).join(' ');
+  return { famille: premierNomFamille, prenom };
 }
 
 // Calcule, pour TOUTE la liste d'élèves, la longueur de préfixe nécessaire
@@ -883,34 +894,37 @@ let _prefixCache = null;
 let _prefixCacheStamp = null;
 
 function buildPrefixLengths(students){
-  // Invalide le cache si la liste a changé (on compare un "stamp" léger)
-  const stamp = students.map(s=>s.id+s.nom).join('|');
-  if(_prefixCache && _prefixCacheStamp===stamp) return _prefixCache;
+  const stamp=students.map(s=>s.id+s.nom).join('|');
+  if(_prefixCache&&_prefixCacheStamp===stamp) return _prefixCache;
 
-  const result = {}; // id → longueur de préfixe à utiliser
-
+  const result={};
   students.forEach(s=>{
-    const {famille, prenom} = splitNom(s.nom);
-    const maxLen = famille.length || 1;
-    let len = 1;
-    while(len <= maxLen){
-      const prefixe = famille.slice(0,len).toUpperCase();
-      const display = `${prefixe}. ${prenom}`.toLowerCase();
-      // Compte combien d'autres élèves produiraient le même affichage
-      const collisions = students.filter(o=>{
-        if(o.id===s.id) return false;
-        const {famille:of, prenom:op} = splitNom(o.nom);
-        const op_display = `${of.slice(0,len).toUpperCase()}. ${op}`.toLowerCase();
-        return op_display === display;
+    const {famille, prenom}=splitNom(s.nom);
+    if(!famille){ result[s.id]=0; return; }
+
+    // Si personne d'autre n'a exactement le même prénom → 1 lettre suffit toujours
+    const mêmePrenom=students.filter(o=>
+      o.id!==s.id &&
+      splitNom(o.nom).prenom.toLowerCase()===prenom.toLowerCase()
+    );
+    if(!mêmePrenom.length){ result[s.id]=1; return; }
+
+    // Parmi ceux qui ont le même prénom, trouver le préfixe minimal qui différencie
+    let len=1;
+    while(len<=famille.length){
+      const prefixe=famille.slice(0,len).toUpperCase();
+      const collision=mêmePrenom.some(o=>{
+        const {famille:of}=splitNom(o.nom);
+        return of.slice(0,len).toUpperCase()===prefixe;
       });
-      if(!collisions.length) break; // ce préfixe est suffisant
+      if(!collision) break;
       len++;
     }
-    result[s.id] = Math.min(len, maxLen);
+    result[s.id]=Math.min(len,famille.length);
   });
 
-  _prefixCache = result;
-  _prefixCacheStamp = stamp;
+  _prefixCache=result;
+  _prefixCacheStamp=stamp;
   return result;
 }
 
@@ -1268,8 +1282,8 @@ function renderFiche(id){
   const ladderSteps=MARCHES.map((m,i)=>`
     <div class="step ${m} ${s.status===m?'current':''}">
       <span class="step-num">${i+1}</span>
-      <span>${MARCHE_LABEL[m]}</span>
-      <span class="step-arrow">\u25c4</span>
+      <span class="step-label">${MARCHE_LABEL[m]}</span>
+      ${s.status===m?'<span class="step-arrow">▲</span>':''}
     </div>`).join('');
 
   // CATÉGORIES — liste verticale avec menu déroulant
@@ -1321,7 +1335,7 @@ function renderFiche(id){
   <a class="back-link" href="#" id="back-to-list">\u2190 Retour \u00e0 la liste</a>
   <div class="row" style="justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
     <div>
-      <h2 style="font-size:24px;">${esc(s.nom)}</h2>
+      <h2 style="font-size:24px;">${esc(displayNom(s))}</h2>
       <p class="small muted">${classe?esc(classe.nom):'Aucune classe'}</p>
     </div>
     <div class="row">
@@ -1359,7 +1373,7 @@ function renderFiche(id){
     </div>
     <div class="row" style="margin-top:16px;gap:8px;flex-wrap:wrap;">
       ${pastilleBtn}
-      <button class="btn warn" id="btn-carnet">\ud83d\udcd3 Carnet oubli\u00e9</button>
+      ${estEnCarnet(s)?`<button class="btn" id="btn-carnet" style="border-color:#e67e22;color:#e67e22;">✓ Retirer carnet oublié</button>`:`<button class="btn warn" id="btn-carnet">📓 Carnet oublié</button>`}
       <button class="btn" id="btn-reset-points">\u21ba R\u00e9initialiser (20/20)</button>
     </div>
   </div>
@@ -1452,15 +1466,24 @@ function attachFicheEvents(){
     }
   });
 
-  // Carnet oublié (coexiste avec la pastille)
+  // Carnet oublié (coexiste avec la pastille, bascule poser ↔ retirer)
   const bc=document.getElementById('btn-carnet');
   if(bc) bc.addEventListener('click',async()=>{
     const s=DATA.students.find(x=>x.id===currentStudentId);
-    if(!s||estEnCarnet(s)) return;
-    if(!confirm(`Mettre ${s.nom} en suspension pour carnet oublié (aujourd'hui uniquement, sans impact sur la marche) ?`)) return;
-    s.carnet={date:todayISO()};
-    logEvent(s,"Carnet de correspondance oublié — suspendu pour la journée.");
-    await saveData(`Carnet oublié ${s.nom}`); render();
+    if(!s) return;
+    if(estEnCarnet(s)){
+      // Retirer le carnet
+      if(!confirm(`Retirer la suspension carnet de ${displayNom(s)} ?`)) return;
+      s.carnet=null;
+      logEvent(s,"Suspension carnet retirée manuellement.");
+      await saveData(`Carnet retiré ${s.nom}`); render();
+    } else {
+      // Poser le carnet
+      if(!confirm(`Mettre ${displayNom(s)} en suspension pour carnet oublié (aujourd'hui uniquement, sans impact sur la marche) ?`)) return;
+      s.carnet={date:todayISO()};
+      logEvent(s,"Carnet de correspondance oublié — suspendu pour la journée.");
+      await saveData(`Carnet oublié ${s.nom}`); render();
+    }
   });
 
   // Reset points
@@ -1578,7 +1601,7 @@ function renderStudentReadOnlyView(studentId){
     </tr>`).join('');
   sc.innerHTML=`
     <div style="max-width:700px;margin:0 auto;padding:24px;">
-      <h2>${esc(s.nom)}</h2>
+      <h2>${esc(displayNom(s))}</h2>
       <p class="small muted">${classe?esc(classe.nom):''} · Lecture seule</p>
       <div class="card" style="margin-top:16px;"><div class="ladder">${ladder}</div>
         ${estEnPastille(s)?`<p><span class="badge m-pastille">Pastille jusqu'au ${formatDateFr(finPastille(s))}</span></p>`:''}${estEnCarnet(s)?`<p><span class="badge m-carnet">Carnet oublié</span></p>`:''}${(!estEnPastille(s)&&!estEnCarnet(s))?''
@@ -1985,7 +2008,7 @@ function exportFichePDF(studentId,period){
   const win=window.open('','_blank');
   if(!win){toast("Pop-up bloquée. Autorise les pop-ups et réessaie.");return;}
   win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
-    <title>Récapitulatif — ${esc(s.nom)}</title>
+    <title>Récapitulatif — ${esc(displayNom(s))}</title>
     <style>
     body{font-family:Georgia,serif;color:#23262b;max-width:720px;margin:30px auto;padding:0 20px;}
     h1{font-size:22px;margin-bottom:2px;}
@@ -2002,7 +2025,7 @@ function exportFichePDF(studentId,period){
     .footer{margin-top:32px;font-size:11px;color:#999;border-top:1px solid #e3e3e3;padding-top:10px;}
     @media print{body{margin:0;padding:14px;}}
     </style></head><body>
-    <h1>Récapitulatif — ${esc(s.nom)}</h1>
+    <h1>Récapitulatif — ${esc(displayNom(s))}</h1>
     <div class="sub">${classe?esc(classe.nom):'—'} · ${period==='current'?'Bloc en cours':period==='previous'?'Bloc précédent':'Bilan annuel'} · Généré le ${formatDateFr(today)}</div>
     <h2>Suivi par semaine</h2>
     ${weekRows?`<table><thead><tr><th>Semaine</th><th>Marche</th><th>Points</th><th>Contrat</th></tr></thead><tbody>${weekRows}</tbody></table>`:'<p style="color:#888;font-size:13px;">Aucune donnée.</p>'}
