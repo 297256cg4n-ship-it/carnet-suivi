@@ -9,239 +9,221 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 :root{
-  --ink:#23262b;
-  --paper:#f6f3ec;
-  --paper-2:#ffffff;
-  --line:#dcd6c6;
-  --accent:#0f5d4f;
-  --accent-2:#b5552b;
-  --muted:#7a7568;
-  --rose:#e8638a;
-  --blanc:#cfcabb;
-  --jaune:#d8a52a;
-  --orange:#c96b2b;
-  --vert:#3f8a52;
-  --bleu:#2f6f9e;
-  --marron:#6b3f2a;
-  --pastille:#23262b;
-  --radius:10px;
+  --ink:#23262b;--paper:#f6f3ec;--paper-2:#ffffff;--line:#dcd6c6;
+  --accent:#0f5d4f;--accent-2:#b5552b;--muted:#7a7568;
+  --m1:#c0392b;--m2:#e67e22;--m3:#2980b9;--m4:#27ae60;
+  --m1-light:#fdecea;--m2-light:#fef5ec;--m3-light:#eaf4fb;--m4-light:#eafaf1;
 }
-*{box-sizing:border-box;}
-html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:'Avenir Next',Segoe UI,Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;}
-body{min-height:100vh;}
-h1,h2,h3{font-family:Georgia,'Times New Roman',serif;font-weight:700;letter-spacing:-0.01em;margin:0;}
-a{color:var(--accent);}
-button{font-family:inherit;cursor:pointer;}
-input,select{font-family:inherit;}
-.hidden{display:none !important;}
-
-/* ===== Login screen ===== */
-#login-screen, #student-login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:
-  radial-gradient(circle at 20% 20%, rgba(15,93,79,0.06), transparent 40%),
-  radial-gradient(circle at 80% 80%, rgba(185,85,43,0.07), transparent 45%),
-  var(--paper);}
-.login-card{background:var(--paper-2);border:1px solid var(--line);border-radius:14px;padding:40px 36px;max-width:380px;width:90%;box-shadow:0 18px 40px -20px rgba(0,0,0,0.25);}
-.login-card .eyebrow{font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
-.login-card h1{font-size:26px;margin-bottom:18px;}
-.login-card input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:8px;font-size:16px;margin-bottom:12px;}
-.login-card button.primary{width:100%;padding:12px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:600;}
-.login-card button.primary:hover{background:#0c4c41;}
-.err{color:#a32b2b;font-size:13px;margin-bottom:10px;min-height:16px;}
-
-/* ===== App shell ===== */
-#app{display:none;min-height:100vh;}
-header.topbar{background:var(--ink);color:#f3f1e9;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:30;}
-header.topbar .brand{display:flex;align-items:center;gap:10px;}
-header.topbar .brand .step-mark{display:flex;gap:2px;}
-header.topbar .brand .step-mark span{width:6px;height:14px;background:var(--rose);display:inline-block;border-radius:2px;}
-header.topbar .brand .step-mark span:nth-child(2){height:18px;background:var(--jaune);}
-header.topbar .brand .step-mark span:nth-child(3){height:22px;background:var(--vert);}
-header.topbar .brand .step-mark span:nth-child(4){height:26px;background:var(--marron);}
-header.topbar h1{font-size:18px;color:#f3f1e9;}
-nav.tabs{display:flex;gap:6px;flex-wrap:wrap;}
-nav.tabs button{background:transparent;border:1px solid transparent;color:#cfcabb;padding:8px 14px;border-radius:7px;font-size:14px;font-weight:600;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Georgia',serif;background:var(--paper);color:var(--ink);min-height:100vh;}
+.hidden{display:none!important;}
+/* LOGIN */
+#login-screen,#student-login-screen{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(circle at 20% 20%,rgba(15,93,79,.06),transparent 40%),
+    radial-gradient(circle at 80% 80%,rgba(185,85,43,.07),transparent 45%),
+    var(--paper);
+  padding:20px;
+}
+.login-card{
+  background:var(--paper-2);border:1px solid var(--line);border-radius:16px;
+  padding:48px 40px;width:100%;max-width:400px;
+  display:flex;flex-direction:column;gap:0;
+  box-shadow:0 2px 20px rgba(0,0,0,.06);
+}
+.login-card .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:10px;}
+.login-card h1{font-size:28px;font-weight:700;margin-bottom:28px;}
+.login-card .login-hint{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5;}
+.login-card input{
+  width:100%;padding:13px 15px;border:1.5px solid var(--line);
+  border-radius:9px;font-size:15px;font-family:inherit;margin-bottom:14px;
+  transition:border-color .15s;
+}
+.login-card input:focus{outline:none;border-color:var(--accent);}
+.login-card button.primary{
+  width:100%;padding:14px;background:var(--accent);color:#fff;border:none;
+  border-radius:9px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;
+  margin-bottom:10px;
+}
+.login-card button.primary:hover{background:#0d4f43;}
+.login-card button.secondary-login{
+  width:100%;padding:12px;background:transparent;color:var(--muted);
+  border:1.5px solid var(--line);border-radius:9px;font-size:14px;
+  font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:0;
+  transition:border-color .15s,color .15s;
+}
+.login-card button.secondary-login:hover{border-color:var(--ink);color:var(--ink);}
+.login-card .login-back{display:inline-block;margin-top:18px;font-size:13px;color:var(--muted);text-decoration:none;}
+.login-card .login-back:hover{color:var(--ink);}
+.login-card .login-sep{height:1px;background:var(--line);margin:20px 0;}
+.err{color:#a32b2b;font-size:13px;min-height:18px;margin-bottom:6px;}
+/* TOPBAR */
+header.topbar{background:#23262b;color:#f3f1e9;display:flex;align-items:center;gap:14px;padding:12px 20px;flex-wrap:wrap;position:sticky;top:0;z-index:20;}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand h1{font-size:16px;font-weight:700;color:#f3f1e9;}
+.role-badge{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 9px;border-radius:20px;background:#454a52;color:#cfcabb;}
+body.is-admin .role-badge{background:var(--accent-2);color:#fff;}
+nav.tabs{display:flex;gap:6px;flex:1;}
+nav.tabs button{background:transparent;border:1px solid transparent;color:#cfcabb;padding:7px 13px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
 nav.tabs button.active{background:#f3f1e9;color:var(--ink);}
 nav.tabs button:hover:not(.active){border-color:#454a52;}
-main{padding:26px 22px 60px;max-width:1100px;margin:0 auto;}
-
-/* ===== Menu "..." pour les actions admin (replié sur mobile) ===== */
+nav.tabs button.tab-alert{color:#e3b9b9;font-weight:700;}
+nav.tabs button.tab-alert.active{background:#fdeceb;color:#7a2020;}
 .admin-menu{position:relative;}
 .admin-menu-trigger{display:none;}
 .admin-menu-panel{display:contents;}
-.admin-menu-dropdown{display:none;}
-/* Sur desktop, les actions admin restent visibles mais plus discrètes que
-   les onglets principaux (Élèves, Classes...), pour ne pas leur faire
-   concurrence visuellement. */
-.admin-menu-panel .btn{padding:6px 10px;font-size:12.5px;font-weight:500;color:#cfcabb;border-color:#454a52;background:transparent;}
-.role-badge{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:3px 9px;border-radius:20px;margin-left:10px;background:#454a52;color:#cfcabb;}
-body.is-admin .role-badge{background:var(--accent-2);color:#fff;}
-body:not(.is-admin) .admin-only{display:none !important;}
-.admin-menu-panel .btn:hover{color:#fff;border-color:#6a6f78;background:rgba(255,255,255,0.04);}
-
-/* ===== Responsive mobile : topbar compacte ===== */
-@media (max-width:720px){
-  header.topbar{padding:10px 12px;gap:8px;flex-wrap:wrap;}
-  header.topbar .brand h1{font-size:14px;}
-  header.topbar .brand .step-mark span{width:4px;}
-  header.topbar .brand .step-mark span:nth-child(1){height:10px;}
-  header.topbar .brand .step-mark span:nth-child(2){height:13px;}
-  header.topbar .brand .step-mark span:nth-child(3){height:16px;}
-  header.topbar .brand .step-mark span:nth-child(4){height:19px;}
-  nav.tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:4px;flex:1 1 100%;order:3;padding-bottom:2px;}
-  nav.tabs::-webkit-scrollbar{height:0;}
-  nav.tabs button{padding:7px 11px;font-size:13px;white-space:nowrap;flex-shrink:0;}
-  /* Les 4 boutons admin se replient dans un menu déroulant compact */
-  .admin-menu{order:2;margin-left:auto;}
-  .admin-menu-trigger{display:inline-flex;background:transparent;border:1px solid #454a52;color:#f3f1e9;width:36px;height:36px;border-radius:7px;font-size:18px;align-items:center;justify-content:center;}
-  .admin-menu-panel{display:none;}
-  .admin-menu.open .admin-menu-panel{
-    display:flex;flex-direction:column;position:absolute;top:44px;right:0;background:var(--paper-2);
-    border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.18);
-    padding:8px;gap:4px;min-width:220px;z-index:40;
-  }
-  .admin-menu.open .admin-menu-panel .btn{width:100%;text-align:left;color:var(--ink);background:#fff;border-color:var(--line);font-size:14px;padding:9px 14px;}
-}
-.muted{color:var(--muted);}
-.card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px;}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-.btn{border:1px solid var(--line);background:#fff;padding:9px 14px;border-radius:7px;font-size:14px;font-weight:600;color:var(--ink);}
-.btn:hover{border-color:var(--accent);color:var(--accent);}
+.admin-menu-panel .btn{padding:6px 10px;font-size:12px;font-weight:500;color:#cfcabb;border-color:#454a52;background:transparent;}
+.admin-menu-panel .btn:hover{color:#fff;border-color:#6a6f78;}
+body:not(.is-admin) .admin-only{display:none!important;}
+/* MAIN */
+main{padding:26px 22px 60px;max-width:1100px;margin:0 auto;}
+/* CARDS & LAYOUT */
+.card{background:var(--paper-2);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:16px;}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.field label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
+.field input,.field select,.field textarea{padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;}
+.field textarea{resize:vertical;min-height:80px;}
+.section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px;}
+.empty{color:var(--muted);font-size:14px;padding:20px 0;text-align:center;}
+.small{font-size:13px;}.muted{color:var(--muted);}
+.back-link{font-size:13px;color:var(--accent);text-decoration:none;display:inline-block;margin-bottom:16px;}
+/* BUTTONS */
+.btn{border:1px solid var(--line);background:#fff;padding:8px 13px;border-radius:7px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;font-family:inherit;}
 .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
-.btn.primary:hover{background:#0c4c41;}
 .btn.warn{background:#fff;color:#a32b2b;border-color:#e3b9b9;}
-.btn.btn-danger-solid{background:#a32b2b;color:#fff;border-color:#a32b2b;font-weight:700;}
-.btn.btn-danger-solid:hover{background:#8a2222;border-color:#8a2222;}
-.btn.warn:hover{background:#fbeaea;}
-input[type=text], input[type=number], select{padding:9px 11px;border:1px solid var(--line);border-radius:7px;font-size:14px;}
+.btn.danger{background:#a32b2b;color:#fff;border-color:#a32b2b;font-weight:700;}
+.btn.danger:hover{background:#8a2222;}
+/* TABLES */
 table{width:100%;border-collapse:collapse;font-size:14px;}
-th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);padding:8px 10px;border-bottom:2px solid var(--line);}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:8px 10px;border-bottom:2px solid var(--line);}
 td{padding:9px 10px;border-bottom:1px solid var(--line);}
 tr.row-link{cursor:pointer;}
-tr.row-link:hover{background:#f3f1e9;}
-.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;color:#fff;}
-.empty{padding:30px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px;}
-
-/* marche colors as badges */
-.m-rose{background:var(--rose);} .m-blanc{background:var(--blanc);color:#23262b;}
-.m-jaune{background:var(--jaune);} .m-orange{background:var(--orange);}
-.m-vert{background:var(--vert);} .m-bleu{background:var(--bleu);}
-.m-marron{background:var(--marron);} .m-pastille{background:var(--pastille);}
-
-/* ladder visual */
-.ladder{display:flex;align-items:flex-end;gap:6px;margin:14px 0;}
-.ladder .step{flex:1;border-radius:6px 6px 0 0;text-align:center;color:#fff;font-size:11px;font-weight:700;padding-top:4px;text-transform:uppercase;letter-spacing:.04em;position:relative;opacity:0.45;transition:opacity .2s, transform .2s;}
-.ladder .step.current{opacity:1;transform:translateY(-4px);box-shadow:0 8px 16px -8px rgba(0,0,0,.4);}
-.ladder .step:nth-child(1){height:34px;} .ladder .step:nth-child(2){height:44px;}
-.ladder .step:nth-child(3){height:54px;} .ladder .step:nth-child(4){height:64px;}
-.ladder .step:nth-child(5){height:74px;} .ladder .step:nth-child(6){height:84px;}
-.ladder .step:nth-child(7){height:94px;}
-.ladder .step.m-blanc{color:#23262b;}
-
-.points-meter{height:14px;border-radius:8px;background:#eee5cf;overflow:hidden;border:1px solid var(--line);}
-.points-meter .fill{height:100%;background:var(--accent);transition:width .25s;}
-.cat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:10px;}
-.cat-box{border:1px solid var(--line);border-radius:9px;padding:12px;background:#fbfaf6;}
-.cat-box h4{font-size:13px;margin-bottom:8px;}
-.cat-box .nums{display:flex;gap:6px;}
-.cat-box .nums button{flex:1;border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px 0;font-weight:700;font-size:13px;}
-.cat-box .nums button:hover{background:#a32b2b;color:#fff;border-color:#a32b2b;}
-.hist-item{font-size:13px;padding:7px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;}
-.hist-item:last-child{border-bottom:none;}
-.qr-box{display:flex;gap:18px;align-items:center;flex-wrap:wrap;}
-.qr-box img{border:1px solid var(--line);border-radius:8px;background:#fff;padding:6px;}
-.link-field{flex:1;min-width:220px;padding:9px 11px;border:1px solid var(--line);border-radius:7px;font-size:12px;background:#fbfaf6;word-break:break-all;}
-.toast{position:fixed;bottom:20px;right:20px;background:var(--ink);color:#fff;padding:11px 18px;border-radius:8px;font-size:14px;box-shadow:0 10px 24px -10px rgba(0,0,0,.4);z-index:99;}
-.modal-bg{position:fixed;inset:0;background:rgba(20,18,14,.45);display:flex;align-items:center;justify-content:center;z-index:80;}
-.modal{background:#fff;border-radius:12px;padding:24px;width:90%;max-width:420px;}
-.modal h3{margin-bottom:14px;}
-.field{margin-bottom:12px;}
-.field label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:5px;}
-.field input,.field select{width:100%;}
-.back-link{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:14px;display:inline-block;}
-.small{font-size:12px;color:var(--muted);}
-.section-title{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px;font-weight:700;}
-.marche-picker{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
-.marche-picker button{border:2px solid transparent;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;color:#fff;opacity:.55;}
-.marche-picker button.m-blanc{color:#23262b;}
-.marche-picker button.active{opacity:1;border-color:var(--ink);}
-.qr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;}
-.qr-card{border:1px solid var(--line);border-radius:10px;padding:14px;text-align:center;background:#fff;}
-.qr-card .qr-render{display:flex;justify-content:center;margin-bottom:8px;}
-.qr-card .qr-render img{border:1px solid var(--line);border-radius:6px;}
-.qr-card .qr-name{font-weight:700;font-size:13px;margin-bottom:8px;}
-.qr-card a.dl{font-size:12px;font-weight:700;}
-@media print{
-  header.topbar, .back-link, #btn-print-qr, .no-print{display:none !important;}
-  body{background:#fff;}
-  .card{border:none;box-shadow:none;}
-}
-.week-banner{display:flex;align-items:center;justify-content:space-between;background:#eef4f1;border:1px solid #cfe3da;border-radius:9px;padding:12px 16px;margin-bottom:16px;font-size:13px;gap:10px;flex-wrap:wrap;}
-.pastille-banner{display:flex;align-items:center;background:#fdeceb;border:1px solid #e3b9b9;color:#7a2020;border-radius:9px;padding:12px 16px;margin-bottom:16px;font-size:14px;font-weight:700;}
+tr.row-link:hover td{background:#f9f8f4;}
 tr.pastille-row{background:#fdeceb;font-weight:700;color:#7a2020;}
 tr.pastille-row td{border-bottom-color:#e3b9b9;}
+/* MARCHES */
+.m1{background:var(--m1)!important;}.m2{background:var(--m2)!important;}.m3{background:var(--m3)!important;}.m4{background:var(--m4)!important;}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;color:#fff;}
+.badge.m1{background:var(--m1);}.badge.m2{background:var(--m2);}.badge.m3{background:var(--m3);}.badge.m4{background:var(--m4);}
+.badge.m-pastille{background:#888;color:#fff;}
+.badge.m-carnet{background:#e67e22;color:#fff;}
+.ladder{display:flex;flex-direction:column-reverse;gap:4px;margin:10px 0;}
+.step{padding:8px 14px;border-radius:7px;font-size:13px;font-weight:600;color:rgba(255,255,255,.6);opacity:.45;}
+.step.current{opacity:1;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.18);}
+/* MARCHE PICKER */
+.marche-picker{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.marche-picker button{padding:7px 14px;border-radius:7px;border:2px solid transparent;font-size:13px;font-weight:700;color:#fff;cursor:pointer;}
+.marche-picker button.m1{background:var(--m1);}.marche-picker button.m2{background:var(--m2);}
+.marche-picker button.m3{background:var(--m3);}.marche-picker button.m4{background:var(--m4);}
+.marche-picker button.active{border-color:#23262b;box-shadow:0 0 0 2px #23262b;}
+/* CATEGORIES */
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:10px;}
+.cat-box{border:1px solid var(--line);border-radius:9px;overflow:hidden;}
+.cat-box-header{padding:10px 13px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:13px;background:var(--paper);}
+.cat-box-header .pts{font-size:11px;color:var(--muted);font-weight:600;}
+.cat-box-motifs{display:none;background:#fff;border-top:1px solid var(--line);}
+.cat-box-motifs.open{display:block;}
+.cat-box-motifs button{display:block;width:100%;text-align:left;padding:8px 13px;background:none;border:none;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer;font-family:inherit;}
+.cat-box-motifs button:last-child{border-bottom:none;}
+.cat-box-motifs button:hover{background:#f9f8f4;}
+/* POINTS METER */
+.points-meter{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:6px;}
+.points-meter .fill{height:100%;background:var(--accent);border-radius:4px;transition:width .3s;}
+/* BLOC BADGE */
+.bloc-badge{display:inline-flex;align-items:center;gap:6px;background:#eef4f1;border:1px solid #cfe3da;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;color:var(--accent);}
+/* WEEK BANNER */
+.week-banner{display:flex;align-items:center;justify-content:space-between;background:#eef4f1;border:1px solid #cfe3da;border-radius:9px;padding:12px 16px;margin-bottom:16px;font-size:13px;gap:10px;flex-wrap:wrap;}
+/* PASTILLE BANNER */
+.pastille-banner{display:flex;align-items:center;background:#fdeceb;border:1px solid #e3b9b9;color:#7a2020;border-radius:9px;padding:12px 16px;margin-bottom:16px;font-size:14px;font-weight:700;}
 .pastille-card{border-color:#e3b9b9;}
 .pastille-card table th{color:#a32b2b;}
-nav.tabs button.tab-alert{color:#a32b2b;border-color:#e3b9b9;font-weight:700;}
-nav.tabs button.tab-alert.active{background:#fdeceb;color:#7a2020;}
-.week-banner strong{color:var(--accent);}
-.week-nav{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:16px;}
-.week-nav .week-label{font-weight:700;font-size:15px;min-width:260px;text-align:center;}
-.week-nav button{padding:7px 12px;}
-.week-nav button:disabled{opacity:.35;cursor:not-allowed;}
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;}
+.modal{background:#fff;border-radius:12px;padding:28px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;}
+.modal h3{font-size:18px;margin-bottom:16px;}
+/* TOAST */
+#toast-container{position:fixed;bottom:24px;right:24px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#23262b;color:#f3f1e9;padding:10px 18px;border-radius:8px;font-size:13px;animation:slideIn .2s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+/* MOBILE */
+@media(max-width:720px){
+  header.topbar{padding:10px 12px;gap:8px;}
+  .brand h1{font-size:14px;}
+  nav.tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:4px;flex:1 1 100%;order:3;}
+  nav.tabs::-webkit-scrollbar{height:0;}
+  nav.tabs button{padding:7px 10px;font-size:12px;flex-shrink:0;}
+  .admin-menu{order:2;margin-left:auto;}
+  .admin-menu-trigger{display:inline-flex;background:transparent;border:1px solid #454a52;color:#f3f1e9;width:36px;height:36px;border-radius:7px;font-size:18px;align-items:center;justify-content:center;cursor:pointer;}
+  .admin-menu-panel{display:none;}
+  .admin-menu.open .admin-menu-panel{display:flex;flex-direction:column;position:absolute;top:44px;right:0;background:var(--paper-2);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:8px;gap:4px;min-width:220px;z-index:40;}
+  .admin-menu.open .admin-menu-panel .btn{width:100%;text-align:left;color:var(--ink);background:#fff;border-color:var(--line);font-size:14px;padding:9px 14px;}
+}
+@media print{body{margin:0;padding:14px;}}
 </style>
 </head>
 <body>
 
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
 <!-- LOGIN -->
 <div id="login-screen">
   <div class="login-card">
-    <div id="login-choice-step">
-      <div class="eyebrow">Carnet de suivi</div>
-      <h1>Qui es-tu ?</h1>
-      <button class="primary" id="choose-teacher-btn" style="margin-bottom:10px;">Espace enseignant</button>
-      <button class="btn" id="choose-admin-btn" style="width:100%;">Espace administrateur</button>
+    <div class="eyebrow">Carnet de suivi — les Marches</div>
+
+    <!-- Étape 1 : choix du rôle -->
+    <div id="login-step-choice">
+      <h1>Connexion</h1>
+      <button class="primary" id="choose-teacher-btn">Espace enseignant</button>
+      <div class="login-sep"></div>
+      <button class="secondary-login" id="choose-admin-btn">Espace administrateur</button>
     </div>
-    <div id="login-teacher-step" class="hidden">
-      <div class="eyebrow">Carnet de suivi · espace enseignants</div>
-      <h1>Mot de passe</h1>
+
+    <!-- Étape 2a : login enseignant -->
+    <div id="login-step-teacher" class="hidden">
+      <div class="eyebrow">Espace enseignant</div>
+      <h1>Code d'accès</h1>
+      <p class="login-hint" id="teacher-login-hint"></p>
       <div id="login-err" class="err"></div>
-      <input type="password" id="login-input" placeholder="Mot de passe" autofocus>
+      <input type="password" id="login-input" placeholder="Votre code" inputmode="numeric" maxlength="5">
       <button class="primary" id="login-btn">Entrer</button>
-      <p class="small" style="margin-top:14px">Accès partagé : toutes les fiches sont visibles et modifiables par l'ensemble des enseignants.</p>
-      <p class="small" style="margin-top:8px"><a href="#" id="back-to-choice-1">← Retour</a></p>
+      <a href="#" class="login-back" id="back-to-choice-1">← Retour</a>
     </div>
-    <div id="login-admin-step" class="hidden">
-      <div class="eyebrow">Carnet de suivi · espace administrateur</div>
-      <h1>Mot de passe administrateur</h1>
+
+    <!-- Étape 2b : login admin -->
+    <div id="login-step-admin" class="hidden">
+      <div class="eyebrow">Espace administrateur</div>
+      <h1>Mot de passe</h1>
       <div id="login-admin-err" class="err"></div>
       <input type="password" id="login-admin-input" placeholder="Mot de passe administrateur">
       <button class="primary" id="login-admin-btn">Entrer</button>
-      <p class="small" style="margin-top:14px">Droits supplémentaires : suppression d'élèves/classes, changement du mot de passe.</p>
-      <p class="small" style="margin-top:8px"><a href="#" id="back-to-choice-2">← Retour</a></p>
+      <a href="#" class="login-back" id="back-to-choice-2">← Retour</a>
     </div>
   </div>
 </div>
 
-<!-- ACCÈS ÉLÈVE (lecture seule, via QR code de la fiche) -->
+<!-- ACCÈS ÉLÈVE (lecture seule QR code) -->
 <div id="student-login-screen" class="hidden">
   <div class="login-card">
     <div class="eyebrow">Carnet de suivi · accès élève</div>
-    <h1 id="student-login-title">Ta fiche de suivi</h1>
+    <h1>Ta fiche de suivi</h1>
     <div id="student-login-err" class="err"></div>
-    <input type="text" id="student-login-input" placeholder="Ton nom de famille" autofocus style="text-transform:uppercase;">
+    <input type="text" id="student-login-input" placeholder="Ton nom de famille" style="text-transform:uppercase;">
     <button class="primary" id="student-login-btn">Voir ma fiche</button>
-    <p class="small" style="margin-top:14px"><a href="#" id="goto-teacher-login">Je suis un(e) enseignant(e) →</a></p>
+    <div class="login-sep"></div>
+    <p class="small" style="text-align:center;color:var(--muted);">Tu es enseignant(e) ? <a href="#" id="goto-teacher-login" style="color:var(--accent);">Connexion →</a></p>
   </div>
 </div>
 
-<!-- FICHE ÉLÈVE EN LECTURE SEULE -->
+<!-- FICHE ÉLÈVE LECTURE SEULE -->
 <div id="student-view-screen" class="hidden"></div>
 
 <!-- APP -->
-<div id="app">
+<div id="app" class="hidden">
   <header class="topbar">
     <div class="brand">
-      <span class="step-mark"><span></span><span></span><span></span><span></span></span>
       <h1>Carnet de suivi — les Marches</h1>
       <span class="role-badge" id="role-badge"></span>
     </div>
@@ -251,409 +233,362 @@ nav.tabs button.tab-alert.active{background:#fdeceb;color:#7a2020;}
       <button data-tab="qrcodes">QR codes</button>
       <button data-tab="semaines">Semaines</button>
       <button data-tab="pastilles" class="tab-alert">⚠ Pastilles</button>
+      <button data-tab="memo">Mémo</button>
+      <button data-tab="admin" class="admin-only">⚙ Admin</button>
     </nav>
     <div class="admin-menu" id="admin-menu">
-      <button class="admin-menu-trigger" id="admin-menu-trigger" aria-label="Menu">⋯</button>
+      <button class="admin-menu-trigger" id="admin-menu-trigger">⋯</button>
       <div class="admin-menu-panel">
-        <button class="btn" id="export-btn" title="Télécharger une copie de sauvegarde">Exporter</button>
-        <button class="btn admin-only" id="change-pwd-btn" title="Changer le mot de passe pour tout le monde">Changer le mot de passe</button>
-        <button class="btn" id="undo-btn" title="Annuler ta dernière action (et seulement la tienne)">↩ Annuler ma dernière action</button>
+        <button class="btn" id="export-btn">Exporter</button>
+        <button class="btn" id="undo-btn">↩ Annuler</button>
         <button class="btn" id="logout-btn">Verrouiller</button>
       </div>
     </div>
   </header>
-  <main id="main"></main>
+  <main id="main-content"></main>
 </div>
 
-<div id="toast-host"></div>
-
 <script>
-/* ============== CONFIG ============== */
-const PASSWORD_ENCODED = "Q0Q0NDEwMCE="; // décodé en base64 au moment de la vérification, pour ne pas l'afficher en clair dans le code
-const ADMIN_PASSWORD_ENCODED = "Q0RBRE1JTjQ0MTAwIQ=="; // mot de passe administrateur, même principe
-const MARCHES = ["rose","blanc","jaune","orange","vert","bleu","marron"];
-const MARCHE_LABEL = {rose:"Rose",blanc:"Blanc",jaune:"Jaune",orange:"Orange",vert:"Vert",bleu:"Bleu",marron:"Marron"};
+/* ============================================================
+   CONFIG & CONSTANTES
+   ============================================================ */
+const PROXY_URL = "https://carnet-suivi-proxy.2hhvst2ycz.workers.dev";
+const ADMIN_PASSWORD_ENCODED = "Q0RBRE1JTjQ0MTAwIQ==";
+
+const MARCHES = ["m1","m2","m3","m4"];
+const MARCHE_LABEL = {m1:"Marche 1",m2:"Marche 2",m3:"Marche 3",m4:"Marche 4"};
+const MARCHE_COLOR = {m1:"#c0392b",m2:"#e67e22",m3:"#2980b9",m4:"#27ae60"};
+// Seuil de points minimum pour valider le contrat de la semaine (sur 20)
+const MARCHE_SEUIL = {m1:12, m2:14, m3:16, m4:19};
+const MARCHE_DEFAULT = "m2"; // Tous les élèves démarrent à la marche 2
+
 const CATEGORIES = [
-  {key:"travail",label:"Travail"},
-  {key:"comportement",label:"Comportement"},
-  {key:"retard",label:"Retard"},
-  {key:"materiel",label:"Matériel / tenue"},
-  {key:"respect",label:"Respect"},
-  {key:"securite",label:"Sécurité"},
-  {key:"toilette",label:"Toilettes"},
+  { key:"postures", label:"Postures de travail", points:1, motifs:[
+    "Se balance sur sa chaise","Bavarde","Oublie son cahier ou son manuel",
+    "Ne prend pas en note la leçon"
+  ]},
+  { key:"incivilites", label:"Incivilités", points:1, motifs:[
+    "Mâche un chewing-gum","Ne retire pas son manteau / capuche / casquette"
+  ]},
+  { key:"desobeissance", label:"Désobéissance et non-respect des consignes", points:2, motifs:[
+    "Conteste la décision de l'enseignant","Triche","Ne prend pas en compte la remarque",
+    "S'exonère de ses obligations"
+  ]},
+  { key:"retard", label:"Retard", points:1, motifs:[
+    "Retard au portail","Retard à l'intercours","Retard durant un déplacement"
+  ]},
+  { key:"violence", label:"Comportements violents", points:3, motifs:[
+    "Violence verbale / insulte","Violence physique","Jeu dangereux","Bagarre"
+  ]},
+  { key:"autres", label:"Autres", points:1, motifs:[], freeText:true}
 ];
 
-let DATA = {classes:[], students:[]};
-let currentTab = "accueil";
-let currentRole = null; // 'teacher' ou 'admin' — déterminé à la connexion
+// Date de début du premier bloc (lundi 31 août 2026)
+const FIRST_BLOC_START = "2026-08-31";
+
+/* ============================================================
+   ÉTAT GLOBAL
+   ============================================================ */
+let DATA = {
+  staff:[],       // [{id, nom, prenom, code, role:'teacher'|'admin'}]
+  classes:[],
+  students:[],
+  weeks:[],
+  blocs:[],       // [{id, dateDebut, semaines:[{start,end,vacances:bool}], clos:bool}]
+  vacances:[],    // [{id, label, debut, fin}]
+  memo:{m1:"",m2:"",m3:"",m4:""},
+  currentWeekStart: FIRST_BLOC_START,
+  adminPasswordHash: null,
+};
+let currentUser = null;   // objet staff complet de la personne connectée
+let currentTab  = "accueil";
 let currentStudentId = null;
-let currentClassFilter = "";
+let currentClasseId  = null;
 let currentSearchQuery = "";
-let currentClasseId = null;
-let lastKnownSha = null; // empreinte de version du fichier de données côté GitHub, pour détecter les conflits d'écriture
-let lastKnownData = null; // dernière version connue de DATA, pour calculer un diff en cas de conflit
-let undoStack = []; // pile locale (à cette session navigateur) des actions annulables par CETTE personne
+let currentClassFilter = "";
+let lastKnownSha  = null;
+let lastKnownData = null;
+let undoStack = [];
 
-/* ============== CONFIGURATION (déjà faite — rien à modifier ici) ==============
-   Cette application stocke ses données dans UN SEUL fichier JSON central,
-   "donnees.json", dans un dépôt GitHub. Pour que le token GitHub ne soit
-   JAMAIS visible dans cette page (qui est publique), les lectures/écritures
-   passent par un petit serveur intermédiaire (un "Cloudflare Worker") qui,
-   lui, garde le token caché et fait l'appel à GitHub à notre place.
-*/
-const PROXY_URL = "https://carnet-suivi-proxy.2hhvst2ycz.workers.dev";
+/* ============================================================
+   DATES (heure locale, jamais toISOString pour éviter décalage UTC)
+   ============================================================ */
+function todayISO(){
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function pad(n){ return String(n).padStart(2,'0'); }
+function mondayOf(iso){
+  const d = new Date(iso+'T00:00:00');
+  const day = d.getDay();
+  const diff = day===0 ? -6 : 1-day;
+  d.setDate(d.getDate()+diff);
+  return isoFromDate(d);
+}
+function addDays(iso,n){
+  const d = new Date(iso+'T00:00:00');
+  d.setDate(d.getDate()+n);
+  return isoFromDate(d);
+}
+function isoFromDate(d){
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function formatDateFr(iso){
+  if(!iso) return '';
+  const d = new Date(iso+'T00:00:00');
+  return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
+}
+function currentMondayISO(){ return mondayOf(todayISO()); }
+function isVacances(iso){
+  return DATA.vacances.some(v=> iso>=v.debut && iso<=v.fin);
+}
 
+/* ============================================================
+   STRUCTURE DES BLOCS DE 3 SEMAINES
+   Un bloc = 3 semaines de SUIVI EFFECTIF (hors vacances).
+   Les vacances suspendent le bloc; il reprend après.
+   ============================================================ */
+function buildBlocs(){
+  // Reconstruit la liste de tous les blocs depuis FIRST_BLOC_START,
+  // en prenant en compte les périodes de vacances et les resets manuels.
+  const manualResets = (DATA.blocResets||[]).slice().sort();
+  let blocs = [];
+  let cursor = FIRST_BLOC_START;
+  const today = todayISO();
+
+  while(cursor <= addDays(today, 200)){
+    const bloc = {id:genId(), dateDebut:cursor, semaines:[]};
+    // Trouver le prochain reset manuel après cursor
+    const nextReset = manualResets.find(r => r > cursor);
+
+    while(bloc.semaines.length < 3){
+      // Si on atteint un reset manuel, on clôt ce bloc prématurément
+      if(nextReset && cursor >= nextReset){ break; }
+      const lundi = mondayOf(cursor);
+      if(isVacances(lundi)){
+        // Semaine de vacances : on saute sans compter
+        cursor = addDays(lundi, 7);
+        continue;
+      }
+      const dimanche = addDays(lundi, 6);
+      bloc.semaines.push({start:lundi, end:dimanche});
+      cursor = addDays(lundi, 7);
+    }
+    if(bloc.semaines.length > 0) blocs.push(bloc);
+    if(nextReset && cursor <= nextReset) cursor = nextReset;
+  }
+  return blocs;
+}
+
+function currentBloc(){
+  const blocs = buildBlocs();
+  const today = todayISO();
+  return blocs.find(b=>{
+    const last = b.semaines[b.semaines.length-1];
+    return last && today <= last.end;
+  }) || blocs[blocs.length-1];
+}
+
+function currentSemaineInBloc(){
+  const bloc = currentBloc();
+  if(!bloc) return null;
+  const today = todayISO();
+  return bloc.semaines.find(s=> today >= s.start && today <= s.end);
+}
+
+function semaineIndexInBloc(semaineStart){
+  const blocs = buildBlocs();
+  for(const bloc of blocs){
+    const idx = bloc.semaines.findIndex(s=>s.start===semaineStart);
+    if(idx>=0) return {bloc, idx, total: bloc.semaines.length};
+  }
+  return null;
+}
+
+/* ============================================================
+   STORAGE (GitHub via Cloudflare Worker proxy)
+   ============================================================ */
 function _proxyUrl(filename){
   return `${PROXY_URL}?file=${encodeURIComponent(filename)}`;
 }
-// UTF-8 safe base64 encode/decode (le JSON contient des accents français)
 function _b64encode(str){ return btoa(unescape(encodeURIComponent(str))); }
 function _b64decode(b64){ return decodeURIComponent(escape(atob(b64))); }
 
-/* ============== STORAGE (partagé via GitHub, à travers le proxy) ==============
-   Lecture/écriture directes sur donnees.json dans le dépôt : chaque
-   sauvegarde est donc immédiatement visible par tous les collègues qui
-   rouvrent ou rafraîchissent la page. Nécessite une connexion internet.
-   Le "sha" renvoyé par GitHub sert de verrou : si un collègue a sauvegardé
-   entre notre lecture et notre écriture, GitHub refuse l'écriture (409) et
-   on prévient plutôt que d'écraser silencieusement son travail.
-*/
 async function _ghReadFile(filename){
   const res = await fetch(_proxyUrl(filename));
   if(!res.ok) throw new Error('HTTP '+res.status);
   const json = await res.json();
-  if(!json || !json.content) throw new Error('HTTP 404');
-  return { sha: json.sha, content: JSON.parse(_b64decode(json.content)) };
+  if(!json||!json.content) throw new Error('HTTP 404');
+  return {sha:json.sha, content:JSON.parse(_b64decode(json.content))};
 }
-async function _ghWriteFile(filename, dataObj, sha, message){
-  const body = { message: message || 'Mise à jour des données', content: _b64encode(JSON.stringify(dataObj, null, 2)) };
-  if(sha) body.sha = sha;
-  const res = await fetch(_proxyUrl(filename), {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+async function _ghWriteFile(filename,dataObj,sha,message){
+  const body={message:message||'Mise à jour',content:_b64encode(JSON.stringify(dataObj,null,2))};
+  if(sha) body.sha=sha;
+  const res = await fetch(_proxyUrl(filename),{
+    method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)
   });
-  if(res.status === 409 || res.status === 422){ throw new Error('CONFLICT'); }
+  if(res.status===409||res.status===422) throw new Error('CONFLICT');
   if(!res.ok) throw new Error('HTTP '+res.status);
   const json = await res.json();
   return json.content.sha;
 }
 
+function _diffById(before,after){
+  const bm=new Map((before||[]).map(x=>[x.id,x]));
+  const am=new Map((after||[]).map(x=>[x.id,x]));
+  const added=[],updated=[],removedIds=[];
+  for(const [id,item] of am){
+    if(!bm.has(id)) added.push(item);
+    else if(JSON.stringify(bm.get(id))!==JSON.stringify(item)) updated.push(item);
+  }
+  for(const id of bm.keys()){ if(!am.has(id)) removedIds.push(id); }
+  return {added,updated,removedIds};
+}
+function _applyDiff(serverArr,diff){
+  let r=(serverArr||[]).filter(x=>!diff.removedIds.includes(x.id));
+  for(const u of diff.updated){ const i=r.findIndex(x=>x.id===u.id); if(i>=0)r[i]=u; else r.push(u); }
+  for(const a of diff.added){ if(!r.some(x=>x.id===a.id)) r.push(a); }
+  return r;
+}
+function _mergeIntoServer(serverData,before,after){
+  const m=JSON.parse(JSON.stringify(serverData));
+  m.students=_applyDiff(serverData.students,_diffById(before.students,after.students));
+  m.classes=_applyDiff(serverData.classes,_diffById(before.classes,after.classes));
+  m.weeks=_applyDiff(serverData.weeks,_diffById(before.weeks,after.weeks));
+  m.staff=_applyDiff(serverData.staff,_diffById(before.staff,after.staff));
+  m.vacances=_applyDiff(serverData.vacances,_diffById(before.vacances,after.vacances));
+  if(after.currentWeekStart!==before.currentWeekStart) m.currentWeekStart=after.currentWeekStart;
+  if(after.adminPasswordHash!==before.adminPasswordHash) m.adminPasswordHash=after.adminPasswordHash;
+  if(JSON.stringify(after.memo)!==JSON.stringify(before.memo)) m.memo=after.memo;
+  if(JSON.stringify(after.blocResets)!==JSON.stringify(before.blocResets)) m.blocResets=after.blocResets;
+  return m;
+}
+
 async function loadData(){
   try{
-    const { sha, content } = await _ghReadFile('donnees.json');
-    lastKnownSha = sha;
-    DATA = content;
+    const {sha,content}=await _ghReadFile('donnees.json');
+    lastKnownSha=sha; DATA=content;
   }catch(e){
-    DATA = {classes:[], students:[], weeks:[], currentWeekStart: todayISO()};
-    toast("Impossible de charger les données partagées (vérifie ta connexion). Données vides affichées temporairement.");
+    DATA={staff:[],classes:[],students:[],weeks:[],blocs:[],vacances:[],memo:{m1:"",m2:"",m3:"",m4:""},currentWeekStart:FIRST_BLOC_START,adminPasswordHash:null,blocResets:[]};
+    toast("Impossible de charger les données. Connexion vérifiée ?");
   }
-  if(!DATA.classes) DATA.classes = [];
-  if(!DATA.students) DATA.students = [];
-  if(!DATA.weeks) DATA.weeks = [];
-  if(!DATA.currentWeekStart) DATA.currentWeekStart = todayISO();
-  lastKnownData = JSON.parse(JSON.stringify(DATA)); // référence pour calculer les diffs futurs
-}
-function todayISO(){
-  // Utilise la date LOCALE du navigateur (pas UTC via toISOString, qui
-  // décale d'un jour pour les utilisateurs en France entre minuit et l'heure
-  // UTC — ex: 00h30 un lundi en France peut encore être "dimanche" en UTC).
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth()+1).padStart(2,'0');
-  const day = String(d.getDate()).padStart(2,'0');
-  return `${year}-${month}-${day}`;
-}
-function mondayOf(isoDate){
-  // Renvoie le lundi (ISO yyyy-mm-dd) de la semaine contenant la date donnée.
-  // En JS, getDay() renvoie 0=dimanche, 1=lundi, ..., 6=samedi.
-  // On extrait les composants locaux (getFullYear/getMonth/getDate) plutôt
-  // que toISOString(), qui reconvertit en UTC et peut décaler d'un jour
-  // selon le fuseau horaire de la personne (ex: France en heure d'été).
-  const d = new Date(isoDate + 'T00:00:00');
-  const day = d.getDay();
-  const diffToMonday = day === 0 ? -6 : 1 - day; // si dimanche, reculer de 6 jours
-  d.setDate(d.getDate() + diffToMonday);
-  const year = d.getFullYear();
-  const month = String(d.getMonth()+1).padStart(2,'0');
-  const dayNum = String(d.getDate()).padStart(2,'0');
-  return `${year}-${month}-${dayNum}`;
-}
-function addDaysISO(isoDate, days){
-  // Ajoute un nombre de jours à une date ISO, en restant en heure locale
-  // (évite toISOString qui peut décaler d'un jour selon le fuseau horaire).
-  const d = new Date(isoDate + 'T00:00:00');
-  d.setDate(d.getDate() + days);
-  const year = d.getFullYear();
-  const month = String(d.getMonth()+1).padStart(2,'0');
-  const day = String(d.getDate()).padStart(2,'0');
-  return `${year}-${month}-${day}`;
-}
-function currentMondayISO(){ return mondayOf(todayISO()); }
-function formatDateFr(iso){
-  if(!iso) return '';
-  const d = new Date(iso+'T00:00:00');
-  return d.toLocaleDateString('fr-FR', {day:'2-digit', month:'long', year:'numeric'});
+  if(!DATA.staff) DATA.staff=[];
+  if(!DATA.classes) DATA.classes=[];
+  if(!DATA.students) DATA.students=[];
+  if(!DATA.weeks) DATA.weeks=[];
+  if(!DATA.vacances) DATA.vacances=[];
+  if(!DATA.memo) DATA.memo={m1:"",m2:"",m3:"",m4:""};
+  if(!DATA.blocResets) DATA.blocResets=[];
+  if(!DATA.currentWeekStart) DATA.currentWeekStart=FIRST_BLOC_START;
+  lastKnownData=JSON.parse(JSON.stringify(DATA));
 }
 
-/* ---- Fusion en cas d'écriture concurrente ----
-   Calcule ce qui a changé localement entre "avant" (lastKnownData, l'état
-   au moment de la dernière lecture/écriture réussie) et "après" (DATA,
-   l'état actuel avec l'action de l'utilisateur déjà appliquée), puis
-   réapplique CE SEUL changement par-dessus la version la plus fraîche du
-   serveur. Ainsi, deux collègues qui travaillent sur des élèves/classes
-   différents au même moment ne s'écrasent jamais l'un l'autre.
-*/
-function _diffById(beforeArr, afterArr){
-  const beforeMap = new Map((beforeArr||[]).map(x=>[x.id, x]));
-  const afterMap = new Map((afterArr||[]).map(x=>[x.id, x]));
-  const added = [], updated = [], removedIds = [];
-  for(const [id, item] of afterMap){
-    if(!beforeMap.has(id)) added.push(item);
-    else if(JSON.stringify(beforeMap.get(id)) !== JSON.stringify(item)) updated.push(item);
-  }
-  for(const id of beforeMap.keys()){ if(!afterMap.has(id)) removedIds.push(id); }
-  return { added, updated, removedIds };
-}
-function _applyDiff(serverArr, diff){
-  let result = (serverArr||[]).filter(x=>!diff.removedIds.includes(x.id));
-  for(const upd of diff.updated){
-    const idx = result.findIndex(x=>x.id===upd.id);
-    if(idx >= 0) result[idx] = upd; else result.push(upd); // si supprimé côté serveur entre-temps, on le rajoute
-  }
-  for(const add of diff.added){
-    if(!result.some(x=>x.id===add.id)) result.push(add);
-  }
-  return result;
-}
-function _mergeIntoServerData(serverData, localBefore, localAfter){
-  const merged = JSON.parse(JSON.stringify(serverData));
-  merged.students = _applyDiff(serverData.students, _diffById(localBefore.students, localAfter.students));
-  merged.classes  = _applyDiff(serverData.classes,  _diffById(localBefore.classes,  localAfter.classes));
-  merged.weeks    = _applyDiff(serverData.weeks,    _diffById(localBefore.weeks,    localAfter.weeks));
-  // currentWeekStart / passwordHash : on garde la valeur la plus récente
-  // localement si elle a changé, sinon on garde celle du serveur.
-  if(localAfter.currentWeekStart !== localBefore.currentWeekStart) merged.currentWeekStart = localAfter.currentWeekStart;
-  if(localAfter.passwordHash !== localBefore.passwordHash) merged.passwordHash = localAfter.passwordHash;
-  return merged;
-}
-
-async function saveData(actionLabel){
-  const localBefore = lastKnownData;
-  const localAfter = JSON.parse(JSON.stringify(DATA));
-  const MAX_RETRIES = 4;
-  for(let attempt = 0; attempt <= MAX_RETRIES; attempt++){
+async function saveData(label){
+  const localBefore=lastKnownData;
+  const localAfter=JSON.parse(JSON.stringify(DATA));
+  const MAX=4;
+  for(let attempt=0;attempt<=MAX;attempt++){
     try{
-      lastKnownSha = await _ghWriteFile('donnees.json', DATA, lastKnownSha, 'Mise à jour du carnet de suivi');
-      lastKnownData = localAfter;
-      if(actionLabel !== false){ // false = action système (restauration, etc.), à ne pas proposer en "annuler"
-        undoStack.push({ before: localBefore, after: localAfter, label: actionLabel || 'Dernière action', date: new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) });
-        if(undoStack.length > 20) undoStack.shift(); // on garde un historique raisonnable, pas illimité
+      lastKnownSha=await _ghWriteFile('donnees.json',DATA,lastKnownSha,'Mise à jour du carnet');
+      lastKnownData=localAfter;
+      if(label!==false){
+        undoStack.push({before:localBefore,after:localAfter,label:label||'Action',date:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})});
+        if(undoStack.length>20) undoStack.shift();
       }
-      return; // succès
+      return;
     }catch(e){
-      if(e.message === 'CONFLICT' && attempt < MAX_RETRIES){
-        // Un(e) collègue a sauvegardé entre-temps : on relit sa version,
-        // on y réapplique NOTRE changement, et on retente — invisible pour
-        // l'utilisateur, sauf en tout dernier recours.
+      if(e.message==='CONFLICT'&&attempt<MAX){
         try{
-          const { sha, content: serverData } = await _ghReadFile('donnees.json');
-          lastKnownSha = sha;
-          DATA = _mergeIntoServerData(serverData, localBefore, localAfter);
-          render(); // l'affichage reflète aussi les changements faits par le/la collègue
+          const {sha,content:serverData}=await _ghReadFile('donnees.json');
+          lastKnownSha=sha;
+          DATA=_mergeIntoServer(serverData,localBefore,localAfter);
+          render();
           continue;
-        }catch(readErr){
-          toast("⚠️ Enregistrement impossible (connexion ou accès GitHub). Réessaie dans un instant.");
-          return;
-        }
-      } else if(e.message === 'CONFLICT'){
-        toast("⚠️ Trop de collègues enregistrent en même temps. Réessaie dans un instant.");
-        return;
+        }catch{ toast("⚠️ Enregistrement impossible. Réessaie."); return; }
       } else {
-        toast("⚠️ Enregistrement impossible (connexion ou accès GitHub). Réessaie dans un instant.");
+        toast("⚠️ Enregistrement impossible. Réessaie.");
         return;
       }
     }
   }
 }
 
-/* ---- Annulation de SES PROPRES dernières actions (pile locale au navigateur) ----
-   Chaque personne ne peut annuler que ce qu'elle a fait elle-même dans cette
-   session ; les actions des collègues, faites entre-temps, ne sont jamais
-   affectées — exactement comme pour la fusion en cas d'écriture concurrente.
-*/
 async function undoLastAction(){
   if(!undoStack.length){ toast("Rien à annuler."); return; }
-  const last = undoStack.pop();
+  const last=undoStack.pop();
   try{
-    const { sha, content: serverData } = await _ghReadFile('donnees.json');
-    lastKnownSha = sha;
-    // On applique l'INVERSE du changement : "after" devient "before" et vice-versa
-    DATA = _mergeIntoServerData(serverData, last.after, last.before);
-    lastKnownData = JSON.parse(JSON.stringify(DATA));
-    await _ghWriteFile('donnees.json', DATA, lastKnownSha, 'Annulation : ' + last.label).then(sha=>{ lastKnownSha = sha; });
-    toast(`Action annulée : ${last.label}`);
+    const {sha,content:serverData}=await _ghReadFile('donnees.json');
+    lastKnownSha=sha;
+    DATA=_mergeIntoServer(serverData,last.after,last.before);
+    lastKnownData=JSON.parse(JSON.stringify(DATA));
+    await _ghWriteFile('donnees.json',DATA,lastKnownSha,'Annulation : '+last.label).then(s=>lastKnownSha=s);
+    toast(`Annulé : ${last.label}`);
     render();
-  }catch(e){
-    undoStack.push(last); // on remet l'action dans la pile, l'annulation n'a pas pu se faire
-    toast("⚠️ Impossible d'annuler pour le moment (connexion ou accès GitHub).");
-  }
+  }catch{ undoStack.push(last); toast("⚠️ Impossible d'annuler."); }
 }
 
-document.getElementById('undo-btn').addEventListener('click', undoLastAction);
-document.getElementById('admin-menu-trigger').addEventListener('click', (e)=>{
-  e.stopPropagation();
-  document.getElementById('admin-menu').classList.toggle('open');
-});
-document.addEventListener('click', (e)=>{
-  const menu = document.getElementById('admin-menu');
-  if(menu && menu.classList.contains('open') && !menu.contains(e.target)){
-    menu.classList.remove('open');
-  }
-});
-// Refermer le menu après avoir cliqué une action dedans
-document.querySelectorAll('.admin-menu-panel .btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{ const m=document.getElementById('admin-menu'); if(m) m.classList.remove('open'); });
-});
-document.getElementById('change-pwd-btn').addEventListener('click', ()=>openChangePasswordModal());
-function genId(){ return Math.random().toString(36).slice(2,10); }
-
-/* Construit l'URL de la page courante pour les QR codes / liens directs.
-   Important pour le scan sur iPhone : Safari iOS bloque les liens non-HTTPS
-   scannés depuis l'app Appareil photo. Si la page est ouverte en local
-   (file://) ou que l'origine n'est pas exploitable, on le signale au lieu
-   de générer silencieusement un lien cassé. Une fois la page hébergée sur
-   GitHub Pages (https://tonpseudo.github.io/carnet-suivi/), cette fonction
-   renvoie automatiquement la bonne URL HTTPS. */
-function appUrl(hashPart){
-  const usable = location.protocol === 'https:' && location.origin !== 'null';
-  if(!usable) return null;
-  return location.origin + location.pathname + (hashPart || '');
-}
-
-
-/* ---- Export (copie de sauvegarde téléchargeable) ---- */
-function exportData(){
-  const blob = new Blob([JSON.stringify(DATA, null, 2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `carnet-suivi-${todayISO()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  toast("Fichier de sauvegarde téléchargé.");
-}
-document.getElementById('export-btn').addEventListener('click', exportData);
-
-/* ============== TOAST ============== */
-function toast(msg){
-  const host = document.getElementById('toast-host');
-  const el = document.createElement('div');
-  el.className = 'toast';
-  el.textContent = msg;
-  host.appendChild(el);
-  setTimeout(()=>el.remove(), 2600);
-}
-
-/* ============== AUTH ==============
-   Le mot de passe n'est plus écrit en clair dans le code : seul son
-   empreinte (hash SHA-256) est comparée, et cette empreinte est stockée
-   dans les données partagées sur GitHub (DATA.passwordHash) — donc un
-   collègue qui connaît le mot de passe peut le changer depuis l'app
-   (bouton « Changer le mot de passe ») pour tout le monde, sans toucher
-   au code. Au tout premier lancement (aucun hash enregistré encore), le
-   mot de passe d'origine codé en dur ci-dessus sert de valeur initiale.
-*/
+/* ============================================================
+   AUTH
+   ============================================================ */
 async function sha256Hex(text){
-  if(!window.crypto || !window.crypto.subtle){
-    throw new Error('Cette page doit être ouverte en HTTPS (ex: via GitHub Pages) pour pouvoir vérifier le mot de passe.');
-  }
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  if(!window.crypto||!window.crypto.subtle) throw new Error("HTTPS requis pour la connexion sécurisée.");
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
-function trySessionAuth(){
-  if(sessionStorage.getItem('cs-auth') === '1'){ enterApp(); return; }
-  // Si on arrive via un QR code de fiche élève (#eleve=ID) sans session
-  // enseignant active, on propose l'accès élève en lecture seule plutôt
-  // que l'écran de mot de passe enseignant.
-  const hash = location.hash;
-  if(hash.startsWith('#eleve=')){
-    showStudentLoginScreen(hash.replace('#eleve=',''));
-  }
-}
-function showStudentLoginScreen(studentId){
-  document.getElementById('login-screen').style.display = 'none';
-  const screen = document.getElementById('student-login-screen');
-  screen.classList.remove('hidden');
-  screen.style.display = 'flex';
-  screen.dataset.studentId = studentId;
-}
-function trySessionAuth(){
-  const savedRole = sessionStorage.getItem('cs-auth');
-  if(savedRole === 'teacher' || savedRole === 'admin'){ currentRole = savedRole; enterApp(); return; }
-  // Si on arrive via un QR code de fiche élève (#eleve=ID) sans session
-  // enseignant/admin active, on propose l'accès élève en lecture seule
-  // plutôt que l'écran de choix enseignant/admin.
-  const hash = location.hash;
-  if(hash.startsWith('#eleve=')){
-    showStudentLoginScreen(hash.replace('#eleve=',''));
-  }
-}
-function showStudentLoginScreen(studentId){
-  document.getElementById('login-screen').style.display = 'none';
-  const screen = document.getElementById('student-login-screen');
-  screen.classList.remove('hidden');
-  screen.style.display = 'flex';
-  screen.dataset.studentId = studentId;
-}
-document.getElementById('goto-teacher-login').addEventListener('click', (e)=>{
-  e.preventDefault();
-  document.getElementById('student-login-screen').style.display = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
-  showLoginStep('choice');
-});
-document.getElementById('student-login-btn').addEventListener('click', doStudentLogin);
-document.getElementById('student-login-input').addEventListener('keydown', e=>{ if(e.key==='Enter') doStudentLogin(); });
-async function doStudentLogin(){
-  const btn = document.getElementById('student-login-btn');
-  const studentId = document.getElementById('student-login-screen').dataset.studentId;
-  const val = document.getElementById('student-login-input').value.trim().toUpperCase();
-  const errEl = document.getElementById('student-login-err');
-  btn.disabled = true;
-  errEl.textContent = '';
-  try{
-    if(!DATA.students.length) await loadData(); // chargement minimal si pas déjà fait
-    const s = DATA.students.find(x=>x.id===studentId);
-    if(!s){ errEl.textContent = "Fiche introuvable. Le QR code n'est peut-être plus valide."; return; }
-    // Le mot de passe élève est le PREMIER mot de son nom stocké (le nom de
-    // famille, puisque les fiches sont saisies au format "Nom Prénom"),
-    // en majuscules — plus simple à retenir et à taper qu'un nom complet.
-    const normalize = (str)=>str.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-    const premierMot = (str)=> normalize(str).split(/\s+/)[0] || '';
-    if(normalize(val) === premierMot(s.nom)){
-      showStudentReadOnlyView(s.id);
-    } else {
-      errEl.textContent = "Nom incorrect.";
-    }
-  }catch(e){
-    errEl.textContent = "Connexion impossible. Vérifie ta connexion internet.";
-  }finally{
-    btn.disabled = false;
-  }
+
+/* ============================================================
+   AUTH
+   ============================================================ */
+// Mot de passe admin par défaut (CDADMIN44100!) — remplacé dès le 1er changement
+const ADMIN_PWD_DEFAULT = atob(ADMIN_PASSWORD_ENCODED);
+// Mot de passe enseignant commun de secours, utilisé UNIQUEMENT si aucun
+// compte individuel n'a encore été créé dans l'admin (facilite le démarrage)
+const TEACHER_PWD_FALLBACK_ENCODED = "Q0Q0NDEwMCE="; // CD44100!
+
+async function sha256Hex(text){
+  if(!window.crypto||!window.crypto.subtle) throw new Error("HTTPS requis pour la connexion sécurisée.");
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-/* ---- Choix de l'espace (enseignant / administrateur) ---- */
 function showLoginStep(step){
-  document.getElementById('login-choice-step').classList.toggle('hidden', step !== 'choice');
-  document.getElementById('login-teacher-step').classList.toggle('hidden', step !== 'teacher');
-  document.getElementById('login-admin-step').classList.toggle('hidden', step !== 'admin');
-  if(step === 'teacher') document.getElementById('login-input').focus();
-  if(step === 'admin') document.getElementById('login-admin-input').focus();
+  document.getElementById('login-step-choice').classList.toggle('hidden', step!=='choice');
+  document.getElementById('login-step-teacher').classList.toggle('hidden', step!=='teacher');
+  document.getElementById('login-step-admin').classList.toggle('hidden', step!=='admin');
+  if(step==='teacher'){
+    // Indique le mode d'accès selon si des comptes existent ou pas
+    const hint=document.getElementById('teacher-login-hint');
+    if(hint) hint.textContent=DATA.staff.length
+      ? "Saisissez votre code à 5 chiffres."
+      : "Aucun compte personnel créé — utilisez le mot de passe commun (CD44100!).";
+    document.getElementById('login-input').focus();
+  }
+  if(step==='admin') document.getElementById('login-admin-input').focus();
 }
-document.getElementById('choose-teacher-btn').addEventListener('click', ()=>showLoginStep('teacher'));
+
+function trySessionAuth(){
+  const saved=sessionStorage.getItem('cs-user');
+  if(saved){
+    try{ currentUser=JSON.parse(saved); enterApp(); return; }catch{}
+  }
+  const hash=location.hash;
+  if(hash.startsWith('#eleve=')){
+    showStudentLoginScreen(hash.replace('#eleve=',''));
+    return;
+  }
+  // Par défaut on affiche l'étape de choix
+  showLoginStep('choice');
+}
+
+// Navigation entre les étapes
+document.getElementById('choose-teacher-btn').addEventListener('click', async ()=>{
+  // Charger les données pour savoir si des comptes existent
+  if(!lastKnownData) await loadData();
+  showLoginStep('teacher');
+});
 document.getElementById('choose-admin-btn').addEventListener('click', ()=>showLoginStep('admin'));
-document.getElementById('back-to-choice-1').addEventListener('click', (e)=>{ e.preventDefault(); showLoginStep('choice'); });
-document.getElementById('back-to-choice-2').addEventListener('click', (e)=>{ e.preventDefault(); showLoginStep('choice'); });
+document.getElementById('back-to-choice-1').addEventListener('click', e=>{ e.preventDefault(); showLoginStep('choice'); });
+document.getElementById('back-to-choice-2').addEventListener('click', e=>{ e.preventDefault(); showLoginStep('choice'); });
 
 document.getElementById('login-btn').addEventListener('click', ()=>doLogin('teacher'));
 document.getElementById('login-input').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin('teacher'); });
@@ -661,325 +596,422 @@ document.getElementById('login-admin-btn').addEventListener('click', ()=>doLogin
 document.getElementById('login-admin-input').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin('admin'); });
 
 async function doLogin(role){
-  const isAdmin = role === 'admin';
-  const btn = document.getElementById(isAdmin ? 'login-admin-btn' : 'login-btn');
-  const val = document.getElementById(isAdmin ? 'login-admin-input' : 'login-input').value;
-  const errEl = document.getElementById(isAdmin ? 'login-admin-err' : 'login-err');
-  btn.disabled = true;
-  errEl.textContent = '';
+  const isAdminLogin = role==='admin';
+  const inputEl = document.getElementById(isAdminLogin?'login-admin-input':'login-input');
+  const errEl   = document.getElementById(isAdminLogin?'login-admin-err':'login-err');
+  const btn     = document.getElementById(isAdminLogin?'login-admin-btn':'login-btn');
+  const val     = inputEl.value.trim();
+  btn.disabled=true; errEl.textContent='';
   try{
-    await loadData(); // nécessaire pour récupérer le(s) hash à jour
+    if(!lastKnownData) await loadData();
     const candidateHash = await sha256Hex(val);
-    if(isAdmin){
-      const validAdminHash = DATA.adminPasswordHash || await sha256Hex(atob(ADMIN_PASSWORD_ENCODED));
-      if(candidateHash !== validAdminHash){ errEl.textContent = "Mot de passe administrateur incorrect."; return; }
-      if(!DATA.adminPasswordHash){ DATA.adminPasswordHash = validAdminHash; await saveData(false); }
+
+    if(isAdminLogin){
+      // Mot de passe admin : hash stocké dans DATA, ou valeur par défaut
+      const validHash = DATA.adminPasswordHash || await sha256Hex(ADMIN_PWD_DEFAULT);
+      if(candidateHash===validHash){
+        if(!DATA.adminPasswordHash){ DATA.adminPasswordHash=validHash; await saveData(false); }
+        currentUser={id:'admin',nom:'Administrateur',prenom:'',code:'',role:'admin'};
+        sessionStorage.setItem('cs-user',JSON.stringify(currentUser));
+        await enterApp(true); return;
+      }
+      errEl.textContent="Mot de passe administrateur incorrect.";
     } else {
-      const validHash = DATA.passwordHash || await sha256Hex(atob(PASSWORD_ENCODED));
-      if(candidateHash !== validHash){ errEl.textContent = "Mot de passe incorrect."; return; }
-      if(!DATA.passwordHash){ DATA.passwordHash = validHash; await saveData(false); }
+      // Mode enseignant
+      if(DATA.staff.length){
+        // Des comptes existent → on vérifie par code individuel
+        const staffMember=DATA.staff.find(s=>s.code===val);
+        if(staffMember){
+          currentUser=staffMember;
+          sessionStorage.setItem('cs-user',JSON.stringify(currentUser));
+          await enterApp(true); return;
+        }
+        errEl.textContent="Code incorrect. Contactez l'administrateur si vous n'avez pas encore de code.";
+      } else {
+        // Pas encore de comptes → mot de passe commun de secours
+        const fallbackHash = await sha256Hex(atob(TEACHER_PWD_FALLBACK_ENCODED));
+        if(candidateHash===fallbackHash){
+          currentUser={id:'teacher-default',nom:'Enseignant',prenom:'',code:'',role:'teacher'};
+          sessionStorage.setItem('cs-user',JSON.stringify(currentUser));
+          await enterApp(true); return;
+        }
+        errEl.textContent="Mot de passe incorrect. (Aucun compte créé — utilisez CD44100!)";
+      }
     }
-    currentRole = role;
-    sessionStorage.setItem('cs-auth', role);
-    await enterApp(true); // true = données déjà chargées, pas besoin de recharger
   }catch(e){
-    errEl.textContent = e.message.includes('HTTPS')
-      ? e.message
-      : "Connexion impossible. Vérifie ta connexion internet.";
-  }finally{
-    btn.disabled = false;
-  }
+    errEl.textContent=e.message.includes('HTTPS')?e.message:"Connexion impossible. Vérifie ta connexion.";
+  }finally{ btn.disabled=false; }
 }
-document.getElementById('logout-btn').addEventListener('click', ()=>{
-  sessionStorage.removeItem('cs-auth');
-  currentRole = null;
-  document.getElementById('app').style.display='none';
+
+document.getElementById('logout-btn').addEventListener('click',()=>{
+  sessionStorage.removeItem('cs-user');
+  currentUser=null;
+  document.getElementById('app').classList.add('hidden');
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('login-input').value='';
   document.getElementById('login-admin-input').value='';
+  document.getElementById('login-err').textContent='';
+  document.getElementById('login-admin-err').textContent='';
   showLoginStep('choice');
 });
+
 async function enterApp(alreadyLoaded){
   document.getElementById('login-screen').style.display='none';
-  document.getElementById('app').style.display='block';
+  document.getElementById('app').classList.remove('hidden');
   if(!alreadyLoaded) await loadData();
-  document.body.classList.toggle('is-admin', currentRole === 'admin');
-  document.getElementById('role-badge').textContent = currentRole === 'admin' ? 'Administrateur' : 'Enseignant';
+  const isAdm=currentUser&&currentUser.role==='admin';
+  document.body.classList.toggle('is-admin',isAdm);
+  const label=isAdm?'Administrateur'
+    :(currentUser&&currentUser.id!=='teacher-default'
+      ?`${currentUser.prenom} ${currentUser.nom}`.trim()
+      :'Enseignant (commun)');
+  document.getElementById('role-badge').textContent=label;
   await checkAutoNewWeek();
-  // hash routing for QR-code direct links
-  const hash = location.hash;
-  if(hash.startsWith('#eleve=')){
-    currentStudentId = hash.replace('#eleve=','');
-    currentTab = 'fiche';
-  }
+  const hash=location.hash;
+  if(hash.startsWith('#eleve=')){currentStudentId=hash.replace('#eleve=','');currentTab='fiche';}
   render();
 }
 
-/* ---- Clôture automatique de semaine (lundi → dimanche) ----
-   Comme cette page n'a pas de serveur tournant en permanence, la bascule
-   ne peut se déclencher qu'au moment où quelqu'un ouvre l'app. À chaque
-   connexion, on vérifie si le lundi de la semaine en cours est postérieur
-   à la date de début de la semaine enregistrée — si oui, une ou plusieurs
-   semaines ont été "sautées" (ex: personne n'a ouvert l'app du vendredi au
-   mardi suivant) et on les clôture toutes silencieusement, dans l'ordre.
-*/
+/* ============================================================
+   ACCÈS ÉLÈVE (QR code)
+   ============================================================ */
+document.getElementById('goto-teacher-login').addEventListener('click',e=>{
+  e.preventDefault();
+  document.getElementById('student-login-screen').classList.add('hidden');
+  document.getElementById('login-screen').style.display='flex';
+  showLoginStep('choice');
+});
+document.getElementById('student-login-btn').addEventListener('click',doStudentLogin);
+document.getElementById('student-login-input').addEventListener('keydown',e=>{ if(e.key==='Enter') doStudentLogin(); });
+
+function showStudentLoginScreen(studentId){
+  document.getElementById('login-screen').style.display='none';
+  const sc=document.getElementById('student-login-screen');
+  sc.classList.remove('hidden'); sc.dataset.studentId=studentId;
+}
+async function doStudentLogin(){
+  const btn=document.getElementById('student-login-btn');
+  const studentId=document.getElementById('student-login-screen').dataset.studentId;
+  const val=document.getElementById('student-login-input').value.trim().toUpperCase();
+  const errEl=document.getElementById('student-login-err');
+  btn.disabled=true; errEl.textContent='';
+  try{
+    if(!DATA.students.length) await loadData();
+    const s=DATA.students.find(x=>x.id===studentId);
+    if(!s){ errEl.textContent="Fiche introuvable."; return; }
+    const normalize=str=>str.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    const premierMot=str=>normalize(str).split(/\s+/)[0]||'';
+    if(normalize(val)===premierMot(s.nom)){
+      showStudentReadOnlyView(s.id);
+    } else { errEl.textContent="Nom incorrect."; }
+  }catch{ errEl.textContent="Connexion impossible."; }
+  finally{ btn.disabled=false; }
+}
+
+/* ============================================================
+   AUTO NOUVELLE SEMAINE
+   ============================================================ */
 async function checkAutoNewWeek(){
-  const thisMonday = currentMondayISO();
-  let safety = 0; // garde-fou pour éviter une boucle infinie en cas de donnée corrompue
-  let closedCount = 0;
-  while(DATA.currentWeekStart < thisMonday && safety < 52){
-    const nextMonday = mondayOf(addDaysISO(DATA.currentWeekStart, 7));
-    await nouvelleSemaine(null, nextMonday);
-    closedCount++;
-    safety++;
+  const thisMonday=currentMondayISO();
+  let safety=0, closedCount=0;
+  while(DATA.currentWeekStart<thisMonday&&safety<52){
+    const nextMonday=mondayOf(addDays(DATA.currentWeekStart,7));
+    await closeWeek(nextMonday);
+    closedCount++; safety++;
   }
-  if(closedCount > 0){
-    toast(closedCount === 1 ? "Nouvelle semaine démarrée (lundi)." : `${closedCount} semaines clôturées automatiquement.`);
-  }
+  if(closedCount>0) toast(closedCount===1?"Nouvelle semaine démarrée.":`${closedCount} semaines clôturées automatiquement.`);
 }
 
-const PASSWORD_VALIDATORS = ["ce.0440286x@ac-nantes.fr", "matteo.girard@ac-nantes.fr"];
+async function closeWeek(newWeekStart, silent){
+  const endDate=todayISO();
+  const snap=DATA.students.map(s=>({
+    id:s.id,nom:s.nom,classeId:s.classeId,status:s.status,points:s.points,
+    contratValidé: s.status!=='pastille' && s.points>= (MARCHE_SEUIL[s.status]||0)
+  }));
+  DATA.weeks.push({id:genId(),dateDebut:DATA.currentWeekStart,dateFin:endDate,snapshot:snap});
+  DATA.currentWeekStart=newWeekStart||endDate;
 
-function openChangePasswordModal(){
-  if(currentRole !== 'admin'){ toast("Seul le compte administrateur peut changer le mot de passe."); return; }
-  openModal(`
-    <h3>Changer un mot de passe</h3>
-    <p class="small muted" style="margin-bottom:12px;">Pour des raisons de sécurité, ce changement doit être validé par l'un des responsables (${esc(PASSWORD_VALIDATORS.join(' ou '))}). Un code te sera communiqué par cette personne une fois ta demande envoyée.</p>
-    <div class="field">
-      <label>Quel mot de passe veux-tu changer ?</label>
-      <select id="pwd-target">
-        <option value="teacher">Mot de passe enseignant (partagé)</option>
-        <option value="admin">Mot de passe administrateur</option>
-      </select>
-    </div>
-    <div class="field"><label>Mot de passe administrateur actuel (pour confirmer ton identité)</label><input type="password" id="pwd-current"></div>
-    <div class="field"><label>Nouveau mot de passe souhaité</label><input type="password" id="pwd-new"></div>
-    <div class="field"><label>Confirmer le nouveau mot de passe</label><input type="password" id="pwd-confirm"></div>
-    <div id="pwd-err" class="err"></div>
-    <div class="row" style="justify-content:flex-end;">
-      <button class="btn" id="modal-cancel">Annuler</button>
-      <button class="btn primary" id="modal-save">Envoyer la demande</button>
-    </div>
-  `);
-  document.getElementById('modal-cancel').addEventListener('click', closeModal);
-  document.getElementById('modal-save').addEventListener('click', async ()=>{
-    const errEl = document.getElementById('pwd-err');
-    const target = document.getElementById('pwd-target').value; // 'teacher' ou 'admin'
-    const current = document.getElementById('pwd-current').value;
-    const next = document.getElementById('pwd-new').value;
-    const confirmVal = document.getElementById('pwd-confirm').value;
-    // On confirme toujours l'identité avec le mot de passe ADMIN actuel,
-    // même si c'est le mot de passe enseignant qu'on s'apprête à changer —
-    // puisque seul l'admin a le droit de faire ce changement.
-    const currentHash = await sha256Hex(current);
-    const validAdminHash = DATA.adminPasswordHash || await sha256Hex(atob(ADMIN_PASSWORD_ENCODED));
-    if(currentHash !== validAdminHash){ errEl.textContent = "Mot de passe administrateur actuel incorrect."; return; }
-    if(next.length < 6){ errEl.textContent = "Le nouveau mot de passe doit faire au moins 6 caractères."; return; }
-    if(next !== confirmVal){ errEl.textContent = "Les deux nouveaux mots de passe ne correspondent pas."; return; }
-    const code = Math.floor(100000 + Math.random()*900000).toString();
-    openValidationCodeModal(next, code, target);
-  });
-}
-
-function openValidationCodeModal(newPassword, code, target){
-  const subject = encodeURIComponent("Carnet de suivi — demande de changement de mot de passe");
-  const targetLabel = target === 'admin' ? 'administrateur' : 'enseignant (partagé)';
-  const body = encodeURIComponent(
-    `Bonjour,\n\nJe souhaite changer le mot de passe ${targetLabel} du carnet de suivi.\nCode de validation à me transmettre en retour si vous approuvez : ${code}\n\nMerci.`
-  );
-  const mailtoUrl = `mailto:${PASSWORD_VALIDATORS.join(',')}?subject=${subject}&body=${body}`;
-
-  openModal(`
-    <h3>Validation nécessaire</h3>
-    <p class="small muted" style="margin-bottom:12px;">Un email pré-rempli va s'ouvrir, à envoyer à l'un des responsables. Une fois qu'il/elle t'aura communiqué le code en retour (par oral, SMS, etc.), saisis-le ici pour appliquer le changement du mot de passe ${esc(targetLabel)}.</p>
-    <p class="small" style="margin-bottom:12px;"><a href="${mailtoUrl}" target="_blank" id="pwd-mailto-link">→ Ouvrir l'email de demande de validation</a></p>
-    <div class="field"><label>Code de validation reçu</label><input type="text" id="pwd-code-input" placeholder="Ex : 482913" inputmode="numeric" maxlength="6"></div>
-    <div id="pwd-code-err" class="err"></div>
-    <div class="row" style="justify-content:flex-end;">
-      <button class="btn" id="modal-cancel">Annuler</button>
-      <button class="btn primary" id="modal-save">Valider le changement</button>
-    </div>
-  `);
-  document.getElementById('modal-cancel').addEventListener('click', closeModal);
-  document.getElementById('modal-save').addEventListener('click', async ()=>{
-    const errEl = document.getElementById('pwd-code-err');
-    const entered = document.getElementById('pwd-code-input').value.trim();
-    if(entered !== code){ errEl.textContent = "Code incorrect."; return; }
-    if(target === 'admin'){
-      DATA.adminPasswordHash = await sha256Hex(newPassword);
+  const pool=DATA.students.filter(s=>s.status!=='carnet'); // pastille carnet ne compte pas
+  for(const s of pool){
+    // Journal : objectif atteint ou non
+    const seuil=MARCHE_SEUIL[s.status==='pastille'?s.savedMarche||'m2':s.status]||0;
+    if(s.status==='pastille'){
+      // Fin de pastille automatique : reprend sa marche
+      logEvent(s,`Fin de pastille automatique — reprend la marche ${MARCHE_LABEL[s.savedMarche||'m2']} avec 20 points.`);
+      s.status=s.savedMarche||'m2'; s.savedMarche=null;
     } else {
-      DATA.passwordHash = await sha256Hex(newPassword);
+      const obj=s.points>=seuil;
+      logEvent(s,`Fin de semaine : ${s.points}/20 pts — objectif ${seuil}pts ${obj?'✓ atteint':'✗ non atteint'}.`);
     }
-    await saveData(`Changement du mot de passe ${targetLabel}`);
-    closeModal();
-    toast(`Mot de passe ${targetLabel} changé.`);
+    // Vérifier changement de marche en fin de bloc
+    await checkBlocEnd(s);
+    // Remettre à 20 points
+    s.points=20;
+  }
+  // Pastille carnet : réinitialise en fin de journée (auto à la prochaine semaine)
+  DATA.students.filter(s=>s.status==='carnet').forEach(s=>{
+    s.status=s.savedMarche||'m2'; s.savedMarche=null;
   });
+  if(!silent) await saveData('Nouvelle semaine');
 }
 
-/* ============== NAV ============== */
-document.getElementById('tabs').addEventListener('click', e=>{
-  const btn = e.target.closest('button[data-tab]');
+async function checkBlocEnd(s){
+  // À appeler en fin de chaque semaine. Vérifie si c'est la fin d'un bloc
+  // et calcule le changement de marche éventuel.
+  const bloc=currentBloc();
+  if(!bloc) return;
+  const lastSemaine=bloc.semaines[bloc.semaines.length-1];
+  if(!lastSemaine) return;
+  const today=todayISO();
+  if(today<lastSemaine.start||today>lastSemaine.end) return; // pas fin de bloc
+
+  // Récupère les 3 semaines du bloc dans l'historique
+  const weekResults=bloc.semaines.map(sem=>{
+    const w=DATA.weeks.find(x=>x.dateDebut===sem.start);
+    if(!w) return null;
+    const snap=w.snapshot.find(x=>x.id===s.id);
+    return snap||null;
+  }).filter(Boolean);
+
+  if(weekResults.length<bloc.semaines.length) return; // bloc pas complet
+
+  const validées=weekResults.filter(r=>r.contratValidé).length;
+  const pastilles=weekResults.filter(r=>r.status==='pastille').length;
+
+  let newMarche=s.status;
+  const marcheIdx=MARCHES.indexOf(s.status);
+
+  // 2 semaines consécutives de pastille dans ce bloc → descend
+  let consecutivePastilles=0, maxConsecutive=0, cur=0;
+  for(const r of weekResults){
+    if(r.status==='pastille'){ cur++; maxConsecutive=Math.max(maxConsecutive,cur); }
+    else cur=0;
+  }
+  if(maxConsecutive>=2 && marcheIdx>0){
+    newMarche=MARCHES[marcheIdx-1];
+    logEvent(s,`Fin de bloc : 2 semaines consécutives en pastille → descend à ${MARCHE_LABEL[newMarche]}.`);
+  } else if(validées===3 && marcheIdx<MARCHES.length-1){
+    newMarche=MARCHES[marcheIdx+1];
+    logEvent(s,`Fin de bloc : contrat validé 3/3 → monte à ${MARCHE_LABEL[newMarche]}.`);
+  } else if(validées<3 && validées>0){
+    // 1 ou 2 semaines validées → reste
+    logEvent(s,`Fin de bloc : contrat validé ${validées}/3 → reste à ${MARCHE_LABEL[s.status]}.`);
+  } else if(validées===0 && marcheIdx>0){
+    newMarche=MARCHES[marcheIdx-1];
+    logEvent(s,`Fin de bloc : contrat non validé 0/3 → descend à ${MARCHE_LABEL[newMarche]}.`);
+  }
+  s.status=newMarche;
+}
+
+/* ============================================================
+   UTIL
+   ============================================================ */
+function genId(){ return Math.random().toString(36).slice(2,10); }
+function esc(str){ return String(str||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function isAdmin(){ return currentUser&&currentUser.role==='admin'; }
+function marcheLabelNum(m){ return `${MARCHES.indexOf(m)+1}. ${MARCHE_LABEL[m]||m}`; }
+
+function statusBadge(s){
+  if(s.status==='pastille') return `<span class="badge m-pastille">Pastille</span>`;
+  if(s.status==='carnet') return `<span class="badge m-carnet">Carnet oublié</span>`;
+  return `<span class="badge ${s.status}">${marcheLabelNum(s.status)}</span>`;
+}
+
+function logEvent(s,label,details){
+  s.history=s.history||[];
+  s.history.push(Object.assign({
+    id:genId(),
+    date:new Date().toLocaleDateString('fr-FR'),
+    heure:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+    auteur:currentUser?`${currentUser.prenom} ${currentUser.nom}`.trim():'—',
+    label
+  },details||{}));
+}
+
+function isPastilleEvent(h){ return (h.label||'').toLowerCase().includes('pastille'); }
+
+function toast(msg){
+  const c=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  t.className='toast'; t.textContent=msg;
+  c.appendChild(t);
+  setTimeout(()=>t.remove(),3500);
+}
+
+function newStudent(nom,classeId){
+  return {id:genId(),nom,classeId,status:MARCHE_DEFAULT,savedMarche:null,points:20,history:[],zeroStreak:0};
+}
+
+/* ============================================================
+   TOAST + MODAL
+   ============================================================ */
+function openModal(html){
+  const bg=document.createElement('div');
+  bg.className='modal-bg'; bg.id='modal-bg';
+  bg.innerHTML=`<div class="modal">${html}</div>`;
+  document.body.appendChild(bg);
+  bg.addEventListener('click',e=>{ if(e.target.id==='modal-bg') closeModal(); });
+}
+function closeModal(){ const bg=document.getElementById('modal-bg'); if(bg) bg.remove(); }
+
+/* ============================================================
+   NAV & RENDER
+   ============================================================ */
+document.getElementById('tabs').addEventListener('click',e=>{
+  const btn=e.target.closest('button[data-tab]');
   if(!btn) return;
-  currentTab = btn.dataset.tab;
-  currentStudentId = null;
-  location.hash = '';
+  currentTab=btn.dataset.tab;
   render();
 });
+document.getElementById('undo-btn').addEventListener('click',undoLastAction);
+document.getElementById('export-btn').addEventListener('click',exportData);
+document.getElementById('admin-menu-trigger').addEventListener('click',e=>{
+  e.stopPropagation();
+  document.getElementById('admin-menu').classList.toggle('open');
+});
+document.addEventListener('click',()=>{
+  document.getElementById('admin-menu').classList.remove('open');
+});
 
-function setActiveTabButtons(){
-  const effective = (currentTab === 'classe-detail') ? 'classes' : currentTab;
-  document.querySelectorAll('#tabs button').forEach(b=>{
-    b.classList.toggle('active', b.dataset.tab === effective && effective !== 'fiche');
+function setActiveTab(){
+  document.querySelectorAll('nav.tabs button[data-tab]').forEach(b=>{
+    b.classList.toggle('active',b.dataset.tab===currentTab);
   });
 }
 
-/* ============== RENDER ROUTER ============== */
 function render(){
-  setActiveTabButtons();
-  const main = document.getElementById('main');
-  if(currentTab === 'fiche' && currentStudentId){ main.innerHTML = renderFiche(currentStudentId); attachFicheEvents(); return; }
-  if(currentTab === 'classe-detail' && currentClasseId){ main.innerHTML = renderClasseDetail(currentClasseId); attachClasseDetailEvents(); return; }
-  if(currentTab === 'classes'){ main.innerHTML = renderClasses(); attachClassesEvents(); return; }
-  if(currentTab === 'qrcodes'){ main.innerHTML = renderQrCodes(); attachQrCodesEvents(); return; }
-  if(currentTab === 'semaines'){ main.innerHTML = renderSemaines(); attachSemainesEvents(); return; }
-  if(currentTab === 'pastilles'){ main.innerHTML = renderPastilles(); attachPastillesEvents(); return; }
-  main.innerHTML = renderAccueil(); attachAccueilEvents();
+  setActiveTab();
+  const main=document.getElementById('main-content');
+  if(currentTab==='fiche'&&currentStudentId){ main.innerHTML=renderFiche(currentStudentId); attachFicheEvents(); return; }
+  if(currentTab==='classes'){ main.innerHTML=renderClasses(); attachClassesEvents(); return; }
+  if(currentTab==='classe-detail'&&currentClasseId){ main.innerHTML=renderClasseDetail(currentClasseId); attachClasseDetailEvents(); return; }
+  if(currentTab==='qrcodes'){ main.innerHTML=renderQrCodes(); attachQrCodesEvents(); return; }
+  if(currentTab==='semaines'){ main.innerHTML=renderSemaines(); attachSemainesEvents(); return; }
+  if(currentTab==='pastilles'){ main.innerHTML=renderPastilles(); attachPastillesEvents(); return; }
+  if(currentTab==='memo'){ main.innerHTML=renderMemo(); attachMemoEvents(); return; }
+  if(currentTab==='admin'){ main.innerHTML=renderAdmin(); attachAdminEvents(); return; }
+  main.innerHTML=renderAccueil(); attachAccueilEvents();
 }
 
-/* ============== ACCUEIL (liste élèves) ============== */
+/* ============================================================
+   ACCUEIL (liste élèves)
+   ============================================================ */
 function renderAccueil(){
-  const classesOptions = DATA.classes.map(c=>`<option value="${c.id}" ${currentClassFilter===c.id?'selected':''}>${esc(c.nom)}</option>`).join('');
-  let students = DATA.students.slice();
-  if(currentClassFilter) students = students.filter(s=>s.classeId===currentClassFilter);
+  const classesOptions=DATA.classes.map(c=>`<option value="${c.id}" ${currentClassFilter===c.id?'selected':''}>${esc(c.nom)}</option>`).join('');
+  let students=DATA.students.slice();
+  if(currentClassFilter) students=students.filter(s=>s.classeId===currentClassFilter);
   if(currentSearchQuery.trim()){
-    const q = currentSearchQuery.trim().toLowerCase();
-    students = students.filter(s=>s.nom.toLowerCase().includes(q));
+    const q=currentSearchQuery.trim().toLowerCase();
+    students=students.filter(s=>s.nom.toLowerCase().includes(q));
   }
   students.sort((a,b)=>a.nom.localeCompare(b.nom));
-
-  const rows = students.map(s=>{
-    const classe = DATA.classes.find(c=>c.id===s.classeId);
-    const badge = statusBadge(s);
+  const bloc=currentBloc();
+  const semaineIdx=bloc?bloc.semaines.findIndex(s=>s.start===DATA.currentWeekStart)+1:1;
+  const rows=students.map(s=>{
+    const classe=DATA.classes.find(c=>c.id===s.classeId);
     return `<tr class="row-link" data-id="${s.id}">
       <td>${esc(s.nom)}</td>
-      <td>${classe ? esc(classe.nom) : '<span class="muted">—</span>'}</td>
-      <td>${badge}</td>
-      <td>${s.status==='pastille' ? '<span class="muted">—</span>' : s.points + ' / 20'}</td>
-      <td>${isAdmin() ? `<button class="btn warn" data-del-student="${s.id}">Supprimer</button>` : ''}</td>
+      <td>${classe?esc(classe.nom):'<span class="muted">—</span>'}</td>
+      <td>${statusBadge(s)}</td>
+      <td>${s.status==='pastille'||s.status==='carnet'?'<span class="muted">—</span>':s.points+' / 20'}</td>
+      <td>${isAdmin()?`<button class="btn warn" data-del-student="${s.id}">Supprimer</button>`:''}</td>
     </tr>`;
   }).join('');
-
   return `
   <div class="week-banner">
-    <span>Semaine en cours : depuis le <strong>${formatDateFr(DATA.currentWeekStart)}</strong> (aujourd'hui : ${formatDateFr(todayISO())})</span>
-    <a href="#" id="goto-semaines" class="small" style="font-weight:700;">Voir l'historique des semaines →</a>
+    <span>Semaine en cours : <strong>${formatDateFr(DATA.currentWeekStart)}</strong>${bloc?` — Semaine ${semaineIdx}/${bloc.semaines.length} du bloc`:''}</span>
+    <span class="bloc-badge">${bloc?`Bloc débuté le ${formatDateFr(bloc.dateDebut)}`:'—'}</span>
   </div>
   <div class="row" style="justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;">
     <h2>Élèves</h2>
     <div class="row">
-      <input type="search" id="search-eleve" placeholder="Rechercher un élève par nom..." value="${esc(currentSearchQuery)}" style="padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;min-width:200px;">
+      <input type="search" id="search-eleve" placeholder="Rechercher par nom..." value="${esc(currentSearchQuery)}" style="padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;min-width:200px;">
       <select id="filter-classe"><option value="">Toutes les classes</option>${classesOptions}</select>
-      <button class="btn primary" id="btn-new-student">+ Ajouter un élève</button>
-      <button class="btn" id="btn-new-week">Nouvelle semaine</button>
+      <button class="btn primary" id="btn-new-student">+ Ajouter</button>
     </div>
   </div>
   <div class="card">
-    ${students.length ? `<table><thead><tr><th>Nom</th><th>Classe</th><th>Marche</th><th>Points</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
-      : `<div class="empty">${currentSearchQuery.trim() ? `Aucun élève ne correspond à « ${esc(currentSearchQuery)} ».` : `Aucun élève pour le moment. Crée une classe, puis ajoute des élèves ou importe un fichier depuis le détail de la classe.`}</div>`}
+    ${students.length?`<table><thead><tr><th>Nom</th><th>Classe</th><th>Marche</th><th>Points</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+    :`<div class="empty">Aucun élève${currentSearchQuery?' correspondant':' enregistré'}.</div>`}
   </div>`;
-}
-
-function statusBadge(s){
-  if(s.status === 'pastille') return `<span class="badge m-pastille">Pastille</span>`;
-  return `<span class="badge m-${s.status}">${marcheLabelNum(s.status)}</span>`;
 }
 
 function attachAccueilEvents(){
-  document.getElementById('filter-classe').addEventListener('change', e=>{ currentClassFilter = e.target.value; render(); });
-  document.getElementById('btn-new-student').addEventListener('click', ()=>openStudentModal());
-  const searchInput = document.getElementById('search-eleve');
-  if(searchInput){
-    searchInput.addEventListener('input', e=>{
-      currentSearchQuery = e.target.value;
-      const cursorPos = e.target.selectionStart;
-      render();
-      const refocused = document.getElementById('search-eleve');
-      if(refocused){ refocused.focus(); refocused.setSelectionRange(cursorPos, cursorPos); }
-    });
-  }
-  const gotoSemaines = document.getElementById('goto-semaines');
-  if(gotoSemaines) gotoSemaines.addEventListener('click', e=>{ e.preventDefault(); currentTab='semaines'; render(); });
-  document.getElementById('btn-new-week').addEventListener('click', ()=>{
-    if(confirm(`Clore la semaine du ${formatDateFr(DATA.currentWeekStart)} au ${formatDateFr(todayISO())} pour tous les élèves et démarrer une nouvelle semaine ? Les marches et statuts pastille seront recalculés automatiquement, et cette semaine sera archivée avec sa date dans l'onglet « Semaines ».`)){
-      nouvelleSemaine();
-    }
+  const si=document.getElementById('search-eleve');
+  if(si) si.addEventListener('input',e=>{
+    currentSearchQuery=e.target.value;
+    const pos=e.target.selectionStart; render();
+    const r=document.getElementById('search-eleve'); if(r){r.focus();r.setSelectionRange(pos,pos);}
   });
+  const fc=document.getElementById('filter-classe');
+  if(fc) fc.addEventListener('change',e=>{currentClassFilter=e.target.value;render();});
+  const ns=document.getElementById('btn-new-student');
+  if(ns) ns.addEventListener('click',()=>openStudentModal());
   document.querySelectorAll('[data-del-student]').forEach(b=>{
-    b.addEventListener('click', async (e)=>{
+    b.addEventListener('click',async e=>{
       e.stopPropagation();
-      const ok = await deleteStudent(b.dataset.delStudent);
-      if(ok) render();
+      if(await deleteStudent(b.dataset.delStudent)) render();
     });
   });
-  document.querySelectorAll('tr.row-link').forEach(tr=>{
-    tr.addEventListener('click', (e)=>{
+  document.querySelectorAll('tr.row-link[data-id]').forEach(tr=>{
+    tr.addEventListener('click',e=>{
       if(e.target.closest('[data-del-student]')) return;
-      currentStudentId = tr.dataset.id; currentTab='fiche'; location.hash = '#eleve='+tr.dataset.id; render();
+      currentStudentId=tr.dataset.id; currentTab='fiche'; location.hash='#eleve='+tr.dataset.id; render();
     });
   });
 }
 
-/* ============== CLASSES ============== */
+/* ============================================================
+   CLASSES
+   ============================================================ */
 function renderClasses(){
-  const rows = DATA.classes.map(c=>{
-    const n = DATA.students.filter(s=>s.classeId===c.id).length;
-    return `<tr class="row-link" data-classe="${c.id}"><td>${esc(c.nom)}</td><td>${n} élève(s)</td>
-      <td>${isAdmin() ? `<button class="btn warn" data-del="${c.id}">Supprimer</button>` : ''}</td></tr>`;
+  const rows=DATA.classes.map(c=>{
+    const n=DATA.students.filter(s=>s.classeId===c.id).length;
+    return `<tr class="row-link" data-classe="${c.id}">
+      <td>${esc(c.nom)}</td><td>${n} élève(s)</td>
+      <td>${isAdmin()?`<button class="btn warn" data-del="${c.id}">Supprimer</button>`:''}</td>
+    </tr>`;
   }).join('');
   return `
   <div class="row" style="justify-content:space-between;margin-bottom:14px;">
-    <h2>Classes</h2>
-    <button class="btn primary" id="btn-new-classe">+ Créer une classe</button>
+    <h2>Classes</h2><button class="btn primary" id="btn-new-classe">+ Créer une classe</button>
   </div>
   <div class="card">
-    ${DATA.classes.length ? `<table><thead><tr><th>Nom</th><th>Effectif</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
-      : `<div class="empty">Aucune classe. Crée la première classe pour commencer.</div>`}
-    ${DATA.classes.length ? `<p class="small muted" style="margin-top:10px;">Clique sur une classe pour voir ses élèves.</p>` : ''}
+    ${DATA.classes.length?`<table><thead><tr><th>Nom</th><th>Élèves</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+    :`<div class="empty">Aucune classe. Créez-en une pour commencer.</div>`}
   </div>`;
 }
 function attachClassesEvents(){
-  document.getElementById('btn-new-classe').addEventListener('click', ()=>openClassModal());
+  document.getElementById('btn-new-classe').addEventListener('click',openClassModal);
   document.querySelectorAll('[data-del]').forEach(b=>{
-    b.addEventListener('click', async (e)=>{
+    b.addEventListener('click',async e=>{
       e.stopPropagation();
-      if(!isAdmin()){ toast("Seul le compte administrateur peut supprimer une classe."); return; }
-      const id = b.dataset.del;
-      const classeNom = (DATA.classes.find(c=>c.id===id)||{}).nom || '';
-      const n = DATA.students.filter(s=>s.classeId===id).length;
-      if(n>0 && !confirm(`Cette classe contient ${n} élève(s), qui resteront sans classe. Continuer ?`)) return;
-      DATA.classes = DATA.classes.filter(c=>c.id!==id);
-      await saveData(`Suppression de la classe « ${classeNom} »`); toast("Classe supprimée."); render();
+      if(!isAdmin()){toast("Réservé à l'admin.");return;}
+      const id=b.dataset.del;
+      const nom=(DATA.classes.find(c=>c.id===id)||{}).nom||'';
+      const n=DATA.students.filter(s=>s.classeId===id).length;
+      if(n>0&&!confirm(`Cette classe contient ${n} élève(s). Continuer ?`)) return;
+      DATA.classes=DATA.classes.filter(c=>c.id!==id);
+      await saveData(`Suppression classe ${nom}`); toast("Classe supprimée."); render();
     });
   });
   document.querySelectorAll('tr.row-link[data-classe]').forEach(tr=>{
-    tr.addEventListener('click', (e)=>{
+    tr.addEventListener('click',e=>{
       if(e.target.closest('[data-del]')) return;
-      currentClasseId = tr.dataset.classe; currentTab = 'classe-detail'; render();
+      currentClasseId=tr.dataset.classe; currentTab='classe-detail'; render();
     });
   });
 }
 
-/* ============== DÉTAIL D'UNE CLASSE ============== */
 function renderClasseDetail(classeId){
-  const classe = DATA.classes.find(c=>c.id===classeId);
-  if(!classe) return `<a class="back-link" href="#" id="back-to-classes">← Retour aux classes</a><div class="empty">Classe introuvable.</div>`;
-  const students = DATA.students.filter(s=>s.classeId===classeId).sort((a,b)=>a.nom.localeCompare(b.nom));
-  const rows = students.map(s=>`
+  const classe=DATA.classes.find(c=>c.id===classeId);
+  if(!classe) return `<a class="back-link" href="#" id="back-to-classes">← Retour</a><div class="empty">Classe introuvable.</div>`;
+  const students=DATA.students.filter(s=>s.classeId===classeId).sort((a,b)=>a.nom.localeCompare(b.nom));
+  const rows=students.map(s=>`
     <tr class="row-link" data-id="${s.id}">
-      <td>${esc(s.nom)}</td>
-      <td>${statusBadge(s)}</td>
-      <td>${s.status==='pastille' ? '<span class="muted">—</span>' : s.points + ' / 20'}</td>
-      <td>${isAdmin() ? `<button class="btn warn" data-del-student="${s.id}">Supprimer</button>` : ''}</td>
+      <td>${esc(s.nom)}</td><td>${statusBadge(s)}</td>
+      <td>${s.status==='pastille'||s.status==='carnet'?'—':s.points+' / 20'}</td>
+      <td>${isAdmin()?`<button class="btn warn" data-del-student="${s.id}">Supprimer</button>`:''}</td>
     </tr>`).join('');
   return `
   <a class="back-link" href="#" id="back-to-classes">← Retour aux classes</a>
@@ -987,741 +1019,732 @@ function renderClasseDetail(classeId){
     <h2>${esc(classe.nom)}</h2>
     <div class="row">
       <button class="btn primary" id="btn-add-student-here">+ Ajouter un élève</button>
-      <label class="btn" for="import-file-classe" style="margin:0;">Importer un fichier (CSV/Excel)</label>
+      <label class="btn" for="import-file-classe">Importer CSV/Excel</label>
       <input type="file" id="import-file-classe" accept=".csv,.xlsx,.xls" class="hidden">
-      <button class="btn" id="btn-reset-classe">Nouvelle semaine (cette classe)</button>
     </div>
   </div>
-  <div id="import-status-classe" class="small muted" style="margin-bottom:${students.length?'10px':'0'};"></div>
+  <div id="import-status-classe" class="small muted" style="margin-bottom:8px;"></div>
   <div class="card">
-    ${students.length ? `<table><thead><tr><th>Nom</th><th>Marche</th><th>Points</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
-      : `<div class="empty">Aucun élève dans cette classe pour le moment. Ajoute-les un par un, ou importe un fichier CSV/Excel.</div>`}
+    ${students.length?`<table><thead><tr><th>Nom</th><th>Marche</th><th>Points</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+    :`<div class="empty">Aucun élève dans cette classe.</div>`}
   </div>`;
 }
 function attachClasseDetailEvents(){
-  const back = document.getElementById('back-to-classes');
-  if(back) back.addEventListener('click', e=>{ e.preventDefault(); currentClasseId=null; currentTab='classes'; render(); });
-  const addBtn = document.getElementById('btn-add-student-here');
-  if(addBtn) addBtn.addEventListener('click', ()=>openStudentModal(null, currentClasseId));
-  const resetBtn = document.getElementById('btn-reset-classe');
-  if(resetBtn) resetBtn.addEventListener('click', ()=>{
-    const classe = DATA.classes.find(c=>c.id===currentClasseId);
-    if(confirm(`Clore la semaine du ${formatDateFr(DATA.currentWeekStart)} au ${formatDateFr(todayISO())} pour la classe « ${classe.nom} » uniquement ? Une sauvegarde sera faite avant, au cas où.`)){
-      nouvelleSemaine(currentClasseId);
-    }
-  });
-  const importInput = document.getElementById('import-file-classe');
-  if(importInput) importInput.addEventListener('change', async (e)=>{
-    const file = e.target.files[0];
-    e.target.value = '';
+  document.getElementById('back-to-classes').addEventListener('click',e=>{e.preventDefault();currentClasseId=null;currentTab='classes';render();});
+  document.getElementById('btn-add-student-here').addEventListener('click',()=>openStudentModal(null,currentClasseId));
+  const imp=document.getElementById('import-file-classe');
+  if(imp) imp.addEventListener('change',async e=>{
+    const file=e.target.files[0]; e.target.value='';
     if(!file) return;
-    const statusEl = document.getElementById('import-status-classe');
-    const classeId = currentClasseId;
-    statusEl.textContent = "Lecture du fichier...";
+    const statusEl=document.getElementById('import-status-classe');
+    statusEl.textContent="Lecture...";
     try{
-      const names = await extractNamesFromFile(file);
-      if(names.length === 0){ statusEl.textContent = "Aucun nom détecté dans ce fichier."; return; }
-      for(const nom of names){
-        DATA.students.push(newStudent(nom, classeId));
-      }
-      await saveData(`Import de ${names.length} élève(s)`);
-      statusEl.textContent = `${names.length} élève(s) importé(s) avec succès.`;
-      toast(`${names.length} élève(s) ajouté(s).`);
-      render();
-    }catch(err){
-      statusEl.textContent = "Erreur de lecture du fichier : " + err.message;
-    }
+      const names=await extractNamesFromFile(file);
+      if(!names.length){statusEl.textContent="Aucun nom détecté.";return;}
+      for(const nom of names) DATA.students.push(newStudent(nom,currentClasseId));
+      await saveData(`Import ${names.length} élève(s)`);
+      statusEl.textContent=`${names.length} élève(s) importé(s).`;
+      toast(`${names.length} élève(s) ajouté(s).`); render();
+    }catch(err){statusEl.textContent="Erreur : "+err.message;}
   });
   document.querySelectorAll('[data-del-student]').forEach(b=>{
-    b.addEventListener('click', async (e)=>{
-      e.stopPropagation();
-      const ok = await deleteStudent(b.dataset.delStudent);
-      if(ok) render();
-    });
+    b.addEventListener('click',async e=>{e.stopPropagation();if(await deleteStudent(b.dataset.delStudent)) render();});
   });
   document.querySelectorAll('tr.row-link[data-id]').forEach(tr=>{
-    tr.addEventListener('click', (e)=>{
+    tr.addEventListener('click',e=>{
       if(e.target.closest('[data-del-student]')) return;
-      currentStudentId = tr.dataset.id; currentTab='fiche'; location.hash = '#eleve='+tr.dataset.id; render();
+      currentStudentId=tr.dataset.id;currentTab='fiche';location.hash='#eleve='+tr.dataset.id;render();
     });
   });
 }
 
-/* ============== IMPORT (utilitaires de lecture de fichier, déclenchés depuis le détail d'une classe) ============== */
-function extractNamesFromFile(file){
-  return new Promise((resolve,reject)=>{
-    const ext = file.name.toLowerCase().split('.').pop();
-    if(ext === 'csv'){
-      Papa.parse(file, { complete: res=>{
-        const names = res.data.map(rowToName).filter(Boolean);
-        resolve(names);
-      }, error: err=>reject(err) });
-    } else {
-      const reader = new FileReader();
-      reader.onload = (e)=>{
-        try{
-          const wb = XLSX.read(e.target.result, {type:'array'});
-          const sheet = wb.Sheets[wb.SheetNames[0]];
-          const rows = XLSX.utils.sheet_to_json(sheet, {header:1});
-          const names = rows.map(rowToName).filter(Boolean);
-          resolve(names);
-        }catch(err){ reject(err); }
-      };
-      reader.onerror = ()=>reject(new Error("lecture impossible"));
-      reader.readAsArrayBuffer(file);
-    }
-  });
-}
-function rowToName(row){
-  if(!row || !row.length) return null;
-  const cells = row.map(c=> (c===undefined||c===null) ? '' : String(c).trim()).filter(Boolean);
-  if(cells.length===0) return null;
-  const joined = cells.slice(0,2).join(' ').trim();
-  const lower = joined.toLowerCase();
-  if(lower === 'nom' || lower === 'prenom' || lower==='prénom' || lower==='nom prenom' || lower==='nom prénom' || lower==='élève' || lower==='eleve') return null;
-  return joined;
-}
-
-/* ============== ACCÈS ÉLÈVE — VUE LECTURE SEULE ============== */
-function showStudentReadOnlyView(studentId){
-  document.getElementById('student-login-screen').style.display = 'none';
-  const screen = document.getElementById('student-view-screen');
-  screen.classList.remove('hidden');
-  screen.style.display = 'block';
-  renderStudentReadOnlyView(studentId);
-}
-function renderStudentReadOnlyView(studentId){
-  const s = DATA.students.find(x=>x.id===studentId);
-  const screen = document.getElementById('student-view-screen');
-  if(!s){ screen.innerHTML = `<div class="login-card" style="margin:60px auto;"><p>Fiche introuvable.</p></div>`; return; }
-  const classe = DATA.classes.find(c=>c.id===s.classeId);
-  const ladderSteps = MARCHES.map((m,i)=>`<div class="step m-${m} ${s.status===m?'current':''}">${i+1}. ${MARCHE_LABEL[m]}</div>`).join('');
-  const pct = s.status==='pastille' ? 0 : Math.round((s.points/20)*100);
-  const histRows = s.history.slice().reverse().slice(0,30).map(h=>`
-    <tr class="${isPastilleEvent(h) ? 'pastille-row' : ''}">
-      <td>${esc(h.date)}</td>
-      <td>${esc(h.heure || '—')}</td>
-      <td>${esc(h.motif || h.label)}</td>
-      <td>${esc(h.sanctionneur || '—')}</td>
-    </tr>
-  `).join('');
-  screen.innerHTML = `
-    <header class="topbar">
-      <div class="brand">
-        <span class="step-mark"><span></span><span></span><span></span><span></span></span>
-        <h1>Carnet de suivi — les Marches</h1>
-      </div>
-      <button class="btn" id="student-logout-btn">Quitter</button>
-    </header>
-    <main style="max-width:760px;margin:0 auto;padding:24px 18px;">
-      <h2>${esc(s.nom)}</h2>
-      <p class="small muted">${classe ? esc(classe.nom) : ''} · Consultation seule (accès élève)</p>
-
-      <div class="card">
-        <div class="section-title">Marche actuelle</div>
-        <div class="ladder">${ladderSteps}</div>
-        ${s.status==='pastille'
-          ? `<p><span class="badge m-pastille">Pastille</span> — droits suspendus cette semaine.</p>`
-          : `<div class="row" style="justify-content:space-between;margin-bottom:6px;"><span class="small">Points de la semaine</span><span class="small"><strong>${s.points}</strong> / 20</span></div>
-             <div class="points-meter"><div class="fill" style="width:${pct}%"></div></div>`}
-      </div>
-
-      <div class="card">
-        <div class="section-title">Journal de suivi</div>
-        ${s.history.length ? `<table style="margin-top:12px;"><thead><tr><th>Date</th><th>Heure</th><th>Motif</th><th>Retrait décidé par</th></tr></thead><tbody>${histRows}</tbody></table>`
-          : `<p class="small muted" style="margin-top:12px;">Aucun évènement enregistré.</p>`}
-      </div>
-    </main>`;
-  document.getElementById('student-logout-btn').addEventListener('click', ()=>{
-    location.hash = '';
-    location.reload();
-  });
-}
-
-/* ============== STUDENT MODEL ============== */
-async function deleteStudent(id, {confirmMessage} = {}){
-  if(!isAdmin()){ toast("Seul le compte administrateur peut supprimer un élève."); return false; }
-  const s = DATA.students.find(x=>x.id===id);
-  if(!s) return false;
-  if(!confirm(confirmMessage || `Supprimer définitivement la fiche de ${s.nom} ? Toutes ses données (historique, points, QR code) seront retirées de l'application : liste des élèves, classe, et onglet QR codes.`)) return false;
-  // DATA.students est la seule source de vérité : la liste élèves, le détail
-  // de classe et l'onglet QR codes en sont tous dérivés dynamiquement, donc
-  // retirer l'élève ici suffit à le faire disparaître partout dans l'appli.
-  DATA.students = DATA.students.filter(x=>x.id!==id);
-  await saveData(`Suppression de la fiche de ${s.nom}`);
-  toast(`${s.nom} a été supprimé(e) de l'application.`);
-  return true;
-}
-function newStudent(nom, classeId){
-  return {
-    id: genId(),
-    nom: nom,
-    classeId: classeId || "",
-    status: "rose",
-    points: 20,
-    zeroStreak: 0,
-    savedMarche: "rose",
-    history: []
-  };
-}
-
-/* ============== FICHE ÉLÈVE ============== */
+/* ============================================================
+   FICHE ÉLÈVE
+   ============================================================ */
 function renderFiche(id){
-  const s = DATA.students.find(x=>x.id===id);
-  if(!s) return `<a class="back-link" href="#" id="back-to-list">← Retour à la liste</a><div class="empty">Élève introuvable. Il a peut-être été supprimé.</div>`;
-  const classe = DATA.classes.find(c=>c.id===s.classeId);
-  const ladderSteps = MARCHES.map((m,i)=>`<div class="step m-${m} ${s.status===m?'current':''}">${i+1}. ${MARCHE_LABEL[m]}</div>`).join('');
-  const pct = s.status==='pastille' ? 0 : Math.round((s.points/20)*100);
-  const histRows = s.history.slice().reverse().slice(0,60).map(h=>`
-    <tr class="${isPastilleEvent(h) ? 'pastille-row' : ''}">
-      <td>${esc(h.date)}</td>
-      <td>${esc(h.heure || '—')}</td>
-      <td>${esc(h.motif || h.label)}</td>
-      <td>${h.points ? `-${h.points}` : '<span class="muted">—</span>'}</td>
-      <td>${esc(h.sanctionneur || '—')}</td>
-      <td>${h.id ? `<button class="btn warn" data-del-hist="${h.id}" title="Supprimer cette ligne du journal">Supprimer</button>` : ''}</td>
-    </tr>
-  `).join('');
-
-  const catBoxes = CATEGORIES.map(c=>`
+  const s=DATA.students.find(x=>x.id===id);
+  if(!s) return `<a class="back-link" href="#" id="back-to-list">← Retour</a><div class="empty">Élève introuvable.</div>`;
+  const classe=DATA.classes.find(c=>c.id===s.classeId);
+  const ladderSteps=MARCHES.map((m,i)=>`<div class="step ${m} ${s.status===m?'current':''}">${i+1}. ${MARCHE_LABEL[m]}</div>`).join('');
+  const pct=Math.round((s.points/20)*100);
+  const seuil=MARCHE_SEUIL[s.status]||0;
+  const histRows=s.history.slice().reverse().slice(0,80).map(h=>`
+    <tr class="${isPastilleEvent(h)?'pastille-row':''}">
+      <td>${esc(h.date)}</td><td>${esc(h.heure||'—')}</td>
+      <td>${esc(h.motif||h.label)}</td>
+      <td>${h.points?`-${h.points}`:'<span class="muted">—</span>'}</td>
+      <td>${esc(h.auteur||'—')}</td>
+      <td>${h.id?`<button class="btn warn" data-del-hist="${h.id}">Supprimer</button>`:''}</td>
+    </tr>`).join('');
+  const catBoxes=CATEGORIES.map(c=>`
     <div class="cat-box">
-      <h4>${c.label}</h4>
-      <div class="nums">
-        ${[1,2,3,4,5].map(n=>`<button data-cat="${c.key}" data-amt="${n}">-${n}</button>`).join('')}
+      <div class="cat-box-header" data-cat-key="${c.key}">
+        <span>${esc(c.label)}</span>
+        <span class="pts">-${c.points} pt${c.points>1?'s':''}</span>
       </div>
-    </div>
-  `).join('');
-
-  const url = appUrl('#eleve=' + s.id);
-
+      <div class="cat-box-motifs" id="motifs-${c.key}">
+        ${c.motifs.map(m=>`<button data-cat="${c.key}" data-motif="${esc(m)}" data-pts="${c.points}">${esc(m)}</button>`).join('')}
+        ${c.freeText?`<div style="padding:8px;">
+          <input type="text" id="autres-motif" placeholder="Préciser le motif..." style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;margin-bottom:6px;">
+          <button data-cat="${c.key}" data-motif="" data-pts="${c.points}" id="btn-autres-valider" class="btn primary" style="width:100%;">Valider (−${c.points} pt)</button>
+        </div>`:''}
+      </div>
+    </div>`).join('');
   return `
   <a class="back-link" href="#" id="back-to-list">← Retour à la liste</a>
   <div class="row" style="justify-content:space-between;align-items:flex-start;">
-    <div>
-      <h2>${esc(s.nom)}</h2>
-      <p class="small muted">${classe ? esc(classe.nom) : 'Aucune classe'}</p>
-    </div>
+    <div><h2>${esc(s.nom)}</h2><p class="small muted">${classe?esc(classe.nom):'Aucune classe'}</p></div>
     <div class="row">
       <button class="btn" id="btn-edit-student">Modifier</button>
-      ${isAdmin() ? `<button class="btn warn" id="btn-del-student">Supprimer la fiche</button>` : ''}
+      ${isAdmin()?`<button class="btn warn" id="btn-del-student">Supprimer</button>`:''}
+      <button class="btn" id="btn-export-pdf">PDF</button>
     </div>
   </div>
-
   <div class="card">
     <div class="section-title">Marche actuelle</div>
     <div class="ladder">${ladderSteps}</div>
-    ${s.status==='pastille'
-      ? `<p><span class="badge m-pastille">Pastille</span> — droits suspendus cette semaine.</p>`
-      : `<div class="row" style="justify-content:space-between;margin-bottom:6px;"><span class="small">Points de la semaine</span><span class="small"><strong>${s.points}</strong> / 20</span></div>
-         <div class="points-meter"><div class="fill" style="width:${pct}%"></div></div>`}
-
-    <div class="section-title" style="margin-top:18px;">Modifier la marche manuellement</div>
-    <div class="marche-picker">
-      ${MARCHES.map((m,i)=>`<button class="m-${m} ${s.status===m?'active':''}" data-set-marche="${m}">${i+1}. ${MARCHE_LABEL[m]}</button>`).join('')}
+    ${s.status==='pastille'?`<p style="margin-top:8px"><span class="badge m-pastille">En pastille</span> — droits suspendus jusqu'au dimanche.</p>`
+    :s.status==='carnet'?`<p style="margin-top:8px"><span class="badge m-carnet">Carnet oublié</span> — suspendu pour la journée.</p>`
+    :`<div class="row" style="justify-content:space-between;margin-top:10px;margin-bottom:4px;">
+        <span class="small">Points : <strong>${s.points}</strong> / 20 (objectif : ${seuil}/20)</span>
+        <span class="small ${s.points>=seuil?'':'muted'}">${s.points>=seuil?'✓ Contrat en cours':'✗ Contrat en danger'}</span>
+      </div>
+      <div class="points-meter"><div class="fill" style="width:${pct}%"></div></div>`}
+  </div>
+  <div class="card">
+    <div class="section-title">Retirer des points</div>
+    <div class="cat-grid">${catBoxes}</div>
+  </div>
+  <div class="card">
+    <div class="section-title" style="margin-bottom:8px;">Actions manuelles</div>
+    <div class="row">
+      <div class="section-title">Modifier la marche</div>
+      <div class="marche-picker">
+        ${MARCHES.map((m,i)=>`<button class="${m} ${s.status===m?'active':''}" data-set-marche="${m}">${i+1}. ${MARCHE_LABEL[m]}</button>`).join('')}
+      </div>
     </div>
-
-    <div class="row" style="margin-top:14px;">
-      <button class="${s.status==='pastille' ? 'btn' : 'btn btn-danger-solid'}" id="btn-toggle-pastille">${s.status==='pastille' ? 'Lever la pastille (revenir à sa marche)' : '⚠ Mettre en pastille manuellement'}</button>
+    <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap;">
+      ${s.status!=='pastille'&&s.status!=='carnet'?`<button class="btn danger" id="btn-pastille-manuelle">⚠ Mettre en pastille manuellement</button>`
+      :s.status==='pastille'?`<button class="btn" id="btn-lever-pastille">Lever la pastille</button>`:''}
+      <button class="btn warn" id="btn-carnet">📓 Carnet oublié (aujourd'hui)</button>
       <button class="btn" id="btn-reset-points">Réinitialiser les points (20/20)</button>
     </div>
   </div>
-
-  <div class="card">
-    <div class="section-title">Retirer des points</div>
-    ${s.status==='pastille' ? `<p class="small muted">Élève en pastille : aucun point à retirer cette semaine.</p>` : `<div class="cat-grid">${catBoxes}</div>`}
-  </div>
-
   <div class="card">
     <div class="row" style="justify-content:space-between;align-items:center;">
       <div class="section-title" style="margin-bottom:0;">Journal de suivi</div>
-      <button class="btn" id="btn-export-pdf">Générer le récapitulatif PDF (4 dernières semaines)</button>
     </div>
-    ${s.history.length ? `<table style="margin-top:12px;"><thead><tr><th>Date</th><th>Heure</th><th>Motif</th><th>Points</th><th>Retrait décidé par</th><th></th></tr></thead><tbody>${histRows}</tbody></table>`
-      : `<p class="small muted" style="margin-top:12px;">Aucun évènement enregistré.</p>`}
-  </div>
-
-  <div class="card">
-    <div class="section-title">QR code de la fiche</div>
-    ${url ? `
-    <div class="qr-box">
-      <div id="fiche-qr-render"></div>
-      <div style="flex:1;min-width:220px;">
-        <p class="small" style="margin-bottom:8px;">Ce lien ouvre directement cette fiche (mot de passe enseignant requis). Il fonctionne pour tous les enseignants, pas seulement pour toi. Pour tous les QR codes d'une classe en une fois, va dans l'onglet « QR codes ».</p>
-        <div class="link-field">${url}</div>
-      </div>
-    </div>` : `
-    <p class="small" style="color:#a32b2b;">⚠️ QR code indisponible : cette page doit être ouverte via son adresse en ligne (https://...) pour générer un lien scannable. Si tu vois ce message une fois la page mise en ligne sur GitHub Pages, vérifie que le lien utilisé commence bien par « https:// ».</p>`}
+    ${s.history.length?`<table style="margin-top:12px;"><thead><tr><th>Date</th><th>Heure</th><th>Motif</th><th>Points</th><th>Par</th><th></th></tr></thead><tbody>${histRows}</tbody></table>`
+    :`<p class="small muted" style="margin-top:12px;">Aucun évènement enregistré.</p>`}
   </div>`;
 }
 
 function attachFicheEvents(){
-  const back = document.getElementById('back-to-list');
-  if(back) back.addEventListener('click', (e)=>{ e.preventDefault(); currentTab='accueil'; currentStudentId=null; location.hash=''; render(); });
+  const back=document.getElementById('back-to-list');
+  if(back) back.addEventListener('click',e=>{e.preventDefault();currentTab='accueil';currentStudentId=null;location.hash='';render();});
 
-  const qrHost = document.getElementById('fiche-qr-render');
-  if(qrHost && window.QRCode){
-    const url = appUrl('#eleve=' + currentStudentId);
-    if(url) new QRCode(qrHost, {text:url, width:160, height:160, colorDark:"#000000", colorLight:"#ffffff", correctLevel: QRCode.CorrectLevel.H});
-  }
-
-  const editBtn = document.getElementById('btn-edit-student');
-  if(editBtn) editBtn.addEventListener('click', ()=>openStudentModal(currentStudentId));
-
-  const pdfBtn = document.getElementById('btn-export-pdf');
-  if(pdfBtn) pdfBtn.addEventListener('click', ()=>exportFichePDF(currentStudentId));
-
-  document.querySelectorAll('[data-del-hist]').forEach(b=>{
-    b.addEventListener('click', ()=>deleteHistoryEntry(currentStudentId, b.dataset.delHist));
-  });
-
-  const delBtn = document.getElementById('btn-del-student');
-  if(delBtn) delBtn.addEventListener('click', async ()=>{
-    const ok = await deleteStudent(currentStudentId);
-    if(!ok) return;
-    currentTab='accueil'; currentStudentId=null; location.hash='';
-    render();
-  });
-
-  document.querySelectorAll('[data-cat]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const cat = btn.dataset.cat;
-      const amt = parseInt(btn.dataset.amt,10);
-      openSanctionModal(currentStudentId, cat, amt);
+  // Catégories : ouvrir/fermer
+  document.querySelectorAll('.cat-box-header').forEach(h=>{
+    h.addEventListener('click',()=>{
+      const key=h.dataset.catKey;
+      document.querySelectorAll('.cat-box-motifs').forEach(m=>{
+        m.classList.toggle('open',m.id==='motifs-'+key&&!m.classList.contains('open'));
+      });
     });
   });
 
-  document.querySelectorAll('[data-set-marche]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const s = DATA.students.find(x=>x.id===currentStudentId);
-      if(!s) return;
-      const newMarche = btn.dataset.setMarche;
-      if(s.status === newMarche) return;
-      const wasP = s.status === 'pastille';
-      s.status = newMarche;
-      s.savedMarche = newMarche;
-      s.points = 20;
-      s.zeroStreak = 0;
-      logEvent(s, `Marche modifiée manuellement${wasP ? ' (sortie de pastille)' : ''} → ${MARCHE_LABEL[newMarche]}.`);
-      await saveData(`Changement de marche de ${s.nom} → ${MARCHE_LABEL[newMarche]}`);
+  // Boutons de motifs
+  document.querySelectorAll('[data-cat][data-motif]').forEach(b=>{
+    if(b.id==='btn-autres-valider') return;
+    b.addEventListener('click',async()=>{
+      await retirerPoints(currentStudentId,b.dataset.cat,parseInt(b.dataset.pts),b.dataset.motif);
       render();
     });
   });
 
-  const resetPtsBtn = document.getElementById('btn-reset-points');
-  if(resetPtsBtn) resetPtsBtn.addEventListener('click', async ()=>{
-    const s = DATA.students.find(x=>x.id===currentStudentId);
+  // Autres (champ libre)
+  const btnAutres=document.getElementById('btn-autres-valider');
+  if(btnAutres) btnAutres.addEventListener('click',async()=>{
+    const motif=document.getElementById('autres-motif').value.trim();
+    await retirerPoints(currentStudentId,'autres',1,motif||'Autre motif');
+    render();
+  });
+
+  // Marche picker
+  document.querySelectorAll('[data-set-marche]').forEach(b=>{
+    b.addEventListener('click',async()=>{
+      const s=DATA.students.find(x=>x.id===currentStudentId);
+      if(!s) return;
+      const m=b.dataset.setMarche;
+      logEvent(s,`Marche modifiée manuellement → ${marcheLabelNum(m)}.`);
+      s.status=m;
+      await saveData(`Changement marche ${s.nom}`); render();
+    });
+  });
+
+  // Pastille manuelle
+  const pm=document.getElementById('btn-pastille-manuelle');
+  if(pm) pm.addEventListener('click',()=>{
+    if(!confirm("⚠️ Avant de prendre cette décision, merci de vous concerter avec 2 autres personnels du collège.\n\nConfirmer la mise en pastille manuelle (7 jours glissants) ?")) return;
+    const s=DATA.students.find(x=>x.id===currentStudentId);
     if(!s) return;
-    if(!confirm(`Réinitialiser les points de ${s.nom} à 20/20 ? Tu pourras annuler cette action via « Annuler ma dernière action » si besoin.`)) return;
-    s.points = 20;
-    logEvent(s, `Points réinitialisés manuellement à 20/20.`);
-    await saveData(`Réinitialisation des points de ${s.nom}`);
-    render();
+    s.savedMarche=s.status; s.status='pastille';
+    s.pastilleManuelleDebut=todayISO();
+    logEvent(s,"Mise en pastille manuelle (concertation requise) — 7 jours glissants.");
+    saveData(`Pastille manuelle ${s.nom}`); render();
   });
 
-  const togglePastille = document.getElementById('btn-toggle-pastille');
-  if(togglePastille) togglePastille.addEventListener('click', async ()=>{
-    const s = DATA.students.find(x=>x.id===currentStudentId);
+  // Lever pastille
+  const lp=document.getElementById('btn-lever-pastille');
+  if(lp) lp.addEventListener('click',async()=>{
+    const s=DATA.students.find(x=>x.id===currentStudentId);
     if(!s) return;
-    if(s.status === 'pastille'){
-      s.status = s.savedMarche || 'rose';
-      s.points = 20;
-      logEvent(s, `Pastille levée — retour à la marche ${MARCHE_LABEL[s.status]}.`);
-    } else {
-      s.savedMarche = s.status;
-      s.status = 'pastille';
-      s.points = 0;
-      logEvent(s, `Mise en pastille manuelle (droits suspendus).`);
-    }
-    await saveData(`${s.status==='pastille' ? 'Mise en pastille de' : 'Levée de pastille pour'} ${s.nom}`);
-    render();
+    s.status=s.savedMarche||'m2'; s.savedMarche=null; s.pastilleManuelleDebut=null;
+    logEvent(s,`Pastille levée manuellement — reprend ${marcheLabelNum(s.status)}.`);
+    await saveData(`Levée pastille ${s.nom}`); render();
+  });
+
+  // Carnet oublié
+  const bc=document.getElementById('btn-carnet');
+  if(bc) bc.addEventListener('click',async()=>{
+    const s=DATA.students.find(x=>x.id===currentStudentId);
+    if(!s||s.status==='carnet') return;
+    if(!confirm(`Mettre ${s.nom} en suspension pour carnet oublié (aujourd'hui uniquement, sans impact sur la marche) ?`)) return;
+    s.savedMarche=s.savedMarche||s.status; s.status='carnet';
+    logEvent(s,"Carnet de correspondance oublié — suspendu pour la journée.");
+    await saveData(`Carnet oublié ${s.nom}`); render();
+  });
+
+  // Reset points
+  const rp=document.getElementById('btn-reset-points');
+  if(rp) rp.addEventListener('click',async()=>{
+    const s=DATA.students.find(x=>x.id===currentStudentId);
+    if(!s||!confirm(`Réinitialiser les points de ${s.nom} à 20/20 ?`)) return;
+    s.points=20;
+    logEvent(s,"Points réinitialisés manuellement à 20/20.");
+    await saveData(`Reset points ${s.nom}`); render();
+  });
+
+  // Édition / suppression
+  const eb=document.getElementById('btn-edit-student');
+  if(eb) eb.addEventListener('click',()=>openStudentModal(currentStudentId));
+  const db=document.getElementById('btn-del-student');
+  if(db) db.addEventListener('click',async()=>{
+    if(await deleteStudent(currentStudentId)){currentTab='accueil';currentStudentId=null;location.hash='';render();}
+  });
+
+  // Export PDF
+  const pf=document.getElementById('btn-export-pdf');
+  if(pf) pf.addEventListener('click',()=>openPDFModal(currentStudentId));
+
+  // Suppression ligne journal
+  document.querySelectorAll('[data-del-hist]').forEach(b=>{
+    b.addEventListener('click',()=>deleteHistoryEntry(currentStudentId,b.dataset.delHist));
   });
 }
 
-function logEvent(s, label, details){
-  // details (optionnel) : {heure, motif, sanctionneur, type, points}
-  s.history.push(Object.assign({
-    id: genId(),
-    date: new Date().toLocaleDateString('fr-FR'),
-    heure: new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}),
-    label
-  }, details || {}));
-}
-
-function openSanctionModal(studentId, categorie, montant){
-  const s = DATA.students.find(x=>x.id===studentId);
-  if(!s || s.status === 'pastille') return;
-  const catLabel = CATEGORIES.find(c=>c.key===categorie).label;
-  openModal(`
-    <h3>Retrait de ${montant} point(s) — ${esc(catLabel)}</h3>
-    <p class="small muted" style="margin-bottom:14px;">Pour ${esc(s.nom)}. Ces informations seront gardées dans le journal de suivi de l'élève.</p>
-    <div class="field"><label>Précision sur le motif (optionnel)</label><input type="text" id="sanction-motif" placeholder="Ex : a parlé pendant l'évaluation"></div>
-    <div class="field"><label>Nom de la personne qui décide du retrait</label><input type="text" id="sanction-nom" placeholder="Ex : Mme Dupont"></div>
-    <div id="sanction-err" class="err"></div>
-    <div class="row" style="justify-content:flex-end;">
-      <button class="btn" id="modal-cancel">Annuler</button>
-      <button class="btn primary" id="modal-save">Valider le retrait</button>
-    </div>
-  `);
-  document.getElementById('modal-cancel').addEventListener('click', closeModal);
-  document.getElementById('sanction-nom').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('modal-save').click(); });
-  let _submitting = false;
-  document.getElementById('modal-save').addEventListener('click', async ()=>{
-    if(_submitting) return; // empêche un double-clic ou un Entrée+clic de créer 2 retraits
-    const nom = document.getElementById('sanction-nom').value.trim();
-    const motif = document.getElementById('sanction-motif').value.trim();
-    if(!nom){ document.getElementById('sanction-err').textContent = "Indique le nom de la personne qui sanctionne."; return; }
-    _submitting = true;
-    const saveBtn = document.getElementById('modal-save');
-    saveBtn.disabled = true;
-    saveBtn.textContent = 'Enregistrement...';
-    await retirerPoints(studentId, categorie, montant, {sanctionneur: nom, motif});
-    closeModal();
-    render();
-  });
-}
-
-async function retirerPoints(studentId, categorie, montant, who){
-  const s = DATA.students.find(x=>x.id===studentId);
-  if(!s || s.status === 'pastille') return;
-  s.points = Math.max(0, s.points - montant);
-  const catLabel = CATEGORIES.find(c=>c.key===categorie).label;
-  const who_ = who || {};
-  const detailTxt = who_.motif ? ` (${who_.motif})` : '';
-  logEvent(s, `-${montant} point(s) — ${catLabel}${detailTxt} (reste ${s.points}/20)`, {
-    motif: catLabel + (who_.motif ? ' — ' + who_.motif : ''),
-    sanctionneur: who_.sanctionneur || '',
-    points: montant,
-    type: 'retrait'
-  });
-  await saveData(`Retrait de ${montant} point(s) à ${s.nom} (${catLabel})`);
-}
-
-async function deleteHistoryEntry(studentId, entryId){
-  const s = DATA.students.find(x=>x.id===studentId);
+/* ============================================================
+   RETIRER DES POINTS
+   ============================================================ */
+async function retirerPoints(studentId,categorie,pts,motif){
+  const s=DATA.students.find(x=>x.id===studentId);
   if(!s) return;
-  const entry = s.history.find(h=>h.id===entryId);
-  if(!entry) return;
-  const isRetrait = entry.type === 'retrait' && entry.points;
-  const confirmMsg = isRetrait
-    ? `Supprimer cette ligne du journal ? Les ${entry.points} point(s) retirés seront recrédités à ${s.nom} (${Math.min(20, s.points + entry.points)}/20).`
-    : `Supprimer cette ligne du journal ? Cette action ne modifie pas les points actuels de ${s.nom}.`;
-  if(!confirm(confirmMsg)) return;
-  s.history = s.history.filter(h=>h.id!==entryId);
-  if(isRetrait){ s.points = Math.min(20, s.points + entry.points); }
-  await saveData(`Suppression d'une ligne du journal de ${s.nom}`);
-  toast("Ligne du journal supprimée.");
-  render();
-}
-
-function exportFichePDF(studentId){
-  const s = DATA.students.find(x=>x.id===studentId);
-  if(!s) return;
-  const classe = DATA.classes.find(c=>c.id===s.classeId);
-
-  // On détermine la date de début des "4 dernières semaines" à partir des
-  // semaines déjà archivées (DATA.weeks), pour rester cohérent avec les
-  // bornes réelles utilisées par l'établissement plutôt qu'un simple "-28 jours".
-  const allWeeksForStudent = DATA.weeks.filter(w=>!w.scope || w.scope === (classe ? classe.nom : null));
-  const last4 = allWeeksForStudent.slice(-4);
-  const periodeDebut = last4.length ? last4[0].dateDebut : DATA.currentWeekStart;
-  const periodeDebutDate = new Date(periodeDebut + 'T00:00:00');
-
-  const histPeriode = s.history.filter(h=>{
-    // h.date est au format JJ/MM/AAAA (toLocaleDateString fr-FR)
-    const parts = h.date.split('/');
-    if(parts.length !== 3) return true; // par sécurité, on inclut si format inattendu
-    const d = new Date(parts[2], parts[1]-1, parts[0]);
-    return d >= periodeDebutDate;
-  }).slice().reverse();
-
-  const weekRows = last4.map(w=>{
-    const snap = w.snapshot.find(x=>x.id===s.id);
-    if(!snap) return '';
-    return `<tr>
-      <td>${formatDateFr(w.dateDebut)} → ${formatDateFr(w.dateFin)}</td>
-      <td>${snap.status==='pastille' ? 'Pastille' : marcheLabelNum(snap.status)}</td>
-      <td>${snap.status==='pastille' ? '—' : snap.points + ' / 20'}</td>
-    </tr>`;
-  }).join('');
-
-  const histRowsPdf = histPeriode.map(h=>`
-    <tr>
-      <td>${esc(h.date)}</td>
-      <td>${esc(h.motif || h.label)}</td>
-      <td>${h.points ? `-${h.points}` : '—'}</td>
-      <td>${esc(h.sanctionneur || '—')}</td>
-    </tr>`).join('');
-
-  const win = window.open('', '_blank');
-  if(!win){ toast("Le navigateur a bloqué l'ouverture de la fenêtre d'impression. Autorise les pop-ups pour ce site et réessaie."); return; }
-  win.document.write(`
-    <!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
-    <title>Récapitulatif — ${esc(s.nom)}</title>
-    <style>
-      body{font-family:Georgia,'Times New Roman',serif;color:#23262b;max-width:720px;margin:30px auto;padding:0 20px;}
-      h1{font-size:22px;margin-bottom:2px;}
-      .sub{color:#666;font-size:13px;margin-bottom:24px;}
-      h2{font-size:15px;border-bottom:2px solid #23262b;padding-bottom:4px;margin-top:28px;}
-      table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}
-      th{text-align:left;padding:6px 8px;border-bottom:2px solid #ccc;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#555;}
-      td{padding:6px 8px;border-bottom:1px solid #e3e3e3;}
-      .empty{color:#888;font-size:13px;margin-top:10px;}
-      .footer{margin-top:40px;font-size:11px;color:#999;}
-      @media print{ body{margin:0;padding:14px;} }
-    </style>
-    </head><body>
-      <h1>Récapitulatif de suivi — ${esc(s.nom)}</h1>
-      <div class="sub">${classe ? esc(classe.nom) : 'Classe non renseignée'} · Période du ${formatDateFr(periodeDebut)} au ${formatDateFr(todayISO())}</div>
-
-      <h2>Évolution sur les 4 dernières semaines</h2>
-      ${weekRows ? `<table><thead><tr><th>Semaine</th><th>Marche en fin de semaine</th><th>Points en fin de semaine</th></tr></thead><tbody>${weekRows}</tbody></table>`
-        : `<p class="empty">Pas encore assez de semaines archivées pour cette période (aucune semaine clôturée ne couvre encore cet élève).</p>`}
-
-      <h2>Détail des évènements sur la période</h2>
-      ${histRowsPdf ? `<table><thead><tr><th>Date</th><th>Motif</th><th>Points</th><th>Retrait décidé par</th></tr></thead><tbody>${histRowsPdf}</tbody></table>`
-        : `<p class="empty">Aucun évènement enregistré sur cette période.</p>`}
-
-      <div class="footer">Document généré le ${formatDateFr(todayISO())} depuis le carnet de suivi de l'établissement.</div>
-      <scri` + `pt>window.onload = () => { window.print(); };</scri` + `pt>
-    </body></html>
-  `);
-  win.document.close();
-}
-
-/* ============== NOUVELLE SEMAINE ============== */
-async function nouvelleSemaine(classeId, newWeekStart){
-  // archive un instantané daté de la semaine qui se termine, avant de la réinitialiser
-  const endDate = todayISO();
-  const snapshot = DATA.students.map(s=>({
-    id: s.id, nom: s.nom, classeId: s.classeId, status: s.status, points: s.points
-  }));
-  DATA.weeks.push({
-    id: genId(),
-    dateDebut: DATA.currentWeekStart,
-    dateFin: endDate,
-    scope: classeId ? (DATA.classes.find(c=>c.id===classeId)||{}).nom : null,
-    snapshot
+  const cat=CATEGORIES.find(c=>c.key===categorie);
+  const newPts=Math.max(0,s.points-pts);
+  s.points=newPts;
+  logEvent(s,`-${pts} pt(s) — ${cat?cat.label:categorie}${motif?' : '+motif:''} (reste ${newPts}/20)`,{
+    motif:(cat?cat.label:categorie)+(motif?' : '+motif:''),
+    points:pts,type:'retrait',categorie
   });
-  DATA.currentWeekStart = newWeekStart || endDate;
-
-  const pool = classeId ? DATA.students.filter(s=>s.classeId===classeId) : DATA.students;
-  for(const s of pool){
-    if(s.status === 'pastille'){
-      s.status = s.savedMarche || 'rose';
-      s.points = 20;
-      logEvent(s, `Nouvelle semaine — fin de pastille, retour à la marche ${MARCHE_LABEL[s.status]}.`);
-      continue;
-    }
-    if(s.points <= 0){
-      s.zeroStreak = (s.zeroStreak || 0) + 1;
-      s.savedMarche = s.status;
-      if(s.zeroStreak >= 2){
-        const idx = MARCHES.indexOf(s.status);
-        const newIdx = Math.max(0, idx - 1);
-        s.status = MARCHES[newIdx];
-        s.savedMarche = s.status;
-        s.zeroStreak = 0;
-        s.points = 20;
-        logEvent(s, `Nouvelle semaine — 2e semaine à 0 point : descente à la marche ${MARCHE_LABEL[s.status]}.`);
-      } else {
-        s.status = 'pastille';
-        s.points = 0;
-        logEvent(s, `Nouvelle semaine — 0 point la semaine passée : pastille pour la semaine à venir.`);
-      }
-      continue;
-    }
-    s.zeroStreak = 0;
-    if(s.points >= 20){
-      const idx = MARCHES.indexOf(s.status);
-      const newIdx = Math.min(MARCHES.length - 1, idx + 1);
-      if(newIdx !== idx) logEvent(s, `Nouvelle semaine — tous les points conservés : montée à la marche ${MARCHE_LABEL[MARCHES[newIdx]]}.`);
-      s.status = MARCHES[newIdx];
-    } else {
-      logEvent(s, `Nouvelle semaine — points réinitialisés.`);
-    }
-    s.points = 20;
+  // Vérifier si l'élève tombe à 0 → pastille automatique
+  if(newPts===0&&s.status!=='pastille'&&s.status!=='carnet'){
+    s.savedMarche=s.status; s.status='pastille';
+    logEvent(s,"0 point atteint — pastille automatique jusqu'au dimanche.");
+    toast(`${s.nom} passe en pastille (0 point).`);
   }
-  await saveData(classeId ? `Nouvelle semaine (classe)` : `Nouvelle semaine (tous les élèves)`);
-  toast(classeId ? "Nouvelle semaine lancée pour cette classe." : "Nouvelle semaine lancée pour tous les élèves.");
-  render();
+  // Vérifier retards pour email automatique
+  if(categorie==='retard') await checkRetardsEmail(s);
+  await saveData(`Retrait ${pts}pt(s) — ${s.nom}`);
 }
 
-/* ============== SEMAINES (historique) ============== */
+async function checkRetardsEmail(s){
+  const bloc=currentBloc();
+  if(!bloc) return;
+  const debuts=bloc.semaines.map(x=>x.start);
+  const retardsDansBloc=s.history.filter(h=>h.categorie==='retard'&&debuts.some(d=>h.date&&h.date>=d));
+  const sent=s.retardEmailsSent||[];
+  const count=retardsDansBloc.length;
+  const seuil=Math.floor(count/4)*4;
+  if(seuil>0&&!sent.includes(seuil)){
+    if(!s.retardEmailsSent) s.retardEmailsSent=[];
+    s.retardEmailsSent.push(seuil);
+    const subject=encodeURIComponent(`Cumul retards — ${s.nom}`);
+    const body=encodeURIComponent(`Bonjour,\n\nL'élève ${s.nom} a cumulé ${count} retard(s) sur le bloc en cours.\nMerci de lui poser une heure de retenue.\n\nCordialement,\nCarnet de suivi — les Marches`);
+    window.open(`mailto:vie.scolaire.claude.debussy@gmail.com?subject=${subject}&body=${body}`,'_blank');
+    toast(`📧 Email retards ouvert pour ${s.nom}`);
+  }
+}
+
+/* ============================================================
+   SUPPRIMER UNE LIGNE DE JOURNAL
+   ============================================================ */
+async function deleteHistoryEntry(studentId,entryId){
+  const s=DATA.students.find(x=>x.id===studentId);
+  if(!s) return;
+  const entry=s.history.find(h=>h.id===entryId);
+  if(!entry) return;
+  const isRetrait=entry.type==='retrait'&&entry.points;
+  if(!confirm(isRetrait?`Supprimer cette ligne ? Les ${entry.points} pt(s) seront recrédités.`:`Supprimer cette ligne du journal ?`)) return;
+  s.history=s.history.filter(h=>h.id!==entryId);
+  if(isRetrait) s.points=Math.min(20,s.points+entry.points);
+  await saveData(`Suppression ligne journal ${s.nom}`);
+  toast("Ligne supprimée."); render();
+}
+
+/* ============================================================
+   VUE ÉLÈVE (QR code, lecture seule)
+   ============================================================ */
+function showStudentReadOnlyView(studentId){
+  document.getElementById('student-login-screen').classList.add('hidden');
+  const sc=document.getElementById('student-view-screen');
+  sc.classList.remove('hidden'); sc.style.display='block';
+  renderStudentReadOnlyView(studentId);
+}
+function renderStudentReadOnlyView(studentId){
+  const s=DATA.students.find(x=>x.id===studentId);
+  const sc=document.getElementById('student-view-screen');
+  if(!s){sc.innerHTML=`<div style="padding:40px;text-align:center">Fiche introuvable.</div>`;return;}
+  const classe=DATA.classes.find(c=>c.id===s.classeId);
+  const ladder=MARCHES.map((m,i)=>`<div class="step ${m} ${s.status===m?'current':''}">${i+1}. ${MARCHE_LABEL[m]}</div>`).join('');
+  const histRows=s.history.slice().reverse().slice(0,30).map(h=>`
+    <tr class="${isPastilleEvent(h)?'pastille-row':''}">
+      <td>${esc(h.date)}</td><td>${esc(h.heure||'—')}</td>
+      <td>${esc(h.motif||h.label)}</td>
+      <td>${h.points?`-${h.points}`:'—'}</td>
+      <td>${esc(h.auteur||'—')}</td>
+    </tr>`).join('');
+  sc.innerHTML=`
+    <div style="max-width:700px;margin:0 auto;padding:24px;">
+      <h2>${esc(s.nom)}</h2>
+      <p class="small muted">${classe?esc(classe.nom):''} · Lecture seule</p>
+      <div class="card" style="margin-top:16px;"><div class="ladder">${ladder}</div>
+        ${s.status==='pastille'?`<p><span class="badge m-pastille">En pastille</span></p>`
+        :s.status==='carnet'?`<p><span class="badge m-carnet">Carnet oublié</span></p>`
+        :`<p class="small" style="margin-top:8px;">Points : <strong>${s.points}</strong> / 20</p>`}
+      </div>
+      <div class="card"><div class="section-title">Journal</div>
+        ${s.history.length?`<table><thead><tr><th>Date</th><th>Heure</th><th>Motif</th><th>Points</th><th>Par</th></tr></thead><tbody>${histRows}</tbody></table>`
+        :`<p class="small muted">Aucun évènement.</p>`}
+      </div>
+      <button class="btn" onclick="location.hash='';location.reload();" style="margin-top:12px;">Quitter</button>
+    </div>`;
+}
+
+/* ============================================================
+   SEMAINES
+   ============================================================ */
 function renderSemaines(){
-  const weeks = DATA.weeks.slice().reverse(); // plus récente en premier
-  const items = weeks.map(w=>{
-    const scopeLabel = w.scope ? `Classe : ${esc(w.scope)}` : 'Toutes les classes';
-    const studentsRows = w.snapshot.slice().sort((a,b)=>a.nom.localeCompare(b.nom)).map(s=>`
-      <tr>
-        <td>${esc(s.nom)}</td>
-        <td>${s.status==='pastille' ? `<span class="badge m-pastille">Pastille</span>` : `<span class="badge m-${s.status}">${marcheLabelNum(s.status)}</span>`}</td>
-        <td>${s.status==='pastille' ? '<span class="muted">—</span>' : s.points + ' / 20'}</td>
-      </tr>`).join('');
-    return `
-    <div class="card">
+  const weeks=DATA.weeks.slice().reverse();
+  const blocs=buildBlocs();
+  const items=weeks.map(w=>{
+    const bloc=blocs.find(b=>b.semaines.some(s=>s.start===w.dateDebut));
+    const sIdx=bloc?bloc.semaines.findIndex(s=>s.start===w.dateDebut)+1:null;
+    const rows=w.snapshot.slice().sort((a,b)=>a.nom.localeCompare(b.nom)).map(s=>`
+      <tr><td>${esc(s.nom)}</td>
+      <td>${s.status==='pastille'?`<span class="badge m-pastille">Pastille</span>`:`<span class="badge ${s.status}">${marcheLabelNum(s.status)}</span>`}</td>
+      <td>${s.status==='pastille'?'—':s.points+' / 20'}</td>
+      <td>${s.contratValidé?'✓':'✗'}</td></tr>`).join('');
+    return `<div class="card">
       <div class="row" style="justify-content:space-between;">
-        <div>
-          <strong>${formatDateFr(w.dateDebut)} → ${formatDateFr(w.dateFin)}</strong>
-          <div class="small muted">${scopeLabel} · ${w.snapshot.length} élève(s)</div>
+        <div><strong>${formatDateFr(w.dateDebut)} → ${formatDateFr(w.dateFin)}</strong>
+          <div class="small muted">${bloc?`Bloc débuté le ${formatDateFr(bloc.dateDebut)} · Semaine ${sIdx}/${bloc.semaines.length}`:'—'} · ${w.snapshot.length} élève(s)</div>
         </div>
         <button class="btn" data-toggle-week="${w.id}">Voir le détail</button>
       </div>
-      <div class="hidden" id="week-detail-${w.id}" style="margin-top:14px;">
-        <table><thead><tr><th>Nom</th><th>Marche en fin de semaine</th><th>Points en fin de semaine</th></tr></thead><tbody>${studentsRows}</tbody></table>
-      </div>
-    </div>`;
+      <div class="hidden" id="week-detail-${w.id}" style="margin-top:12px;">
+        <table><thead><tr><th>Nom</th><th>Marche</th><th>Points</th><th>Contrat</th></tr></thead><tbody>${rows}</tbody></table>
+      </div></div>`;
   }).join('');
-
   return `
   <div class="row" style="justify-content:space-between;margin-bottom:14px;">
     <h2>Historique des semaines</h2>
     <span class="small muted">Semaine en cours depuis le ${formatDateFr(DATA.currentWeekStart)}</span>
   </div>
-  ${weeks.length ? items : `<div class="empty">Aucune semaine archivée encore. Clique sur « Nouvelle semaine » depuis l'onglet Élèves ou depuis une classe pour clore la semaine en cours et l'archiver ici.</div>`}
-  `;
+  ${weeks.length?items:`<div class="empty">Aucune semaine archivée.</div>`}`;
 }
 function attachSemainesEvents(){
-  document.querySelectorAll('[data-toggle-week]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const id = btn.dataset.toggleWeek;
-      const detail = document.getElementById('week-detail-'+id);
-      if(!detail) return;
-      const willShow = detail.classList.contains('hidden');
-      detail.classList.toggle('hidden', !willShow);
-      btn.textContent = willShow ? 'Masquer le détail' : 'Voir le détail';
+  document.querySelectorAll('[data-toggle-week]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const det=document.getElementById('week-detail-'+b.dataset.toggleWeek);
+      if(!det) return;
+      const show=det.classList.contains('hidden');
+      det.classList.toggle('hidden',!show);
+      b.textContent=show?'Masquer':'Voir le détail';
     });
   });
 }
 
-/* ============== PASTILLES (vue de vigilance) ============== */
-function isPastilleEvent(h){
-  // Une entrée de journal "concerne la pastille" si son texte (mise en
-  // pastille, levée, ou fin de pastille en début de semaine) la mentionne —
-  // utilisé pour la mettre en évidence dans le journal de suivi.
-  return (h.label || '').toLowerCase().includes('pastille');
-}
+/* ============================================================
+   PASTILLES
+   ============================================================ */
 function pastilleSince(s){
-  // Cherche la dernière entrée du journal correspondant à une MISE en
-  // pastille (pas une levée), pour afficher depuis quand l'élève y est.
-  const entry = s.history.slice().reverse().find(h=>
-    (h.label || '').toLowerCase().includes('pastille') &&
-    !(h.label || '').toLowerCase().includes('fin de pastille') &&
-    !(h.label || '').toLowerCase().includes('levée')
-  );
-  return entry ? entry.date : null;
+  const e=s.history.slice().reverse().find(h=>(h.label||'').toLowerCase().includes('pastille')&&!(h.label||'').toLowerCase().includes('levée')&&!(h.label||'').toLowerCase().includes('fin de pastille'));
+  return e?e.date:null;
 }
 function renderPastilles(){
-  const students = DATA.students.filter(s=>s.status==='pastille').sort((a,b)=>a.nom.localeCompare(b.nom));
-  const rows = students.map(s=>{
-    const classe = DATA.classes.find(c=>c.id===s.classeId);
-    const since = pastilleSince(s);
+  const pastilles=DATA.students.filter(s=>s.status==='pastille'||s.status==='carnet').sort((a,b)=>a.nom.localeCompare(b.nom));
+  const rows=pastilles.map(s=>{
+    const classe=DATA.classes.find(c=>c.id===s.classeId);
+    const since=pastilleSince(s);
+    const type=s.status==='carnet'?`<span class="badge m-carnet">Carnet</span>`:`<span class="badge m-pastille">Pastille</span>`;
     return `<tr class="row-link" data-id="${s.id}">
-      <td>${esc(s.nom)}</td>
-      <td>${classe ? esc(classe.nom) : '<span class="muted">—</span>'}</td>
-      <td>${since ? esc(since) : '<span class="muted">—</span>'}</td>
-      <td>${isAdmin() ? `<button class="btn warn" data-del-student="${s.id}">Supprimer</button>` : ''}</td>
+      <td>${esc(s.nom)}</td><td>${classe?esc(classe.nom):'—'}</td>
+      <td>${type}</td><td>${since?esc(since):'—'}</td>
+      <td>${isAdmin()?`<button class="btn warn" data-del-student="${s.id}">Supprimer</button>`:''}</td>
     </tr>`;
   }).join('');
   return `
-  <div class="pastille-banner">
-    <span>⚠ ${students.length} élève(s) actuellement en pastille — droits suspendus pour la semaine en cours.</span>
-  </div>
+  <div class="pastille-banner">⚠ ${pastilles.length} élève(s) actuellement suspendu(s).</div>
   <div class="card pastille-card">
-    ${students.length ? `<table><thead><tr><th>Nom</th><th>Classe</th><th>En pastille depuis le</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
-      : `<div class="empty">Aucun élève en pastille pour le moment.</div>`}
+    ${pastilles.length?`<table><thead><tr><th>Nom</th><th>Classe</th><th>Type</th><th>Depuis le</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+    :`<div class="empty">Aucun élève en pastille ou suspension.</div>`}
   </div>`;
 }
 function attachPastillesEvents(){
   document.querySelectorAll('[data-del-student]').forEach(b=>{
-    b.addEventListener('click', async (e)=>{
-      e.stopPropagation();
-      const ok = await deleteStudent(b.dataset.delStudent);
-      if(ok) render();
-    });
+    b.addEventListener('click',async e=>{e.stopPropagation();if(await deleteStudent(b.dataset.delStudent)) render();});
   });
   document.querySelectorAll('tr.row-link[data-id]').forEach(tr=>{
-    tr.addEventListener('click', (e)=>{
+    tr.addEventListener('click',e=>{
       if(e.target.closest('[data-del-student]')) return;
-      currentStudentId = tr.dataset.id; currentTab='fiche'; location.hash = '#eleve='+tr.dataset.id; render();
+      currentStudentId=tr.dataset.id;currentTab='fiche';location.hash='#eleve='+tr.dataset.id;render();
     });
   });
 }
 
-/* ============== QR CODES PAR CLASSE ============== */
-let qrFilterClasse = "";
-function renderQrCodes(){
-  const classesOptions = DATA.classes.map(c=>`<option value="${c.id}" ${qrFilterClasse===c.id?'selected':''}>${esc(c.nom)}</option>`).join('');
-  let students = DATA.students.slice();
-  if(qrFilterClasse) students = students.filter(s=>s.classeId===qrFilterClasse);
-  students.sort((a,b)=>a.nom.localeCompare(b.nom));
-  const classe = DATA.classes.find(c=>c.id===qrFilterClasse);
-
-  const cards = students.map(s=>`
-    <div class="qr-card">
-      <div class="qr-render" id="qr-${s.id}"></div>
-      <div class="qr-name">${esc(s.nom)}</div>
-      <a class="dl" href="#" data-dl="${s.id}" data-name="${esc(s.nom)}">Télécharger l'image</a>
-    </div>
-  `).join('');
-
+/* ============================================================
+   MÉMO
+   ============================================================ */
+function renderMemo(){
   return `
-  <div class="row no-print" style="justify-content:space-between;margin-bottom:14px;">
-    <h2>QR codes des fiches élèves</h2>
-    <div class="row">
-      <select id="qr-filter-classe"><option value="">Toutes les classes</option>${classesOptions}</select>
-      <button class="btn" id="btn-print-qr">Imprimer / enregistrer en PDF</button>
-    </div>
+  <div class="row" style="justify-content:space-between;margin-bottom:14px;">
+    <h2>Mémo — Droits par marche</h2>
+    ${isAdmin()?`<button class="btn primary" id="btn-save-memo">Enregistrer</button>`:''}
   </div>
-  <p class="small no-print" style="margin-bottom:14px;">Chaque QR code ouvre directement la fiche de l'élève (mot de passe requis). Clique sur « Télécharger l'image » pour sauvegarder un QR code, ou utilise « Imprimer » pour obtenir une planche de toute la classe.</p>
-  ${students.length
-    ? `<div class="qr-grid">${cards}</div>`
-    : `<div class="empty">${classe ? "Aucun élève dans cette classe." : "Choisis une classe, ou ajoute d'abord des élèves."}</div>`}
-  `;
+  ${MARCHES.map((m,i)=>`
+  <div class="card">
+    <div class="section-title" style="color:var(--m${i+1});">${i+1}. ${MARCHE_LABEL[m]}</div>
+    ${isAdmin()
+      ?`<textarea id="memo-${m}" style="width:100%;min-height:100px;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;">${esc(DATA.memo[m]||'')}</textarea>`
+      :`<p style="white-space:pre-wrap;font-size:14px;line-height:1.6;">${esc(DATA.memo[m]||'Aucun contenu pour le moment.')}</p>`}
+  </div>`).join('')}`;
+}
+function attachMemoEvents(){
+  const sb=document.getElementById('btn-save-memo');
+  if(sb) sb.addEventListener('click',async()=>{
+    MARCHES.forEach(m=>{
+      const el=document.getElementById('memo-'+m);
+      if(el) DATA.memo[m]=el.value;
+    });
+    await saveData('Mise à jour mémo'); toast("Mémo enregistré.");
+  });
+}
+
+/* ============================================================
+   ADMIN
+   ============================================================ */
+function renderAdmin(){
+  if(!isAdmin()) return `<div class="empty">Accès réservé à l'administrateur.</div>`;
+  const staffRows=DATA.staff.map(s=>`
+    <tr><td>${esc(s.prenom)} ${esc(s.nom)}</td><td>${esc(s.code)}</td>
+    <td><button class="btn warn" data-del-staff="${s.id}">Supprimer</button></td></tr>`).join('');
+  const vacRows=DATA.vacances.map(v=>`
+    <tr><td>${esc(v.label)}</td><td>${formatDateFr(v.debut)}</td><td>${formatDateFr(v.fin)}</td>
+    <td><button class="btn warn" data-del-vac="${v.id}">Supprimer</button></td></tr>`).join('');
+  return `
+  <h2 style="margin-bottom:20px;">⚙ Administration</h2>
+
+  <!-- PERSONNELS -->
+  <div class="card">
+    <div class="section-title">Personnels & codes d'accès</div>
+    <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <input type="text" id="staff-prenom" placeholder="Prénom" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:140px;">
+      <input type="text" id="staff-nom" placeholder="Nom" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:140px;">
+      <input type="text" id="staff-code" placeholder="Code 5 chiffres" maxlength="5" inputmode="numeric" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:140px;">
+      <button class="btn primary" id="btn-add-staff">Ajouter</button>
+    </div>
+    ${DATA.staff.length?`<table><thead><tr><th>Nom</th><th>Code</th><th></th></tr></thead><tbody>${staffRows}</tbody></table>`
+    :`<div class="empty">Aucun personnel enregistré.</div>`}
+  </div>
+
+  <!-- VACANCES -->
+  <div class="card">
+    <div class="section-title">Périodes de vacances (suspendent le suivi)</div>
+    <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <input type="text" id="vac-label" placeholder="Libellé (ex: Toussaint)" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:180px;">
+      <input type="date" id="vac-debut" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;">
+      <input type="date" id="vac-fin" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;">
+      <button class="btn primary" id="btn-add-vac">Ajouter</button>
+    </div>
+    ${DATA.vacances.length?`<table><thead><tr><th>Libellé</th><th>Début</th><th>Fin</th><th></th></tr></thead><tbody>${vacRows}</tbody></table>`
+    :`<div class="empty">Aucune période de vacances enregistrée.</div>`}
+  </div>
+
+  <!-- RESET BLOC -->
+  <div class="card">
+    <div class="section-title">Forcer un début de bloc</div>
+    <p class="small muted" style="margin-bottom:12px;">Force un nouveau bloc de 3 semaines à partir d'un lundi spécifié. Tout le reste de l'année se calera sur ce nouveau cycle.</p>
+    <div class="row">
+      <input type="date" id="bloc-reset-date" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;">
+      <button class="btn primary" id="btn-add-bloc-reset">Appliquer</button>
+    </div>
+    ${(DATA.blocResets||[]).length?`<p class="small muted" style="margin-top:10px;">Resets existants : ${DATA.blocResets.map(d=>formatDateFr(d)).join(', ')}</p>`:''}
+  </div>
+
+  <!-- CHANGER MDP -->
+  <div class="card">
+    <div class="section-title">Changer le mot de passe administrateur</div>
+    <div class="field" style="max-width:300px;">
+      <label>Nouveau mot de passe</label>
+      <input type="password" id="new-admin-pwd">
+    </div>
+    <div class="field" style="max-width:300px;">
+      <label>Confirmer</label>
+      <input type="password" id="new-admin-pwd-confirm">
+    </div>
+    <div id="pwd-err" class="err"></div>
+    <button class="btn primary" id="btn-change-admin-pwd">Changer</button>
+  </div>
+
+  <!-- RESET MARCHES -->
+  <div class="card">
+    <div class="section-title">Remettre tous les élèves à la marche 2</div>
+    <p class="small muted" style="margin-bottom:12px;">À utiliser au début du premier bloc (31 août 2026) pour initialiser tous les élèves.</p>
+    <button class="btn danger" id="btn-reset-all-marches">Réinitialiser toutes les marches à Marche 2</button>
+  </div>`;
+}
+
+function attachAdminEvents(){
+  // Ajouter personnel
+  const as=document.getElementById('btn-add-staff');
+  if(as) as.addEventListener('click',async()=>{
+    const prenom=document.getElementById('staff-prenom').value.trim();
+    const nom=document.getElementById('staff-nom').value.trim();
+    const code=document.getElementById('staff-code').value.trim();
+    if(!prenom||!nom||!code){toast("Remplis tous les champs.");return;}
+    if(!/^\d{5}$/.test(code)){toast("Le code doit être exactement 5 chiffres.");return;}
+    if(DATA.staff.some(s=>s.code===code)){toast("Ce code est déjà utilisé.");return;}
+    DATA.staff.push({id:genId(),prenom,nom,code,role:'teacher'});
+    document.getElementById('staff-prenom').value='';
+    document.getElementById('staff-nom').value='';
+    document.getElementById('staff-code').value='';
+    await saveData(`Ajout personnel ${prenom} ${nom}`); toast("Personnel ajouté."); render();
+  });
+  // Supprimer personnel
+  document.querySelectorAll('[data-del-staff]').forEach(b=>{
+    b.addEventListener('click',async()=>{
+      const s=DATA.staff.find(x=>x.id===b.dataset.delStaff);
+      if(!s||!confirm(`Supprimer ${s.prenom} ${s.nom} ?`)) return;
+      DATA.staff=DATA.staff.filter(x=>x.id!==s.id);
+      await saveData(`Suppression personnel ${s.prenom} ${s.nom}`); toast("Supprimé."); render();
+    });
+  });
+  // Vacances
+  const av=document.getElementById('btn-add-vac');
+  if(av) av.addEventListener('click',async()=>{
+    const label=document.getElementById('vac-label').value.trim();
+    const debut=document.getElementById('vac-debut').value;
+    const fin=document.getElementById('vac-fin').value;
+    if(!label||!debut||!fin){toast("Remplis tous les champs.");return;}
+    if(debut>fin){toast("La date de fin doit être après le début.");return;}
+    DATA.vacances.push({id:genId(),label,debut,fin});
+    await saveData(`Ajout vacances ${label}`); toast("Vacances ajoutées."); render();
+  });
+  document.querySelectorAll('[data-del-vac]').forEach(b=>{
+    b.addEventListener('click',async()=>{
+      DATA.vacances=DATA.vacances.filter(v=>v.id!==b.dataset.delVac);
+      await saveData('Suppression vacances'); toast("Supprimées."); render();
+    });
+  });
+  // Reset bloc
+  const rb=document.getElementById('btn-add-bloc-reset');
+  if(rb) rb.addEventListener('click',async()=>{
+    const date=document.getElementById('bloc-reset-date').value;
+    if(!date){toast("Choisis une date.");return;}
+    const lundi=mondayOf(date);
+    if(!confirm(`Forcer un nouveau début de bloc le ${formatDateFr(lundi)} ?`)) return;
+    if(!DATA.blocResets) DATA.blocResets=[];
+    DATA.blocResets.push(lundi);
+    DATA.blocResets=[...new Set(DATA.blocResets)].sort();
+    await saveData('Forçage début de bloc'); toast("Bloc forcé."); render();
+  });
+  // Changer mdp admin
+  const cp=document.getElementById('btn-change-admin-pwd');
+  if(cp) cp.addEventListener('click',async()=>{
+    const errEl=document.getElementById('pwd-err');
+    const np=document.getElementById('new-admin-pwd').value;
+    const nc=document.getElementById('new-admin-pwd-confirm').value;
+    if(np.length<6){errEl.textContent="Minimum 6 caractères.";return;}
+    if(np!==nc){errEl.textContent="Les mots de passe ne correspondent pas.";return;}
+    DATA.adminPasswordHash=await sha256Hex(np);
+    await saveData('Changement mot de passe admin');
+    errEl.textContent=''; toast("Mot de passe administrateur changé."); render();
+  });
+  // Reset toutes les marches
+  const rm=document.getElementById('btn-reset-all-marches');
+  if(rm) rm.addEventListener('click',async()=>{
+    if(!confirm("Remettre TOUS les élèves à la Marche 2 ? Cette action est irréversible.")) return;
+    DATA.students.forEach(s=>{
+      s.status=MARCHE_DEFAULT; s.savedMarche=null; s.points=20;
+      logEvent(s,"Initialisation à la Marche 2 (début de suivi).");
+    });
+    await saveData('Réinitialisation toutes les marches'); toast("Marches réinitialisées."); render();
+  });
+}
+
+/* ============================================================
+   QR CODES
+   ============================================================ */
+function appUrl(hash){ const ok=location.protocol==='https:'&&location.origin!=='null'; return ok?location.origin+location.pathname+(hash||''):null; }
+
+function renderQrCodes(){
+  const classes=DATA.classes;
+  if(!classes.length) return `<div class="empty">Créez des classes pour générer les QR codes.</div>`;
+  return classes.map(c=>{
+    const students=DATA.students.filter(s=>s.classeId===c.id).sort((a,b)=>a.nom.localeCompare(b.nom));
+    const url=appUrl();
+    if(!url) return `<div class="card"><h3>${esc(c.nom)}</h3><p class="small muted">QR codes disponibles uniquement en HTTPS (déployé sur GitHub Pages).</p></div>`;
+    return `<div class="card"><h3 style="margin-bottom:12px;">${esc(c.nom)}</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;">
+        ${students.map(s=>`<div style="text-align:center;">
+          <div id="qr-${s.id}" style="width:100px;height:100px;"></div>
+          <div style="font-size:11px;margin-top:4px;max-width:100px;">${esc(s.nom)}</div>
+        </div>`).join('')}
+      </div></div>`;
+  }).join('');
 }
 function attachQrCodesEvents(){
-  const filterSel = document.getElementById('qr-filter-classe');
-  if(filterSel) filterSel.addEventListener('change', e=>{ qrFilterClasse = e.target.value; render(); });
-
-  const printBtn = document.getElementById('btn-print-qr');
-  if(printBtn) printBtn.addEventListener('click', ()=>window.print());
-
-  // render each QR locally, then wire up download links from the generated canvas
-  document.querySelectorAll('[id^="qr-"]').forEach(host=>{
-    const id = host.id.replace('qr-','');
-    const url = appUrl('#eleve=' + id);
-    if(!url){ host.innerHTML = '<p class="small muted">Lien indisponible (page ouverte en local).</p>'; return; }
-    if(window.QRCode) new QRCode(host, {text:url, width:140, height:140, colorDark:"#23262b", colorLight:"#ffffff"});
-  });
-
-  document.querySelectorAll('[data-dl]').forEach(a=>{
-    a.addEventListener('click', (e)=>{
-      e.preventDefault();
-      const id = a.dataset.dl;
-      const host = document.getElementById('qr-'+id);
-      const canvas = host ? host.querySelector('canvas') : null;
-      if(!canvas){ toast("QR code non disponible."); return; }
-      const link = document.createElement('a');
-      link.download = `qr-${a.dataset.name.replace(/[^a-z0-9]+/gi,'-')}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    });
+  DATA.students.forEach(s=>{
+    const host=document.getElementById('qr-'+s.id);
+    if(!host) return;
+    const url=appUrl('#eleve='+s.id);
+    if(url&&window.QRCode) new QRCode(host,{text:url,width:100,height:100,colorDark:"#23262b",colorLight:"#ffffff"});
   });
 }
 
-/* ============== MODALS ============== */
-function openModal(html){
-  const bg = document.createElement('div');
-  bg.className = 'modal-bg';
-  bg.id = 'modal-bg';
-  bg.innerHTML = `<div class="modal">${html}</div>`;
-  document.body.appendChild(bg);
-  bg.addEventListener('click', e=>{ if(e.target.id==='modal-bg') closeModal(); });
-}
-function closeModal(){
-  const bg = document.getElementById('modal-bg');
-  if(bg) bg.remove();
+/* ============================================================
+   PDF
+   ============================================================ */
+function openPDFModal(studentId){
+  openModal(`
+    <h3>Générer le récapitulatif PDF</h3>
+    <div class="field">
+      <label>Période</label>
+      <select id="pdf-period">
+        <option value="current">Bloc de 3 semaines en cours</option>
+        <option value="previous">Bloc de 3 semaines précédent</option>
+        <option value="annual">Bilan annuel (tous les blocs)</option>
+      </select>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px;">
+      <button class="btn" id="modal-cancel">Annuler</button>
+      <button class="btn primary" id="modal-pdf-go">Générer</button>
+    </div>
+  `);
+  document.getElementById('modal-cancel').addEventListener('click',closeModal);
+  document.getElementById('modal-pdf-go').addEventListener('click',()=>{
+    const period=document.getElementById('pdf-period').value;
+    closeModal();
+    exportFichePDF(studentId,period);
+  });
 }
 
+function exportFichePDF(studentId,period){
+  const s=DATA.students.find(x=>x.id===studentId);
+  if(!s) return;
+  const classe=DATA.classes.find(c=>c.id===s.classeId);
+  const blocs=buildBlocs();
+  const today=todayISO();
+  let targetBlocs=[];
+  if(period==='current'){
+    const b=currentBloc(); if(b) targetBlocs=[b];
+  } else if(period==='previous'){
+    const ci=blocs.findIndex(b=>b.semaines.some(sem=>today>=sem.start&&today<=sem.end));
+    if(ci>0) targetBlocs=[blocs[ci-1]];
+  } else {
+    targetBlocs=blocs;
+  }
+
+  const weekRows=targetBlocs.flatMap(bloc=>
+    bloc.semaines.map(sem=>{
+      const w=DATA.weeks.find(x=>x.dateDebut===sem.start);
+      const snap=w?w.snapshot.find(x=>x.id===s.id):null;
+      return `<tr><td>${formatDateFr(sem.start)} → ${formatDateFr(sem.end)}</td>
+        <td>${snap?(snap.status==='pastille'?'Pastille':marcheLabelNum(snap.status)):'En cours'}</td>
+        <td>${snap&&snap.status!=='pastille'?snap.points+' / 20':'—'}</td>
+        <td>${snap?snap.contratValidé===true?'✓':snap.contratValidé===false?'✗':'—':'—'}</td></tr>`;
+    })
+  ).join('');
+
+  const histItems=s.history.filter(h=>{
+    if(period==='annual') return true;
+    const b=period==='current'?targetBlocs[0]:targetBlocs[0];
+    if(!b||!b.semaines.length) return true;
+    return h.date>=b.semaines[0].start;
+  }).slice().reverse();
+
+  const histRows=histItems.map(h=>`<tr>
+    <td>${esc(h.date)}</td><td>${esc(h.motif||h.label)}</td>
+    <td>${h.points?`-${h.points}`:'—'}</td><td>${esc(h.auteur||'—')}</td></tr>`).join('');
+
+  const win=window.open('','_blank');
+  if(!win){toast("Pop-up bloquée. Autorise les pop-ups et réessaie.");return;}
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+    <title>Récapitulatif — ${esc(s.nom)}</title>
+    <style>body{font-family:Georgia,serif;color:#23262b;max-width:720px;margin:30px auto;padding:0 20px;}
+    h1{font-size:22px;margin-bottom:2px;}.sub{color:#666;font-size:13px;margin-bottom:24px;}
+    h2{font-size:15px;border-bottom:2px solid #23262b;padding-bottom:4px;margin-top:28px;}
+    table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}
+    th{text-align:left;padding:6px 8px;border-bottom:2px solid #ccc;font-size:11px;text-transform:uppercase;color:#555;}
+    td{padding:6px 8px;border-bottom:1px solid #e3e3e3;}
+    .footer{margin-top:40px;font-size:11px;color:#999;}
+    @media print{body{margin:0;padding:14px;}}</style></head><body>
+    <h1>Récapitulatif — ${esc(s.nom)}</h1>
+    <div class="sub">${classe?esc(classe.nom):'—'} · ${period==='current'?'Bloc en cours':period==='previous'?'Bloc précédent':'Bilan annuel'} · Généré le ${formatDateFr(today)}</div>
+    <h2>Suivi par semaine</h2>
+    ${weekRows?`<table><thead><tr><th>Semaine</th><th>Marche</th><th>Points</th><th>Contrat</th></tr></thead><tbody>${weekRows}</tbody></table>`:'<p>Aucune donnée.</p>'}
+    <h2>Journal des évènements</h2>
+    ${histRows?`<table><thead><tr><th>Date</th><th>Motif</th><th>Points</th><th>Par</th></tr></thead><tbody>${histRows}</tbody></table>`:'<p>Aucun évènement.</p>'}
+    <div class="footer">Document généré le ${formatDateFr(today)} depuis le carnet de suivi.</div>
+    <scri`+`pt>window.onload=()=>{window.print();};</scri`+`pt></body></html>`);
+  win.document.close();
+}
+
+/* ============================================================
+   MODALES ÉLÈVE / CLASSE
+   ============================================================ */
+function openStudentModal(id,classeId){
+  const editing=id?DATA.students.find(s=>s.id===id):null;
+  const classesOptions=DATA.classes.map(c=>`<option value="${c.id}" ${(classeId===c.id||(editing&&editing.classeId===c.id))?'selected':''}>${esc(c.nom)}</option>`).join('');
+  openModal(`
+    <h3>${editing?'Modifier l\'élève':'Ajouter un élève'}</h3>
+    <div class="field"><label>Nom complet</label><input type="text" id="modal-eleve-nom" value="${editing?esc(editing.nom):''}" placeholder="Nom Prénom"></div>
+    <div class="field"><label>Classe</label><select id="modal-eleve-classe"><option value="">Sans classe</option>${classesOptions}</select></div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="btn" id="modal-cancel">Annuler</button>
+      <button class="btn primary" id="modal-save">${editing?'Enregistrer':'Ajouter'}</button>
+    </div>`);
+  document.getElementById('modal-cancel').addEventListener('click',closeModal);
+  document.getElementById('modal-save').addEventListener('click',async()=>{
+    const nom=document.getElementById('modal-eleve-nom').value.trim();
+    const classeId=document.getElementById('modal-eleve-classe').value;
+    if(!nom){toast("Saisis un nom.");return;}
+    if(editing){editing.nom=nom;editing.classeId=classeId;}
+    else DATA.students.push(newStudent(nom,classeId));
+    await saveData(editing?`Modification ${nom}`:`Ajout ${nom}`);
+    closeModal(); toast(editing?"Modifié.":"Ajouté."); render();
+  });
+}
 function openClassModal(){
   openModal(`
     <h3>Créer une classe</h3>
@@ -1729,58 +1752,75 @@ function openClassModal(){
     <div class="row" style="justify-content:flex-end;">
       <button class="btn" id="modal-cancel">Annuler</button>
       <button class="btn primary" id="modal-save">Créer</button>
-    </div>
-  `);
-  document.getElementById('modal-cancel').addEventListener('click', closeModal);
-  document.getElementById('modal-save').addEventListener('click', async ()=>{
-    const nom = document.getElementById('modal-classe-nom').value.trim();
-    if(!nom) return;
-    DATA.classes.push({id: genId(), nom});
-    await saveData(`Création de la classe « ${nom} »`);
-    closeModal(); toast("Classe créée."); render();
+    </div>`);
+  document.getElementById('modal-cancel').addEventListener('click',closeModal);
+  document.getElementById('modal-save').addEventListener('click',async()=>{
+    const nom=document.getElementById('modal-classe-nom').value.trim();
+    if(!nom){toast("Saisis un nom.");return;}
+    DATA.classes.push({id:genId(),nom});
+    await saveData(`Création classe ${nom}`); closeModal(); toast("Classe créée."); render();
   });
 }
 
-function openStudentModal(editId, presetClasseId){
-  const editing = editId ? DATA.students.find(s=>s.id===editId) : null;
-  const preset = presetClasseId || (editing ? editing.classeId : "");
-  const classesOptions = DATA.classes.map(c=>`<option value="${c.id}" ${preset===c.id?'selected':''}>${esc(c.nom)}</option>`).join('');
-  openModal(`
-    <h3>${editing ? "Modifier l'élève" : 'Ajouter un élève'}</h3>
-    <div class="field"><label>Nom complet</label><input type="text" id="modal-eleve-nom" value="${editing ? esc(editing.nom) : ''}" placeholder="Nom Prénom"></div>
-    <div class="field"><label>Classe</label>
-      ${DATA.classes.length ? `<select id="modal-eleve-classe">${classesOptions}</select>` : `<p class="small muted">Crée d'abord une classe.</p>`}
-    </div>
-    <div class="row" style="justify-content:flex-end;">
-      <button class="btn" id="modal-cancel">Annuler</button>
-      <button class="btn primary" id="modal-save">${editing ? 'Enregistrer' : 'Ajouter'}</button>
-    </div>
-  `);
-  document.getElementById('modal-cancel').addEventListener('click', closeModal);
-  document.getElementById('modal-save').addEventListener('click', async ()=>{
-    const nom = document.getElementById('modal-eleve-nom').value.trim();
-    if(!nom) return;
-    const classeSel = document.getElementById('modal-eleve-classe');
-    const classeId = classeSel ? classeSel.value : "";
-    if(editing){
-      editing.nom = nom;
-      editing.classeId = classeId;
+/* ============================================================
+   SUPPRIMER UN ÉLÈVE
+   ============================================================ */
+async function deleteStudent(id){
+  if(!isAdmin()){toast("Réservé à l'admin.");return false;}
+  const s=DATA.students.find(x=>x.id===id);
+  if(!s) return false;
+  if(!confirm(`Supprimer définitivement ${s.nom} ? Toutes ses données seront perdues.`)) return false;
+  DATA.students=DATA.students.filter(x=>x.id!==id);
+  await saveData(`Suppression ${s.nom}`);
+  toast(`${s.nom} supprimé(e).`); return true;
+}
+
+/* ============================================================
+   IMPORT CSV/EXCEL
+   ============================================================ */
+function extractNamesFromFile(file){
+  return new Promise((resolve,reject)=>{
+    const ext=file.name.toLowerCase().split('.').pop();
+    if(ext==='csv'){
+      Papa.parse(file,{complete:r=>{resolve(r.data.map(rowToName).filter(Boolean));},error:reject});
     } else {
-      DATA.students.push(newStudent(nom, classeId));
+      const reader=new FileReader();
+      reader.onload=e=>{
+        try{
+          const wb=XLSX.read(e.target.result,{type:'array'});
+          const sheet=wb.Sheets[wb.SheetNames[0]];
+          resolve(XLSX.utils.sheet_to_json(sheet,{header:1}).map(rowToName).filter(Boolean));
+        }catch(err){reject(err);}
+      };
+      reader.onerror=()=>reject(new Error("lecture impossible"));
+      reader.readAsArrayBuffer(file);
     }
-    await saveData(editing ? `Modification de la fiche de ${nom}` : `Ajout de l'élève ${nom}`);
-    closeModal(); toast(editing ? "Élève modifié." : "Élève ajouté."); render();
   });
 }
-
-/* ============== UTIL ============== */
-function esc(str){
-  return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function rowToName(row){
+  if(!row||!row.length) return null;
+  const cells=row.map(c=>(c===undefined||c===null)?'':String(c).trim()).filter(Boolean);
+  if(!cells.length) return null;
+  const joined=cells.slice(0,2).join(' ').trim();
+  const lower=joined.toLowerCase();
+  if(['nom','prenom','prénom','nom prenom','nom prénom','élève','eleve'].includes(lower)) return null;
+  return joined;
 }
-function isAdmin(){ return currentRole === 'admin'; }
-function marcheLabelNum(m){ return `${MARCHES.indexOf(m)+1}. ${MARCHE_LABEL[m]}`; }
 
-/* ============== INIT ============== */
+/* ============================================================
+   EXPORT
+   ============================================================ */
+function exportData(){
+  const blob=new Blob([JSON.stringify(DATA,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`carnet-suivi-${todayISO()}.json`; a.click();
+  URL.revokeObjectURL(url); toast("Fichier téléchargé.");
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
 trySessionAuth();
 </script>
 </body>
