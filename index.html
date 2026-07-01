@@ -1572,18 +1572,81 @@ async function retirerPoints(studentId,categorie,pts,motif){
 async function checkRetardsEmail(s){
   const bloc=currentBloc();
   if(!bloc) return;
-  const debuts=bloc.semaines.map(x=>x.start);
-  const retardsDansBloc=s.history.filter(h=>h.categorie==='retard'&&debuts.some(d=>h.date&&h.date>=d));
-  const sent=s.retardEmailsSent||[];
+
+  // Convertir les dates du journal (JJ/MM/AAAA) en ISO pour comparaison fiable
+  const dateJournalToISO=dateStr=>{
+    if(!dateStr) return '';
+    const parts=dateStr.split('/');
+    if(parts.length!==3) return dateStr; // déjà en ISO ou format inconnu
+    return `${parts[2]}-${parts[1]}-${parts[0]}`; // JJ/MM/AAAA → AAAA-MM-JJ
+  };
+
+  const blocDebut=bloc.semaines[0]?.start||'';
+  const blocFin=bloc.semaines[bloc.semaines.length-1]?.end||'9999';
+
+  // Compter les retards dans ce bloc (toutes catégories retard confondues)
+  const retardsDansBloc=s.history.filter(h=>{
+    if(h.categorie!=='retard') return false;
+    const iso=dateJournalToISO(h.date);
+    return iso>=blocDebut && iso<=blocFin;
+  });
+
   const count=retardsDansBloc.length;
+  // Seuil : tous les 4 retards (4, 8, 12...) on envoie un email
   const seuil=Math.floor(count/4)*4;
-  if(seuil>0&&!sent.includes(seuil)){
-    if(!s.retardEmailsSent) s.retardEmailsSent=[];
-    s.retardEmailsSent.push(seuil);
-    const subject=encodeURIComponent(`Cumul retards — ${s.nom}`);
-    const body=encodeURIComponent(`Bonjour,\n\nL'élève ${s.nom} a cumulé ${count} retard(s) sur le bloc en cours.\nMerci de lui poser une heure de retenue.\n\nCordialement,\nCarnet de suivi — les Marches`);
-    window.open(`mailto:vie.scolaire.claude.debussy@gmail.com?subject=${subject}&body=${body}`,'_blank');
-    toast(`📧 Email retards ouvert pour ${s.nom}`);
+  if(seuil<4) return; // pas encore 4 retards
+
+  if(!s.retardEmailsSent) s.retardEmailsSent=[];
+  // Identifiant unique par bloc + seuil pour ne pas renvoyer en boucle
+  const emailId=`${blocDebut}:${seuil}`;
+  if(s.retardEmailsSent.includes(emailId)) return;
+
+  s.retardEmailsSent.push(emailId);
+
+  const nomAffiche=displayNom(s);
+  const auteur=currentUser?`${currentUser.prenom} ${currentUser.nom}`.trim():'un enseignant';
+  const subject=`⚠ ${count} retard(s) cumulé(s) — ${nomAffiche}`;
+  const body=[
+    `Bonjour,`,
+    ``,
+    `L'élève ${nomAffiche} a cumulé ${count} retard(s) sur le bloc de 3 semaines en cours (débuté le ${formatDateFr(blocDebut)}).`,
+    ``,
+    `Conformément au protocole, merci de lui poser une heure de retenue.`,
+    ``,
+    `Action signalée par : ${auteur}`,
+    `Date : ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`,
+    ``,
+    `Cordialement,`,
+    `Carnet de suivi — les Marches`,
+    `Collège Claude Debussy`,
+  ].join('\n');
+
+  // Envoi via le Worker Cloudflare (MailChannels)
+  try{
+    const res=await fetch(`${PROXY_URL}?action=send-email`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        to:'vie.scolaire.claude.debussy@gmail.com',
+        subject,
+        body,
+        fromName:'Carnet de suivi — les Marches',
+      }),
+    });
+    const data=await res.json();
+    if(data.success){
+      toast(`📧 Email envoyé automatiquement à la vie scolaire (${count} retards — ${nomAffiche})`);
+      logEvent(s,`📧 Email retards envoyé automatiquement à la vie scolaire (${count} retards cumulés sur le bloc).`);
+    } else {
+      throw new Error('Échec MailChannels');
+    }
+  }catch(e){
+    // En cas d'échec, ouvrir un mailto de secours
+    console.warn('Envoi automatique échoué, ouverture mailto de secours:', e);
+    const subjectEnc=encodeURIComponent(subject);
+    const bodyEnc=encodeURIComponent(body);
+    window.open(`mailto:vie.scolaire.claude.debussy@gmail.com?subject=${subjectEnc}&body=${bodyEnc}`,'_blank');
+    toast(`📧 Email retards (secours) : vérifiez et envoyez manuellement (${nomAffiche})`);
   }
 }
 
