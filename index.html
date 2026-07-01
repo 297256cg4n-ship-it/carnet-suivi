@@ -100,37 +100,87 @@ table{width:100%;border-collapse:collapse;font-size:14px;}
 th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:8px 10px;border-bottom:2px solid var(--line);}
 td{padding:9px 10px;border-bottom:1px solid var(--line);}
 tr.row-link{cursor:pointer;}
-tr.row-link:hover td{background:#f9f8f4;}
+tr.row-link:hover td{background:#f0ede6;}
+tr.row-link:nth-child(even) td{background:#f9f8f4;}
+tr.row-link:nth-child(even):hover td{background:#f0ede6;}
 tr.pastille-row{background:#fdeceb;font-weight:700;color:#7a2020;}
 tr.pastille-row td{border-bottom-color:#e3b9b9;}
+tr.carnet-row{background:#fef5ec;color:#7a4000;}
+tr.carnet-row td{border-bottom-color:#f5cba7;}
+tr.retenue-row{background:#fef9ec;color:#7a5a00;font-weight:700;}
+tr.retenue-row td{border-bottom-color:#f7dc6f;}
 /* MARCHES */
 .m1{background:var(--m1)!important;}.m2{background:var(--m2)!important;}.m3{background:var(--m3)!important;}.m4{background:var(--m4)!important;}
 .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;color:#fff;}
 .badge.m1{background:var(--m1);}.badge.m2{background:var(--m2);}.badge.m3{background:var(--m3);}.badge.m4{background:var(--m4);}
 .badge.m-pastille{background:#888;color:#fff;}
 .badge.m-carnet{background:#e67e22;color:#fff;}
-.ladder{display:flex;flex-direction:column-reverse;gap:4px;margin:10px 0;}
-.step{padding:8px 14px;border-radius:7px;font-size:13px;font-weight:600;color:rgba(255,255,255,.6);opacity:.45;}
-.step.current{opacity:1;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.18);}
+/* LADDER — étages colorés, la marche active en plein, les autres en transparent */
+.ladder{display:flex;flex-direction:column-reverse;gap:5px;margin:14px 0 10px;}
+.step{
+  padding:10px 16px;border-radius:8px;font-size:14px;font-weight:600;
+  border:2px solid transparent;color:rgba(255,255,255,0.5);
+  background:rgba(0,0,0,0.06);
+  display:flex;align-items:center;gap:8px;
+}
+.step.m1{border-color:var(--m1);color:var(--m1);background:var(--m1-light);}
+.step.m2{border-color:var(--m2);color:var(--m2);background:var(--m2-light);}
+.step.m3{border-color:var(--m3);color:var(--m3);background:var(--m3-light);}
+.step.m4{border-color:var(--m4);color:var(--m4);background:var(--m4-light);}
+.step.current.m1{background:var(--m1);color:#fff;box-shadow:0 3px 12px rgba(192,57,43,.35);}
+.step.current.m2{background:var(--m2);color:#fff;box-shadow:0 3px 12px rgba(230,126,34,.35);}
+.step.current.m3{background:var(--m3);color:#fff;box-shadow:0 3px 12px rgba(41,128,185,.35);}
+.step.current.m4{background:var(--m4);color:#fff;box-shadow:0 3px 12px rgba(39,174,96,.35);}
+.step .step-num{font-size:11px;font-weight:800;opacity:.7;}
+.step.current .step-num{opacity:1;}
+.step .step-arrow{margin-left:auto;font-size:16px;display:none;}
+.step.current .step-arrow{display:block;}
 /* MARCHE PICKER */
 .marche-picker{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
-.marche-picker button{padding:7px 14px;border-radius:7px;border:2px solid transparent;font-size:13px;font-weight:700;color:#fff;cursor:pointer;}
+.marche-picker button{padding:8px 16px;border-radius:8px;border:2px solid transparent;font-size:13px;font-weight:700;color:#fff;cursor:pointer;}
 .marche-picker button.m1{background:var(--m1);}.marche-picker button.m2{background:var(--m2);}
 .marche-picker button.m3{background:var(--m3);}.marche-picker button.m4{background:var(--m4);}
 .marche-picker button.active{border-color:#23262b;box-shadow:0 0 0 2px #23262b;}
-/* CATEGORIES */
-.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:10px;}
-.cat-box{border:1px solid var(--line);border-radius:9px;overflow:hidden;}
-.cat-box-header{padding:10px 13px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:13px;background:var(--paper);}
-.cat-box-header .pts{font-size:11px;color:var(--muted);font-weight:600;}
-.cat-box-motifs{display:none;background:#fff;border-top:1px solid var(--line);}
-.cat-box-motifs.open{display:block;}
-.cat-box-motifs button{display:block;width:100%;text-align:left;padding:8px 13px;background:none;border:none;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer;font-family:inherit;}
-.cat-box-motifs button:last-child{border-bottom:none;}
-.cat-box-motifs button:hover{background:#f9f8f4;}
+/* CATEGORIES — menu déroulant vertical clair */
+.cat-list{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+.cat-item{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;}
+.cat-item-header{
+  padding:13px 16px;cursor:pointer;display:flex;justify-content:space-between;
+  align-items:center;background:var(--paper);user-select:none;
+  transition:background .1s;
+}
+.cat-item-header:hover{background:#eeece6;}
+.cat-item-header .cat-label{font-weight:700;font-size:14px;color:var(--ink);}
+.cat-item-header .cat-meta{display:flex;align-items:center;gap:10px;}
+.cat-item-header .cat-pts{
+  font-size:12px;font-weight:700;padding:3px 9px;border-radius:12px;
+  background:#fff;border:1px solid var(--line);color:var(--accent);
+}
+.cat-item-header .cat-arrow{font-size:12px;color:var(--muted);transition:transform .15s;}
+.cat-item-header.open .cat-arrow{transform:rotate(180deg);}
+.cat-item-motifs{display:none;border-top:1px solid var(--line);}
+.cat-item-motifs.open{display:block;}
+.cat-item-motifs button{
+  display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:11px 16px;background:none;border:none;border-bottom:1px solid var(--line);
+  font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink);
+}
+.cat-item-motifs button:last-child{border-bottom:none;}
+.cat-item-motifs button:hover{background:#f4f2eb;}
+.cat-item-motifs button::before{content:"•";color:var(--muted);font-size:16px;flex-shrink:0;}
+.cat-item-autres{padding:12px 16px;border-top:1px solid var(--line);}
+/* SECTION TITLE — plus visible */
+.section-title{
+  font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--ink);margin-bottom:14px;padding-bottom:8px;
+  border-bottom:2px solid var(--line);
+}
 /* POINTS METER */
-.points-meter{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:6px;}
-.points-meter .fill{height:100%;background:var(--accent);border-radius:4px;transition:width .3s;}
+.points-meter{height:10px;background:var(--line);border-radius:5px;overflow:hidden;margin-top:8px;}
+.points-meter .fill{height:100%;border-radius:5px;transition:width .3s;}
+.points-meter .fill.ok{background:var(--accent);}
+.points-meter .fill.warn{background:#e67e22;}
+.points-meter .fill.danger{background:#c0392b;}
 /* BLOC BADGE */
 .bloc-badge{display:inline-flex;align-items:center;gap:6px;background:#eef4f1;border:1px solid #cfe3da;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;color:var(--accent);}
 /* WEEK BANNER */
@@ -480,6 +530,9 @@ async function loadData(){
   if(!DATA.memo) DATA.memo={m1:"",m2:"",m3:"",m4:""};
   if(!DATA.blocResets) DATA.blocResets=[];
   if(!DATA.currentWeekStart) DATA.currentWeekStart=FIRST_BLOC_START;
+  // Migration des anciens formats (status='pastille'|'carnet') + expiration auto
+  migrateOldPastilleData();
+  checkPastillesExpirees();
   lastKnownData=JSON.parse(JSON.stringify(DATA));
 }
 
@@ -669,6 +722,7 @@ async function enterApp(alreadyLoaded){
   await checkAutoNewWeek();
   const hash=location.hash;
   if(hash.startsWith('#eleve=')){currentStudentId=hash.replace('#eleve=','');currentTab='fiche';}
+  else { currentTab='accueil'; } // toujours ouvrir sur la page Élèves
   render();
 }
 
@@ -724,21 +778,22 @@ async function checkAutoNewWeek(){
 
 async function closeWeek(newWeekStart, silent){
   const endDate=todayISO();
+  // Snapshot : la marche réelle + le fait d'être en pastille
   const snap=DATA.students.map(s=>({
-    id:s.id,nom:s.nom,classeId:s.classeId,status:s.status,points:s.points,
-    contratValidé: s.status!=='pastille' && s.points>= (MARCHE_SEUIL[s.status]||0)
+    id:s.id, nom:s.nom, classeId:s.classeId,
+    status: s.status, // marche réelle (m1/m2/m3/m4)
+    enPastille: estEnPastille(s),
+    points: s.points,
+    contratValidé: !estEnPastille(s) && s.points>=(MARCHE_SEUIL[s.status]||0)
   }));
   DATA.weeks.push({id:genId(),dateDebut:DATA.currentWeekStart,dateFin:endDate,snapshot:snap});
   DATA.currentWeekStart=newWeekStart||endDate;
 
-  const pool=DATA.students.filter(s=>s.status!=='carnet'); // pastille carnet ne compte pas
-  for(const s of pool){
-    // Journal : objectif atteint ou non
-    const seuil=MARCHE_SEUIL[s.status==='pastille'?s.savedMarche||'m2':s.status]||0;
-    if(s.status==='pastille'){
-      // Fin de pastille automatique : reprend sa marche
-      logEvent(s,`Fin de pastille automatique — reprend la marche ${MARCHE_LABEL[s.savedMarche||'m2']} avec 20 points.`);
-      s.status=s.savedMarche||'m2'; s.savedMarche=null;
+  for(const s of DATA.students){
+    const seuil=MARCHE_SEUIL[s.status]||0;
+    // Journal fin de semaine
+    if(estEnPastille(s)){
+      logEvent(s,`Fin de semaine en pastille${s.pastille.type==='auto'?' (automatique)':' (manuelle)'} — les points ne comptent pas.`);
     } else {
       const obj=s.points>=seuil;
       logEvent(s,`Fin de semaine : ${s.points}/20 pts — objectif ${seuil}pts ${obj?'✓ atteint':'✗ non atteint'}.`);
@@ -747,11 +802,11 @@ async function closeWeek(newWeekStart, silent){
     await checkBlocEnd(s);
     // Remettre à 20 points
     s.points=20;
+    // Le carnet se réinitialise à chaque nouvelle semaine
+    s.carnet=null;
+    // Note : la pastille n'est PAS levée ici — elle suit son propre calendrier
+    // (dimanche pour l'auto, J+7 pour la manuelle), géré par checkPastillesExpirees()
   }
-  // Pastille carnet : réinitialise en fin de journée (auto à la prochaine semaine)
-  DATA.students.filter(s=>s.status==='carnet').forEach(s=>{
-    s.status=s.savedMarche||'m2'; s.savedMarche=null;
-  });
   if(!silent) await saveData('Nouvelle semaine');
 }
 
@@ -776,15 +831,14 @@ async function checkBlocEnd(s){
   if(weekResults.length<bloc.semaines.length) return; // bloc pas complet
 
   const validées=weekResults.filter(r=>r.contratValidé).length;
-  const pastilles=weekResults.filter(r=>r.status==='pastille').length;
 
   let newMarche=s.status;
   const marcheIdx=MARCHES.indexOf(s.status);
 
-  // 2 semaines consécutives de pastille dans ce bloc → descend
-  let consecutivePastilles=0, maxConsecutive=0, cur=0;
+  // 2 semaines consécutives en pastille dans ce bloc → descend
+  let maxConsecutive=0, cur=0;
   for(const r of weekResults){
-    if(r.status==='pastille'){ cur++; maxConsecutive=Math.max(maxConsecutive,cur); }
+    if(r.enPastille){ cur++; maxConsecutive=Math.max(maxConsecutive,cur); }
     else cur=0;
   }
   if(maxConsecutive>=2 && marcheIdx>0){
@@ -794,7 +848,6 @@ async function checkBlocEnd(s){
     newMarche=MARCHES[marcheIdx+1];
     logEvent(s,`Fin de bloc : contrat validé 3/3 → monte à ${MARCHE_LABEL[newMarche]}.`);
   } else if(validées<3 && validées>0){
-    // 1 ou 2 semaines validées → reste
     logEvent(s,`Fin de bloc : contrat validé ${validées}/3 → reste à ${MARCHE_LABEL[s.status]}.`);
   } else if(validées===0 && marcheIdx>0){
     newMarche=MARCHES[marcheIdx-1];
@@ -811,9 +864,75 @@ function esc(str){ return String(str||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<
 function isAdmin(){ return currentUser&&currentUser.role==='admin'; }
 function marcheLabelNum(m){ return `${MARCHES.indexOf(m)+1}. ${MARCHE_LABEL[m]||m}`; }
 
+/* --- Affichage abrégé du nom ---
+   Format stocké : "DUPONT Lucas" (nom de famille en premier).
+   On cherche la longueur minimale du préfixe du nom de famille qui rend
+   chaque combinaison "PRÉFIXE. Prénom" unique dans toute la liste.
+   Si deux homonymes complets existent, leur classe les différenciera.
+   Le vrai nom n'est jamais modifié en base, c'est uniquement l'affichage.
+*/
+function splitNom(fullNom){
+  const parts=(fullNom||'').trim().split(/\s+/);
+  return { famille: parts[0]||'', prenom: parts.slice(1).join(' ')||'' };
+}
+
+// Calcule, pour TOUTE la liste d'élèves, la longueur de préfixe nécessaire
+// pour chaque élève afin que "PRÉFIXE. Prénom" soit unique dans la liste.
+// Résultat mis en cache par identifiant pour éviter de recalculer à chaque render.
+let _prefixCache = null;
+let _prefixCacheStamp = null;
+
+function buildPrefixLengths(students){
+  // Invalide le cache si la liste a changé (on compare un "stamp" léger)
+  const stamp = students.map(s=>s.id+s.nom).join('|');
+  if(_prefixCache && _prefixCacheStamp===stamp) return _prefixCache;
+
+  const result = {}; // id → longueur de préfixe à utiliser
+
+  students.forEach(s=>{
+    const {famille, prenom} = splitNom(s.nom);
+    const maxLen = famille.length || 1;
+    let len = 1;
+    while(len <= maxLen){
+      const prefixe = famille.slice(0,len).toUpperCase();
+      const display = `${prefixe}. ${prenom}`.toLowerCase();
+      // Compte combien d'autres élèves produiraient le même affichage
+      const collisions = students.filter(o=>{
+        if(o.id===s.id) return false;
+        const {famille:of, prenom:op} = splitNom(o.nom);
+        const op_display = `${of.slice(0,len).toUpperCase()}. ${op}`.toLowerCase();
+        return op_display === display;
+      });
+      if(!collisions.length) break; // ce préfixe est suffisant
+      len++;
+    }
+    result[s.id] = Math.min(len, maxLen);
+  });
+
+  _prefixCache = result;
+  _prefixCacheStamp = stamp;
+  return result;
+}
+
+function displayNom(student, allStudents){
+  const pool = allStudents || DATA.students;
+  const {famille, prenom} = splitNom(student.nom);
+  if(!famille) return student.nom;
+  const lengths = buildPrefixLengths(pool);
+  const len = lengths[student.id] || 1;
+  return `${famille.slice(0,len).toUpperCase()}. ${prenom}`;
+}
+
 function statusBadge(s){
-  if(s.status==='pastille') return `<span class="badge m-pastille">Pastille</span>`;
-  if(s.status==='carnet') return `<span class="badge m-carnet">Carnet oublié</span>`;
+  const badges=[];
+  if(estEnPastille(s)){
+    const fin=finPastille(s);
+    badges.push(`<span class="badge m-pastille">Pastille${fin?' jusqu\'au '+formatDateFr(fin):''}</span>`);
+  }
+  if(estEnCarnet(s)){
+    badges.push(`<span class="badge m-carnet">Carnet oublié</span>`);
+  }
+  if(badges.length) return badges.join(' ');
   return `<span class="badge ${s.status}">${marcheLabelNum(s.status)}</span>`;
 }
 
@@ -839,7 +958,64 @@ function toast(msg){
 }
 
 function newStudent(nom,classeId){
-  return {id:genId(),nom,classeId,status:MARCHE_DEFAULT,savedMarche:null,points:20,history:[],zeroStreak:0};
+  return {
+    id:genId(), nom, classeId,
+    status:MARCHE_DEFAULT,   // marche réelle : m1/m2/m3/m4 (jamais 'pastille' ni 'carnet')
+    points:20, history:[],
+    pastille:null,           // {type:'auto'|'manuelle', debut, fin} ou null
+    carnet:null,             // {date} ou null (suspension de la journée)
+  };
+}
+
+/* --- Helpers d'état élève ---
+   On distingue maintenant la marche réelle (s.status) des suspensions
+   temporaires (pastille, carnet) stockées séparément, pour qu'elles
+   puissent coexister.
+*/
+function estEnPastille(s){ return !!s.pastille; }
+function estEnCarnet(s){ return !!s.carnet; }
+function estSuspendu(s){ return estEnPastille(s)||estEnCarnet(s); }
+function finPastille(s){ return s.pastille?s.pastille.fin:null; }
+function typePastille(s){ return s.pastille?s.pastille.type:null; }
+
+/* Vérifier et lever automatiquement les pastilles expirées (appelé au chargement) */
+function checkPastillesExpirees(){
+  const today=todayISO();
+  let changed=false;
+  DATA.students.forEach(s=>{
+    // Pastille manuelle : expire 7 jours après le début
+    if(s.pastille&&s.pastille.fin&&today>s.pastille.fin){
+      logEvent(s,`Pastille levée automatiquement (7 jours écoulés — fin le ${formatDateFr(s.pastille.fin)}).`);
+      s.pastille=null;
+      changed=true;
+    }
+    // Carnet : expire à la fin de la journée où il a été posé
+    if(s.carnet&&s.carnet.date&&today>s.carnet.date){
+      s.carnet=null;
+      changed=true;
+    }
+  });
+  return changed;
+}
+
+/* Migration des anciennes données (status='pastille'|'carnet') vers le nouveau modèle */
+function migrateOldPastilleData(){
+  let changed=false;
+  DATA.students.forEach(s=>{
+    if(s.status==='pastille'){
+      s.pastille={type:'auto', debut:todayISO(), fin:addDays(todayISO(),6)};
+      s.status=s.savedMarche||MARCHE_DEFAULT;
+      delete s.savedMarche;
+      changed=true;
+    }
+    if(s.status==='carnet'){
+      s.carnet={date:todayISO()};
+      s.status=s.savedMarche||MARCHE_DEFAULT;
+      delete s.savedMarche;
+      changed=true;
+    }
+  });
+  return changed;
 }
 
 /* ============================================================
@@ -910,10 +1086,10 @@ function renderAccueil(){
   const rows=students.map(s=>{
     const classe=DATA.classes.find(c=>c.id===s.classeId);
     return `<tr class="row-link" data-id="${s.id}">
-      <td>${esc(s.nom)}</td>
+      <td>${esc(displayNom(s))}</td>
       <td>${classe?esc(classe.nom):'<span class="muted">—</span>'}</td>
       <td>${statusBadge(s)}</td>
-      <td>${s.status==='pastille'||s.status==='carnet'?'<span class="muted">—</span>':s.points+' / 20'}</td>
+      <td>${estSuspendu(s)?'<span class="muted">—</span>':s.points+' / 20'}</td>
       <td>${isAdmin()?`<button class="btn warn" data-del-student="${s.id}">Supprimer</button>`:''}</td>
     </tr>`;
   }).join('');
@@ -973,6 +1149,7 @@ function renderClasses(){
     </tr>`;
   }).join('');
   return `
+  ${weekBanner()}
   <div class="row" style="justify-content:space-between;margin-bottom:14px;">
     <h2>Classes</h2><button class="btn primary" id="btn-new-classe">+ Créer une classe</button>
   </div>
@@ -1009,11 +1186,12 @@ function renderClasseDetail(classeId){
   const students=DATA.students.filter(s=>s.classeId===classeId).sort((a,b)=>a.nom.localeCompare(b.nom));
   const rows=students.map(s=>`
     <tr class="row-link" data-id="${s.id}">
-      <td>${esc(s.nom)}</td><td>${statusBadge(s)}</td>
-      <td>${s.status==='pastille'||s.status==='carnet'?'—':s.points+' / 20'}</td>
+      <td>${esc(displayNom(s))}</td><td>${statusBadge(s)}</td>
+      <td>${estSuspendu(s)?'—':s.points+' / 20'}</td>
       <td>${isAdmin()?`<button class="btn warn" data-del-student="${s.id}">Supprimer</button>`:''}</td>
     </tr>`).join('');
   return `
+  ${weekBanner()}
   <a class="back-link" href="#" id="back-to-classes">← Retour aux classes</a>
   <div class="row" style="justify-content:space-between;margin-bottom:14px;">
     <h2>${esc(classe.nom)}</h2>
@@ -1061,95 +1239,161 @@ function attachClasseDetailEvents(){
 /* ============================================================
    FICHE ÉLÈVE
    ============================================================ */
+function weekBanner(){
+  const bloc=currentBloc();
+  const semaineIdx=bloc?bloc.semaines.findIndex(s=>s.start===DATA.currentWeekStart)+1:1;
+  const total=bloc?bloc.semaines.length:3;
+  return `<div class="week-banner">
+    <span>Semaine en cours : <strong>${formatDateFr(DATA.currentWeekStart)}</strong></span>
+    <span class="bloc-badge">Semaine ${semaineIdx} / ${total} du bloc</span>
+  </div>`;
+}
+
+function rowClass(h){
+  if(isPastilleEvent(h)) return 'pastille-row';
+  if((h.label||'').toLowerCase().includes('carnet')) return 'carnet-row';
+  if((h.label||'').toLowerCase().includes('retenue')) return 'retenue-row';
+  return '';
+}
+
 function renderFiche(id){
   const s=DATA.students.find(x=>x.id===id);
-  if(!s) return `<a class="back-link" href="#" id="back-to-list">← Retour</a><div class="empty">Élève introuvable.</div>`;
+  if(!s) return `<a class="back-link" href="#" id="back-to-list">\u2190 Retour</a><div class="empty">\u00c9l\u00e8ve introuvable.</div>`;
   const classe=DATA.classes.find(c=>c.id===s.classeId);
-  const ladderSteps=MARCHES.map((m,i)=>`<div class="step ${m} ${s.status===m?'current':''}">${i+1}. ${MARCHE_LABEL[m]}</div>`).join('');
   const pct=Math.round((s.points/20)*100);
   const seuil=MARCHE_SEUIL[s.status]||0;
-  const histRows=s.history.slice().reverse().slice(0,80).map(h=>`
-    <tr class="${isPastilleEvent(h)?'pastille-row':''}">
-      <td>${esc(h.date)}</td><td>${esc(h.heure||'—')}</td>
-      <td>${esc(h.motif||h.label)}</td>
-      <td>${h.points?`-${h.points}`:'<span class="muted">—</span>'}</td>
-      <td>${esc(h.auteur||'—')}</td>
-      <td>${h.id?`<button class="btn warn" data-del-hist="${h.id}">Supprimer</button>`:''}</td>
-    </tr>`).join('');
-  const catBoxes=CATEGORIES.map(c=>`
-    <div class="cat-box">
-      <div class="cat-box-header" data-cat-key="${c.key}">
-        <span>${esc(c.label)}</span>
-        <span class="pts">-${c.points} pt${c.points>1?'s':''}</span>
+  const fillClass=pct>=80?'ok':pct>=50?'warn':'danger';
+
+  // LADDER — étages colorés, marche active mise en avant
+  const ladderSteps=MARCHES.map((m,i)=>`
+    <div class="step ${m} ${s.status===m?'current':''}">
+      <span class="step-num">${i+1}</span>
+      <span>${MARCHE_LABEL[m]}</span>
+      <span class="step-arrow">\u25c4</span>
+    </div>`).join('');
+
+  // CATÉGORIES — liste verticale avec menu déroulant
+  const catItems=CATEGORIES.map(c=>`
+    <div class="cat-item">
+      <div class="cat-item-header" data-cat-key="${c.key}">
+        <span class="cat-label">${esc(c.label)}</span>
+        <span class="cat-meta">
+          <span class="cat-pts">\u2212${c.points} pt${c.points>1?'s':''}</span>
+          <span class="cat-arrow">\u25bc</span>
+        </span>
       </div>
-      <div class="cat-box-motifs" id="motifs-${c.key}">
+      <div class="cat-item-motifs" id="motifs-${c.key}">
         ${c.motifs.map(m=>`<button data-cat="${c.key}" data-motif="${esc(m)}" data-pts="${c.points}">${esc(m)}</button>`).join('')}
-        ${c.freeText?`<div style="padding:8px;">
-          <input type="text" id="autres-motif" placeholder="Préciser le motif..." style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;margin-bottom:6px;">
-          <button data-cat="${c.key}" data-motif="" data-pts="${c.points}" id="btn-autres-valider" class="btn primary" style="width:100%;">Valider (−${c.points} pt)</button>
+        ${c.freeText?`<div class="cat-item-autres">
+          <input type="text" id="autres-motif" placeholder="Pr\u00e9ciser le motif..." style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;margin-bottom:8px;font-family:inherit;">
+          <button data-cat="${c.key}" data-motif="" data-pts="${c.points}" id="btn-autres-valider" class="btn primary" style="width:100%;">Valider \u2014 \u2212${c.points} pt</button>
         </div>`:''}
       </div>
     </div>`).join('');
+
+  // JOURNAL
+  const histRows=(s.history||[]).slice().reverse().slice(0,80).map(h=>`
+    <tr class="${rowClass(h)}">
+      <td>${esc(h.date)}</td><td>${esc(h.heure||'\u2014')}</td>
+      <td>${esc(h.motif||h.label)}</td>
+      <td>${h.points?`-${h.points}`:'<span class="muted">\u2014</span>'}</td>
+      <td>${esc(h.auteur||'\u2014')}</td>
+      <td>${h.id?`<button class="btn warn" style="padding:4px 8px;font-size:12px;" data-del-hist="${h.id}">\u2715</button>`:''}</td>
+    </tr>`).join('');
+
+  // BOUTON PASTILLE — logique selon type et rôle
+  let pastilleBtn;
+  if(estEnPastille(s)){
+    const t=typePastille(s);
+    if(t==='auto'){
+      pastilleBtn=isAdmin()
+        ?`<button class="btn" id="btn-toggle-pastille" style="border-color:#c0392b;color:#c0392b;">\ud83d\udd13 Lever la pastille (admin)</button>`
+        :`<span class="badge m-pastille" style="font-size:13px;padding:8px 12px;">Pastille automatique — jusqu'au ${formatDateFr(finPastille(s))}</span>`;
+    } else {
+      pastilleBtn=`<button class="btn" id="btn-toggle-pastille" style="border-color:#888;color:#555;">\ud83d\udd13 Lever la pastille manuelle</button>`;
+    }
+  } else {
+    pastilleBtn=`<button class="btn danger" id="btn-toggle-pastille">\u26a0 Mettre en pastille</button>`;
+  }
+
   return `
-  <a class="back-link" href="#" id="back-to-list">← Retour à la liste</a>
-  <div class="row" style="justify-content:space-between;align-items:flex-start;">
-    <div><h2>${esc(s.nom)}</h2><p class="small muted">${classe?esc(classe.nom):'Aucune classe'}</p></div>
+  ${weekBanner()}
+  <a class="back-link" href="#" id="back-to-list">\u2190 Retour \u00e0 la liste</a>
+  <div class="row" style="justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+    <div>
+      <h2 style="font-size:24px;">${esc(s.nom)}</h2>
+      <p class="small muted">${classe?esc(classe.nom):'Aucune classe'}</p>
+    </div>
     <div class="row">
       <button class="btn" id="btn-edit-student">Modifier</button>
       ${isAdmin()?`<button class="btn warn" id="btn-del-student">Supprimer</button>`:''}
-      <button class="btn" id="btn-export-pdf">PDF</button>
+      <button class="btn" id="btn-export-pdf">\ud83d\udcc4 PDF</button>
     </div>
   </div>
+
   <div class="card">
     <div class="section-title">Marche actuelle</div>
     <div class="ladder">${ladderSteps}</div>
-    ${s.status==='pastille'?`<p style="margin-top:8px"><span class="badge m-pastille">En pastille</span> — droits suspendus jusqu'au dimanche.</p>`
-    :s.status==='carnet'?`<p style="margin-top:8px"><span class="badge m-carnet">Carnet oublié</span> — suspendu pour la journée.</p>`
-    :`<div class="row" style="justify-content:space-between;margin-top:10px;margin-bottom:4px;">
-        <span class="small">Points : <strong>${s.points}</strong> / 20 (objectif : ${seuil}/20)</span>
-        <span class="small ${s.points>=seuil?'':'muted'}">${s.points>=seuil?'✓ Contrat en cours':'✗ Contrat en danger'}</span>
+    <div style="margin-top:14px;">
+      <div class="row" style="justify-content:space-between;margin-bottom:6px;">
+        <span class="small"><strong>${s.points}</strong> / 20 points
+          ${estEnPastille(s)?`<span class="badge m-pastille" style="margin-left:6px;">Pastille jusqu'au ${formatDateFr(finPastille(s))}</span>`:''}
+          ${estEnCarnet(s)?'<span class="badge m-carnet" style="margin-left:6px;">Carnet oubli\u00e9</span>':''}
+        </span>
+        <span class="small ${s.points>=seuil?'':'muted'}">Objectif : ${seuil}/20 ${s.points>=seuil?'\u2713':'\u2717'}</span>
       </div>
-      <div class="points-meter"><div class="fill" style="width:${pct}%"></div></div>`}
+      <div class="points-meter"><div class="fill ${fillClass}" style="width:${pct}%"></div></div>
+    </div>
   </div>
+
   <div class="card">
     <div class="section-title">Retirer des points</div>
-    <div class="cat-grid">${catBoxes}</div>
+    <div class="cat-list">${catItems}</div>
   </div>
+
   <div class="card">
-    <div class="section-title" style="margin-bottom:8px;">Actions manuelles</div>
-    <div class="row">
-      <div class="section-title">Modifier la marche</div>
-      <div class="marche-picker">
-        ${MARCHES.map((m,i)=>`<button class="${m} ${s.status===m?'active':''}" data-set-marche="${m}">${i+1}. ${MARCHE_LABEL[m]}</button>`).join('')}
-      </div>
+    <div class="section-title">Actions manuelles</div>
+    <p class="small muted" style="margin-bottom:10px;">Modifier la marche</p>
+    <div class="marche-picker">
+      ${MARCHES.map((m,i)=>`<button class="${m} ${s.status===m?'active':''}" data-set-marche="${m}">${i+1}. ${MARCHE_LABEL[m]}</button>`).join('')}
     </div>
-    <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap;">
-      ${s.status!=='pastille'&&s.status!=='carnet'?`<button class="btn danger" id="btn-pastille-manuelle">⚠ Mettre en pastille manuellement</button>`
-      :s.status==='pastille'?`<button class="btn" id="btn-lever-pastille">Lever la pastille</button>`:''}
-      <button class="btn warn" id="btn-carnet">📓 Carnet oublié (aujourd'hui)</button>
-      <button class="btn" id="btn-reset-points">Réinitialiser les points (20/20)</button>
+    <div class="row" style="margin-top:16px;gap:8px;flex-wrap:wrap;">
+      ${pastilleBtn}
+      <button class="btn warn" id="btn-carnet">\ud83d\udcd3 Carnet oubli\u00e9</button>
+      <button class="btn" id="btn-reset-points">\u21ba R\u00e9initialiser (20/20)</button>
     </div>
   </div>
+
   <div class="card">
-    <div class="row" style="justify-content:space-between;align-items:center;">
-      <div class="section-title" style="margin-bottom:0;">Journal de suivi</div>
-    </div>
-    ${s.history.length?`<table style="margin-top:12px;"><thead><tr><th>Date</th><th>Heure</th><th>Motif</th><th>Points</th><th>Par</th><th></th></tr></thead><tbody>${histRows}</tbody></table>`
-    :`<p class="small muted" style="margin-top:12px;">Aucun évènement enregistré.</p>`}
+    <div class="section-title">Journal de suivi</div>
+    ${(s.history||[]).length
+      ?`<table><thead><tr><th>Date</th><th>Heure</th><th>Motif</th><th>Pts</th><th>Par</th><th></th></tr></thead><tbody>${histRows}</tbody></table>`
+      :`<p class="small muted" style="margin-top:8px;">Aucun \u00e9v\u00e8nement enregistr\u00e9.</p>`}
   </div>`;
 }
+
 
 function attachFicheEvents(){
   const back=document.getElementById('back-to-list');
   if(back) back.addEventListener('click',e=>{e.preventDefault();currentTab='accueil';currentStudentId=null;location.hash='';render();});
 
-  // Catégories : ouvrir/fermer
-  document.querySelectorAll('.cat-box-header').forEach(h=>{
+  // Catégories : ouvrir/fermer (nouvelle classe cat-item-header)
+  document.querySelectorAll('.cat-item-header').forEach(h=>{
     h.addEventListener('click',()=>{
       const key=h.dataset.catKey;
-      document.querySelectorAll('.cat-box-motifs').forEach(m=>{
-        m.classList.toggle('open',m.id==='motifs-'+key&&!m.classList.contains('open'));
+      // Ferme tous les autres, ouvre celui-ci (ou le ferme s'il était déjà ouvert)
+      document.querySelectorAll('.cat-item-header').forEach(oh=>{
+        if(oh!==h) oh.classList.remove('open');
       });
+      document.querySelectorAll('.cat-item-motifs').forEach(m=>{
+        if(m.id!=='motifs-'+key) m.classList.remove('open');
+      });
+      const motifs=document.getElementById('motifs-'+key);
+      if(motifs){
+        const wasOpen=motifs.classList.contains('open');
+        motifs.classList.toggle('open',!wasOpen);
+        h.classList.toggle('open',!wasOpen);
+      }
     });
   });
 
@@ -1182,35 +1426,39 @@ function attachFicheEvents(){
     });
   });
 
-  // Pastille manuelle
-  const pm=document.getElementById('btn-pastille-manuelle');
-  if(pm) pm.addEventListener('click',()=>{
-    if(!confirm("⚠️ Avant de prendre cette décision, merci de vous concerter avec 2 autres personnels du collège.\n\nConfirmer la mise en pastille manuelle (7 jours glissants) ?")) return;
+  // Bouton pastille UNIQUE (bascule mise en pastille ↔ lever)
+  const tp=document.getElementById('btn-toggle-pastille');
+  if(tp) tp.addEventListener('click',async()=>{
     const s=DATA.students.find(x=>x.id===currentStudentId);
     if(!s) return;
-    s.savedMarche=s.status; s.status='pastille';
-    s.pastilleManuelleDebut=todayISO();
-    logEvent(s,"Mise en pastille manuelle (concertation requise) — 7 jours glissants.");
-    saveData(`Pastille manuelle ${s.nom}`); render();
+    if(estEnPastille(s)){
+      const t=typePastille(s);
+      // Pastille auto : seul l'admin peut lever
+      if(t==='auto'&&!isAdmin()){
+        toast("Seul l'administrateur peut lever une pastille automatique.");
+        return;
+      }
+      if(!confirm(`Lever la pastille ${t==='auto'?'automatique':'manuelle'} de ${s.nom} ?`)) return;
+      logEvent(s,`Pastille ${t==='auto'?'automatique':'manuelle'} levée manuellement — reprend ${marcheLabelNum(s.status)}.`);
+      s.pastille=null;
+      await saveData(`Levée pastille ${s.nom}`); render();
+    } else {
+      // Mettre en pastille manuelle (7 jours glissants)
+      if(!confirm("⚠️ Avant de prendre cette décision, merci de vous concerter avec 2 autres personnels du collège.\n\nConfirmer la mise en pastille manuelle (7 jours glissants) ?")) return;
+      const fin=addDays(todayISO(),7);
+      s.pastille={type:'manuelle', debut:todayISO(), fin};
+      logEvent(s,`Mise en pastille manuelle (concertation requise) — jusqu'au ${formatDateFr(fin)}.`);
+      await saveData(`Pastille manuelle ${s.nom}`); render();
+    }
   });
 
-  // Lever pastille
-  const lp=document.getElementById('btn-lever-pastille');
-  if(lp) lp.addEventListener('click',async()=>{
-    const s=DATA.students.find(x=>x.id===currentStudentId);
-    if(!s) return;
-    s.status=s.savedMarche||'m2'; s.savedMarche=null; s.pastilleManuelleDebut=null;
-    logEvent(s,`Pastille levée manuellement — reprend ${marcheLabelNum(s.status)}.`);
-    await saveData(`Levée pastille ${s.nom}`); render();
-  });
-
-  // Carnet oublié
+  // Carnet oublié (coexiste avec la pastille)
   const bc=document.getElementById('btn-carnet');
   if(bc) bc.addEventListener('click',async()=>{
     const s=DATA.students.find(x=>x.id===currentStudentId);
-    if(!s||s.status==='carnet') return;
+    if(!s||estEnCarnet(s)) return;
     if(!confirm(`Mettre ${s.nom} en suspension pour carnet oublié (aujourd'hui uniquement, sans impact sur la marche) ?`)) return;
-    s.savedMarche=s.savedMarche||s.status; s.status='carnet';
+    s.carnet={date:todayISO()};
     logEvent(s,"Carnet de correspondance oublié — suspendu pour la journée.");
     await saveData(`Carnet oublié ${s.nom}`); render();
   });
@@ -1256,11 +1504,16 @@ async function retirerPoints(studentId,categorie,pts,motif){
     motif:(cat?cat.label:categorie)+(motif?' : '+motif:''),
     points:pts,type:'retrait',categorie
   });
-  // Vérifier si l'élève tombe à 0 → pastille automatique
-  if(newPts===0&&s.status!=='pastille'&&s.status!=='carnet'){
-    s.savedMarche=s.status; s.status='pastille';
-    logEvent(s,"0 point atteint — pastille automatique jusqu'au dimanche.");
-    toast(`${s.nom} passe en pastille (0 point).`);
+  // Vérifier si l'élève tombe à 0 → pastille automatique jusqu'au dimanche
+  if(newPts===0&&!estEnPastille(s)){
+    // Trouver le prochain dimanche
+    const d=new Date(todayISO()+'T00:00:00');
+    const dayOfWeek=d.getDay(); // 0=dim, 1=lun...
+    const daysUntilSunday=dayOfWeek===0?0:7-dayOfWeek;
+    const finAuto=addDays(todayISO(),daysUntilSunday);
+    s.pastille={type:'auto', debut:todayISO(), fin:finAuto};
+    logEvent(s,`0 point — pastille automatique jusqu'au dimanche ${formatDateFr(finAuto)}.`);
+    toast(`${s.nom} passe en pastille automatique (0 point).`);
   }
   // Vérifier retards pour email automatique
   if(categorie==='retard') await checkRetardsEmail(s);
@@ -1328,8 +1581,7 @@ function renderStudentReadOnlyView(studentId){
       <h2>${esc(s.nom)}</h2>
       <p class="small muted">${classe?esc(classe.nom):''} · Lecture seule</p>
       <div class="card" style="margin-top:16px;"><div class="ladder">${ladder}</div>
-        ${s.status==='pastille'?`<p><span class="badge m-pastille">En pastille</span></p>`
-        :s.status==='carnet'?`<p><span class="badge m-carnet">Carnet oublié</span></p>`
+        ${estEnPastille(s)?`<p><span class="badge m-pastille">Pastille jusqu'au ${formatDateFr(finPastille(s))}</span></p>`:''}${estEnCarnet(s)?`<p><span class="badge m-carnet">Carnet oublié</span></p>`:''}${(!estEnPastille(s)&&!estEnCarnet(s))?''
         :`<p class="small" style="margin-top:8px;">Points : <strong>${s.points}</strong> / 20</p>`}
       </div>
       <div class="card"><div class="section-title">Journal</div>
@@ -1350,9 +1602,9 @@ function renderSemaines(){
     const bloc=blocs.find(b=>b.semaines.some(s=>s.start===w.dateDebut));
     const sIdx=bloc?bloc.semaines.findIndex(s=>s.start===w.dateDebut)+1:null;
     const rows=w.snapshot.slice().sort((a,b)=>a.nom.localeCompare(b.nom)).map(s=>`
-      <tr><td>${esc(s.nom)}</td>
-      <td>${s.status==='pastille'?`<span class="badge m-pastille">Pastille</span>`:`<span class="badge ${s.status}">${marcheLabelNum(s.status)}</span>`}</td>
-      <td>${s.status==='pastille'?'—':s.points+' / 20'}</td>
+      <tr><td>${esc(displayNom(s, w.snapshot))}</td>
+      <td>${(s.enPastille||s.status==='pastille')?`<span class="badge m-pastille">Pastille</span>`:`<span class="badge ${s.status}">${marcheLabelNum(s.status)}</span>`}</td>
+      <td>${(s.enPastille||s.status==='pastille')?'—':s.points+' / 20'}</td>
       <td>${s.contratValidé?'✓':'✗'}</td></tr>`).join('');
     return `<div class="card">
       <div class="row" style="justify-content:space-between;">
@@ -1387,27 +1639,43 @@ function attachSemainesEvents(){
 /* ============================================================
    PASTILLES
    ============================================================ */
-function pastilleSince(s){
-  const e=s.history.slice().reverse().find(h=>(h.label||'').toLowerCase().includes('pastille')&&!(h.label||'').toLowerCase().includes('levée')&&!(h.label||'').toLowerCase().includes('fin de pastille'));
-  return e?e.date:null;
-}
 function renderPastilles(){
-  const pastilles=DATA.students.filter(s=>s.status==='pastille'||s.status==='carnet').sort((a,b)=>a.nom.localeCompare(b.nom));
-  const rows=pastilles.map(s=>{
+  // Élèves ayant au moins une suspension (pastille et/ou carnet)
+  const suspendus=DATA.students.filter(s=>estEnPastille(s)||estEnCarnet(s)).sort((a,b)=>a.nom.localeCompare(b.nom));
+  const totalPastilles=DATA.students.filter(s=>estEnPastille(s)).length;
+  const totalCarnets=DATA.students.filter(s=>estEnCarnet(s)).length;
+
+  const rows=suspendus.map(s=>{
     const classe=DATA.classes.find(c=>c.id===s.classeId);
-    const since=pastilleSince(s);
-    const type=s.status==='carnet'?`<span class="badge m-carnet">Carnet</span>`:`<span class="badge m-pastille">Pastille</span>`;
+    const badges=[];
+    if(estEnPastille(s)){
+      const t=typePastille(s);
+      const fin=finPastille(s);
+      badges.push(`<span class="badge m-pastille">${t==='auto'?'Pastille auto':'Pastille manuelle'}</span>`);
+    }
+    if(estEnCarnet(s)){
+      badges.push(`<span class="badge m-carnet">Carnet oublié</span>`);
+    }
+    const finP=finPastille(s);
+    const debut=s.pastille?s.pastille.debut:s.carnet?s.carnet.date:'—';
     return `<tr class="row-link" data-id="${s.id}">
-      <td>${esc(s.nom)}</td><td>${classe?esc(classe.nom):'—'}</td>
-      <td>${type}</td><td>${since?esc(since):'—'}</td>
+      <td><strong>${esc(displayNom(s))}</strong></td>
+      <td>${classe?esc(classe.nom):'—'}</td>
+      <td>${badges.join(' ')}</td>
+      <td>${debut?formatDateFr(debut):'—'}</td>
+      <td>${finP?formatDateFr(finP):'aujourd\'hui'}</td>
       <td>${isAdmin()?`<button class="btn warn" data-del-student="${s.id}">Supprimer</button>`:''}</td>
     </tr>`;
   }).join('');
+
   return `
-  <div class="pastille-banner">⚠ ${pastilles.length} élève(s) actuellement suspendu(s).</div>
+  <div class="pastille-banner">
+    ⚠ ${totalPastilles} pastille(s) active(s)${totalCarnets?` · ${totalCarnets} carnet(s) oublié(s)`:''} — ${suspendus.length} élève(s) suspendu(s) au total.
+  </div>
   <div class="card pastille-card">
-    ${pastilles.length?`<table><thead><tr><th>Nom</th><th>Classe</th><th>Type</th><th>Depuis le</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
-    :`<div class="empty">Aucun élève en pastille ou suspension.</div>`}
+    ${suspendus.length
+      ?`<table><thead><tr><th>Nom</th><th>Classe</th><th>Type</th><th>Début</th><th>Fin</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+      :`<div class="empty">Aucun élève en suspension actuellement.</div>`}
   </div>`;
 }
 function attachPastillesEvents(){
@@ -1595,7 +1863,7 @@ function attachAdminEvents(){
   if(rm) rm.addEventListener('click',async()=>{
     if(!confirm("Remettre TOUS les élèves à la Marche 2 ? Cette action est irréversible.")) return;
     DATA.students.forEach(s=>{
-      s.status=MARCHE_DEFAULT; s.savedMarche=null; s.points=20;
+      s.status=MARCHE_DEFAULT; s.pastille=null; s.carnet=null; s.points=20;
       logEvent(s,"Initialisation à la Marche 2 (début de suivi).");
     });
     await saveData('Réinitialisation toutes les marches'); toast("Marches réinitialisées."); render();
@@ -1618,7 +1886,7 @@ function renderQrCodes(){
       <div style="display:flex;flex-wrap:wrap;gap:16px;">
         ${students.map(s=>`<div style="text-align:center;">
           <div id="qr-${s.id}" style="width:100px;height:100px;"></div>
-          <div style="font-size:11px;margin-top:4px;max-width:100px;">${esc(s.nom)}</div>
+          <div style="font-size:11px;margin-top:4px;max-width:100px;">${esc(displayNom(s))}</div>
         </div>`).join('')}
       </div></div>`;
   }).join('');
@@ -1680,8 +1948,8 @@ function exportFichePDF(studentId,period){
       const w=DATA.weeks.find(x=>x.dateDebut===sem.start);
       const snap=w?w.snapshot.find(x=>x.id===s.id):null;
       return `<tr><td>${formatDateFr(sem.start)} → ${formatDateFr(sem.end)}</td>
-        <td>${snap?(snap.status==='pastille'?'Pastille':marcheLabelNum(snap.status)):'En cours'}</td>
-        <td>${snap&&snap.status!=='pastille'?snap.points+' / 20':'—'}</td>
+        <td>${snap?(snap.enPastille?'Pastille '+marcheLabelNum(snap.status):marcheLabelNum(snap.status)):'En cours'}</td>
+        <td>${snap&&!snap.enPastille?snap.points+' / 20':'—'}</td>
         <td>${snap?snap.contratValidé===true?'✓':snap.contratValidé===false?'✗':'—':'—'}</td></tr>`;
     })
   ).join('');
@@ -1693,29 +1961,60 @@ function exportFichePDF(studentId,period){
     return h.date>=b.semaines[0].start;
   }).slice().reverse();
 
-  const histRows=histItems.map(h=>`<tr>
-    <td>${esc(h.date)}</td><td>${esc(h.motif||h.label)}</td>
-    <td>${h.points?`-${h.points}`:'—'}</td><td>${esc(h.auteur||'—')}</td></tr>`).join('');
+  const histRows=histItems.map(h=>{
+    const label=(h.label||'').toLowerCase();
+    let rowStyle='';
+    let ptStyle='font-weight:bold;';
+    if(label.includes('pastille')){
+      rowStyle='background:#fdeceb;color:#7a2020;';
+      ptStyle+='color:#c0392b;';
+    } else if(label.includes('carnet')){
+      rowStyle='background:#fef5ec;color:#7a4000;';
+      ptStyle+='color:#e67e22;';
+    } else if(label.includes('retenue')){
+      rowStyle='background:#fef9ec;color:#7a5a00;font-weight:bold;';
+      ptStyle+='color:#f39c12;';
+    }
+    const pts=h.points?`<span style="${ptStyle}">−${h.points}</span>`:'—';
+    return `<tr style="${rowStyle}">
+      <td>${esc(h.date)}</td><td>${esc(h.motif||h.label)}</td>
+      <td style="text-align:center;">${pts}</td><td>${esc(h.auteur||'—')}</td>
+    </tr>`;
+  }).join('');
 
   const win=window.open('','_blank');
   if(!win){toast("Pop-up bloquée. Autorise les pop-ups et réessaie.");return;}
   win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
     <title>Récapitulatif — ${esc(s.nom)}</title>
-    <style>body{font-family:Georgia,serif;color:#23262b;max-width:720px;margin:30px auto;padding:0 20px;}
-    h1{font-size:22px;margin-bottom:2px;}.sub{color:#666;font-size:13px;margin-bottom:24px;}
-    h2{font-size:15px;border-bottom:2px solid #23262b;padding-bottom:4px;margin-top:28px;}
+    <style>
+    body{font-family:Georgia,serif;color:#23262b;max-width:720px;margin:30px auto;padding:0 20px;}
+    h1{font-size:22px;margin-bottom:2px;}
+    .sub{color:#666;font-size:13px;margin-bottom:24px;}
+    h2{font-size:14px;font-weight:bold;text-transform:uppercase;letter-spacing:.08em;
+       border-bottom:2px solid #23262b;padding-bottom:4px;margin-top:28px;margin-bottom:0;}
     table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}
-    th{text-align:left;padding:6px 8px;border-bottom:2px solid #ccc;font-size:11px;text-transform:uppercase;color:#555;}
-    td{padding:6px 8px;border-bottom:1px solid #e3e3e3;}
-    .footer{margin-top:40px;font-size:11px;color:#999;}
-    @media print{body{margin:0;padding:14px;}}</style></head><body>
+    th{text-align:left;padding:7px 8px;border-bottom:2px solid #ccc;
+       font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#555;background:#f5f4f0;}
+    td{padding:7px 8px;border-bottom:1px solid #e3e3e3;vertical-align:top;}
+    tr:nth-child(even) td{background:#faf9f6;}
+    .legend{margin-top:20px;padding:10px 14px;background:#f5f4f0;border-radius:6px;font-size:11px;color:#555;}
+    .legend span{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:4px;vertical-align:middle;}
+    .footer{margin-top:32px;font-size:11px;color:#999;border-top:1px solid #e3e3e3;padding-top:10px;}
+    @media print{body{margin:0;padding:14px;}}
+    </style></head><body>
     <h1>Récapitulatif — ${esc(s.nom)}</h1>
     <div class="sub">${classe?esc(classe.nom):'—'} · ${period==='current'?'Bloc en cours':period==='previous'?'Bloc précédent':'Bilan annuel'} · Généré le ${formatDateFr(today)}</div>
     <h2>Suivi par semaine</h2>
-    ${weekRows?`<table><thead><tr><th>Semaine</th><th>Marche</th><th>Points</th><th>Contrat</th></tr></thead><tbody>${weekRows}</tbody></table>`:'<p>Aucune donnée.</p>'}
+    ${weekRows?`<table><thead><tr><th>Semaine</th><th>Marche</th><th>Points</th><th>Contrat</th></tr></thead><tbody>${weekRows}</tbody></table>`:'<p style="color:#888;font-size:13px;">Aucune donnée.</p>'}
     <h2>Journal des évènements</h2>
-    ${histRows?`<table><thead><tr><th>Date</th><th>Motif</th><th>Points</th><th>Par</th></tr></thead><tbody>${histRows}</tbody></table>`:'<p>Aucun évènement.</p>'}
-    <div class="footer">Document généré le ${formatDateFr(today)} depuis le carnet de suivi.</div>
+    ${histRows?`<table><thead><tr><th>Date</th><th>Motif</th><th style="text-align:center;">Points</th><th>Par</th></tr></thead><tbody>${histRows}</tbody></table>
+    <div class="legend">
+      <strong>Légende :</strong>&nbsp;
+      <span style="background:#fdeceb;border:1px solid #e3b9b9;"></span>Pastille &nbsp;
+      <span style="background:#fef5ec;border:1px solid #f5cba7;"></span>Carnet oublié &nbsp;
+      <span style="background:#fef9ec;border:1px solid #f7dc6f;"></span>Retenue
+    </div>`:'<p style="color:#888;font-size:13px;">Aucun évènement.</p>'}
+    <div class="footer">Document généré le ${formatDateFr(today)} depuis le carnet de suivi des Marches.</div>
     <scri`+`pt>window.onload=()=>{window.print();};</scri`+`pt></body></html>`);
   win.document.close();
 }
