@@ -2007,7 +2007,25 @@ function attachMemoEvents(){
 function renderAdmin(){
   if(!isAdmin()) return `<div class="empty">Accès réservé à l'administrateur.</div>`;
   const staffRows=DATA.staff.map(s=>`
-    <tr><td>${esc(s.nom)}</td><td>${esc(s.fonction||'—')}</td><td><code>${esc(s.code)}</code></td><td><button class="btn warn" data-del-staff="${s.id}">Supprimer</button></td></tr>`).join('');
+    <tr>
+      <td>${esc(s.nom)}</td>
+      <td>${esc(s.fonction||'—')}</td>
+      <td>
+        <span id="code-display-${s.id}"><code>${esc(s.code)}</code></span>
+        <span id="code-edit-${s.id}" class="hidden">
+          <input type="text" value="${esc(s.code)}" maxlength="5" inputmode="numeric"
+            style="width:70px;padding:4px 7px;border:1px solid var(--line);border-radius:6px;font-size:13px;"
+            id="code-input-${s.id}">
+          <button class="btn primary" data-save-code="${s.id}" style="padding:4px 8px;font-size:12px;">✓</button>
+          <button class="btn" data-cancel-code="${s.id}" style="padding:4px 8px;font-size:12px;">✕</button>
+        </span>
+      </td>
+      <td style="white-space:nowrap;">
+        <button class="btn" data-edit-code="${s.id}" style="padding:4px 8px;font-size:12px;">✏ Code</button>
+        <button class="btn" data-pdf-staff="${s.id}" style="padding:4px 8px;font-size:12px;">📄 PDF</button>
+        <button class="btn warn" data-del-staff="${s.id}" style="padding:4px 8px;font-size:12px;">Supprimer</button>
+      </td>
+    </tr>`).join('');
   const vacRows=DATA.vacances.map(v=>`
     <tr><td>${esc(v.label)}</td><td>${formatDateFr(v.debut)}</td><td>${formatDateFr(v.fin)}</td>
     <td><button class="btn warn" data-del-vac="${v.id}">Supprimer</button></td></tr>`).join('');
@@ -2045,7 +2063,11 @@ function renderAdmin(){
       <span class="small muted">Colonnes attendues : Nom, Fonction, Code (5 chiffres) — le rôle est détecté automatiquement depuis la fonction</span>
     </div>
     <div id="import-staff-status" class="small muted" style="margin-bottom:8px;"></div>
-    ${DATA.staff.length?`<table><thead><tr><th>Nom</th><th>Fonction</th><th>Code</th><th></th></tr></thead><tbody>${staffRows}</tbody></table>`
+    ${DATA.staff.length?`
+      <div style="margin-bottom:10px;">
+        <button class="btn" id="btn-pdf-all-staff">📄 Générer PDF de tous les codes</button>
+      </div>
+      <table><thead><tr><th>Nom</th><th>Fonction</th><th>Code</th><th></th></tr></thead><tbody>${staffRows}</tbody></table>`
     :`<div class="empty">Aucun personnel enregistré.</div>`}
   </div>
 
@@ -2152,6 +2174,41 @@ function attachAdminEvents(){
     document.getElementById('staff-code').value='';
     await saveData(`Ajout personnel ${nom}`); toast("Personnel ajouté."); render();
   });
+  // Modifier code
+  document.querySelectorAll('[data-edit-code]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const id=b.dataset.editCode;
+      document.getElementById('code-display-'+id).classList.add('hidden');
+      document.getElementById('code-edit-'+id).classList.remove('hidden');
+      document.getElementById('code-input-'+id).focus();
+    });
+  });
+  document.querySelectorAll('[data-cancel-code]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const id=b.dataset.cancelCode;
+      document.getElementById('code-display-'+id).classList.remove('hidden');
+      document.getElementById('code-edit-'+id).classList.add('hidden');
+    });
+  });
+  document.querySelectorAll('[data-save-code]').forEach(b=>{
+    b.addEventListener('click',async()=>{
+      const id=b.dataset.saveCode;
+      const s=DATA.staff.find(x=>x.id===id);
+      if(!s) return;
+      const val=document.getElementById('code-input-'+id).value.trim();
+      if(!/^\d{5}$/.test(val)){toast("Le code doit être exactement 5 chiffres.");return;}
+      if(DATA.staff.some(x=>x.id!==id&&x.code===val)){toast("Ce code est déjà utilisé par un autre personnel.");return;}
+      s.code=val;
+      await saveData(`Modification code ${s.nom}`); toast(`Code de ${s.nom} mis à jour.`); render();
+    });
+  });
+  // PDF individuel
+  document.querySelectorAll('[data-pdf-staff]').forEach(b=>{
+    b.addEventListener('click',()=>printStaffCode(b.dataset.pdfStaff));
+  });
+  // PDF tous les codes
+  const pdfAll=document.getElementById('btn-pdf-all-staff');
+  if(pdfAll) pdfAll.addEventListener('click',()=>printAllStaffCodes());
   // Supprimer personnel
   document.querySelectorAll('[data-del-staff]').forEach(b=>{
     b.addEventListener('click',async()=>{
@@ -2619,6 +2676,69 @@ function rowToName(row){
 /* ============================================================
    EXPORT
    ============================================================ */
+function printStaffCode(staffId){
+  const s=DATA.staff.find(x=>x.id===staffId);
+  if(!s) return;
+  const win=window.open('','_blank');
+  if(!win){toast("Pop-up bloquée.");return;}
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+    <title>Code d'accès — ${esc(s.nom)}</title>
+    <style>
+      body{font-family:Georgia,serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f6f3ec;}
+      .card{background:#fff;border:2px solid #0f5d4f;border-radius:16px;padding:40px 48px;text-align:center;max-width:320px;box-shadow:0 4px 20px rgba(0,0,0,.1);}
+      .label{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#7a7568;margin-bottom:8px;}
+      .nom{font-size:22px;font-weight:700;color:#23262b;margin-bottom:4px;}
+      .fonction{font-size:14px;color:#7a7568;margin-bottom:28px;}
+      .code-label{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#7a7568;margin-bottom:8px;}
+      .code{font-size:48px;font-weight:800;letter-spacing:.15em;color:#0f5d4f;font-family:monospace;}
+      .footer{margin-top:24px;font-size:11px;color:#aaa;}
+      @media print{body{background:#fff;}button{display:none;}}
+    </style></head><body>
+    <div class="card">
+      <div class="label">Carnet de suivi — les Marches</div>
+      <div class="nom">${esc(s.nom)}</div>
+      <div class="fonction">${esc(s.fonction||'')}</div>
+      <div class="code-label">Votre code d'accès</div>
+      <div class="code">${esc(s.code)}</div>
+      <div class="footer">Collège Claude Debussy · Confidentiel</div>
+    </div>
+    <scri`+`pt>window.onload=()=>{window.print();};</scri`+`pt></body></html>`);
+  win.document.close();
+}
+
+function printAllStaffCodes(){
+  if(!DATA.staff.length){toast("Aucun personnel enregistré.");return;}
+  const sorted=[...DATA.staff].sort((a,b)=>a.nom.localeCompare(b.nom));
+  const cards=sorted.map(s=>`
+    <div class="card">
+      <div class="label">Carnet de suivi — les Marches</div>
+      <div class="nom">${esc(s.nom)}</div>
+      <div class="fonction">${esc(s.fonction||'')}</div>
+      <div class="code-label">Code d'accès</div>
+      <div class="code">${esc(s.code)}</div>
+    </div>`).join('');
+  const win=window.open('','_blank');
+  if(!win){toast("Pop-up bloquée.");return;}
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+    <title>Codes d'accès — Carnet de suivi</title>
+    <style>
+      body{font-family:Georgia,serif;margin:20px;background:#fff;}
+      h1{font-size:18px;margin-bottom:20px;color:#23262b;}
+      .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+      .card{border:2px solid #0f5d4f;border-radius:12px;padding:20px;text-align:center;break-inside:avoid;}
+      .label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#7a7568;margin-bottom:6px;}
+      .nom{font-size:14px;font-weight:700;color:#23262b;margin-bottom:2px;}
+      .fonction{font-size:11px;color:#7a7568;margin-bottom:14px;}
+      .code-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#7a7568;margin-bottom:4px;}
+      .code{font-size:28px;font-weight:800;letter-spacing:.12em;color:#0f5d4f;font-family:monospace;}
+      @media print{body{margin:10px;}h1{font-size:14px;}button{display:none;}}
+    </style></head><body>
+    <h1>Codes d'accès — Carnet de suivi des Marches · Collège Claude Debussy</h1>
+    <div class="grid">${cards}</div>
+    <scri`+`pt>window.onload=()=>{window.print();};</scri`+`pt></body></html>`);
+  win.document.close();
+}
+
 function exportData(){
   const blob=new Blob([JSON.stringify(DATA,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
