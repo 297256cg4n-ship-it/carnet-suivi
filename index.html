@@ -406,24 +406,27 @@ function isVacances(iso){
    Les vacances suspendent le bloc; il reprend après.
    ============================================================ */
 function buildBlocs(){
-  // Reconstruit la liste de tous les blocs depuis FIRST_BLOC_START,
-  // en prenant en compte les périodes de vacances et les resets manuels.
+  // Reconstruit la liste de tous les blocs en tenant compte des resets manuels.
+  // Le point de départ est le plus tôt entre FIRST_BLOC_START et le premier
+  // reset manuel — ce qui permet de faire démarrer le suivi avant le 31 août
+  // si l'admin a forcé un début de bloc antérieur.
   const manualResets = (DATA.blocResets||[]).slice().sort();
+  const earliest = manualResets.length && manualResets[0] < FIRST_BLOC_START
+    ? manualResets[0]
+    : FIRST_BLOC_START;
+
   let blocs = [];
-  let cursor = FIRST_BLOC_START;
+  let cursor = earliest;
   const today = todayISO();
 
   while(cursor <= addDays(today, 200)){
     const bloc = {id:genId(), dateDebut:cursor, semaines:[]};
-    // Trouver le prochain reset manuel après cursor
     const nextReset = manualResets.find(r => r > cursor);
 
     while(bloc.semaines.length < 3){
-      // Si on atteint un reset manuel, on clôt ce bloc prématurément
       if(nextReset && cursor >= nextReset){ break; }
       const lundi = mondayOf(cursor);
       if(isVacances(lundi)){
-        // Semaine de vacances : on saute sans compter
         cursor = addDays(lundi, 7);
         continue;
       }
@@ -540,6 +543,14 @@ async function loadData(){
   if(!DATA.customMotifs) DATA.customMotifs={};
   if(!DATA.memoAttachments) DATA.memoAttachments={};
   if(!DATA.memoPresentation) DATA.memoPresentation='';
+  // Si currentWeekStart est dans le futur mais qu'un blocReset dans le passé
+  // existe, on recale sur ce blocReset (cas où l'admin a forcé un début anticipé)
+  const today=todayISO();
+  const resets=(DATA.blocResets||[]).slice().sort();
+  const passedResets=resets.filter(r=>r<=today);
+  if(passedResets.length && DATA.currentWeekStart > today){
+    DATA.currentWeekStart=passedResets[passedResets.length-1];
+  }
   // Migration des anciens formats (status='pastille'|'carnet') + expiration auto
   migrateOldPastilleData();
   checkPastillesExpirees();
@@ -730,7 +741,7 @@ async function enterApp(alreadyLoaded){
   document.body.classList.toggle('is-admin',isAdm);
   const label=isAdm?'Administrateur'
     :(currentUser&&currentUser.id!=='teacher-default'
-      ?`${currentUser.prenom} ${currentUser.nom}`.trim()
+      ?currentUser.nom
       :'Enseignant (commun)');
   document.getElementById('role-badge').textContent=label;
   await checkAutoNewWeek();
@@ -970,7 +981,7 @@ function logEvent(s,label,details){
     id:genId(),
     date:new Date().toLocaleDateString('fr-FR'),
     heure:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
-    auteur:currentUser?`${currentUser.prenom} ${currentUser.nom}`.trim():'—',
+    auteur:currentUser?currentUser.nom:'—',
     label
   },details||{}));
 }
@@ -1606,6 +1617,7 @@ async function checkRetardsEmail(s){
 
   const count=retardsDansBloc.length;
   const seuil=Math.floor(count/4)*4;
+  console.log(`[Retards] ${displayNom(s)}: ${count} retard(s) dans le bloc, seuil=${seuil}, emailsSent=`, s.retardEmailsSent);
   if(seuil<4) return;
 
   if(!s.retardEmailsSent) s.retardEmailsSent=[];
@@ -1614,7 +1626,7 @@ async function checkRetardsEmail(s){
   s.retardEmailsSent.push(emailId);
 
   const nomAffiche=displayNom(s);
-  const auteur=currentUser?`${currentUser.prenom} ${currentUser.nom}`.trim():'un enseignant';
+  const auteur=currentUser?currentUser.nom:'un enseignant';
   const subject=`⚠ ${count} retard(s) cumulé(s) — ${nomAffiche}`;
   const body=[
     `Bonjour,`,
@@ -1936,7 +1948,7 @@ function attachMemoEvents(){
 function renderAdmin(){
   if(!isAdmin()) return `<div class="empty">Accès réservé à l'administrateur.</div>`;
   const staffRows=DATA.staff.map(s=>`
-    <tr><td>${esc(s.prenom)} ${esc(s.nom)}</td><td><code>${esc(s.code)}</code></td>
+    <tr><td>${esc(s.nom)}</td><td><code>${esc(s.code)}</code></td>
     <td><button class="btn warn" data-del-staff="${s.id}">Supprimer</button></td></tr>`).join('');
   const vacRows=DATA.vacances.map(v=>`
     <tr><td>${esc(v.label)}</td><td>${formatDateFr(v.debut)}</td><td>${formatDateFr(v.fin)}</td>
@@ -1964,15 +1976,14 @@ function renderAdmin(){
   <div class="card">
     <div class="section-title">Personnels & codes d'accès</div>
     <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-      <input type="text" id="staff-prenom" placeholder="Prénom" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:130px;">
-      <input type="text" id="staff-nom" placeholder="Nom" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:130px;">
+      <input type="text" id="staff-nom" placeholder="Nom (ex: Mme Dupont)" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:200px;">
       <input type="text" id="staff-code" placeholder="Code 5 chiffres" maxlength="5" inputmode="numeric" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:130px;">
       <button class="btn primary" id="btn-add-staff">Ajouter</button>
     </div>
     <div class="row" style="margin-bottom:12px;gap:8px;flex-wrap:wrap;">
       <label class="btn" for="import-staff-file" style="cursor:pointer;">📥 Importer CSV/Excel</label>
       <input type="file" id="import-staff-file" accept=".csv,.xlsx,.xls" class="hidden">
-      <span class="small muted">Colonnes attendues : Prénom, Nom, Code (5 chiffres)</span>
+      <span class="small muted">Colonnes attendues : Nom, Code (5 chiffres)</span>
     </div>
     <div id="import-staff-status" class="small muted" style="margin-bottom:8px;"></div>
     ${DATA.staff.length?`<table><thead><tr><th>Nom</th><th>Code</th><th></th></tr></thead><tbody>${staffRows}</tbody></table>`
@@ -2069,25 +2080,23 @@ function attachAdminEvents(){
   // Ajouter personnel
   const as=document.getElementById('btn-add-staff');
   if(as) as.addEventListener('click',async()=>{
-    const prenom=document.getElementById('staff-prenom').value.trim();
     const nom=document.getElementById('staff-nom').value.trim();
     const code=document.getElementById('staff-code').value.trim();
-    if(!prenom||!nom||!code){toast("Remplis tous les champs.");return;}
+    if(!nom||!code){toast("Remplis tous les champs.");return;}
     if(!/^\d{5}$/.test(code)){toast("Le code doit être exactement 5 chiffres.");return;}
     if(DATA.staff.some(s=>s.code===code)){toast("Ce code est déjà utilisé.");return;}
-    DATA.staff.push({id:genId(),prenom,nom,code,role:'teacher'});
-    document.getElementById('staff-prenom').value='';
+    DATA.staff.push({id:genId(),prenom:'',nom,code,role:'teacher'});
     document.getElementById('staff-nom').value='';
     document.getElementById('staff-code').value='';
-    await saveData(`Ajout personnel ${prenom} ${nom}`); toast("Personnel ajouté."); render();
+    await saveData(`Ajout personnel ${nom}`); toast("Personnel ajouté."); render();
   });
   // Supprimer personnel
   document.querySelectorAll('[data-del-staff]').forEach(b=>{
     b.addEventListener('click',async()=>{
       const s=DATA.staff.find(x=>x.id===b.dataset.delStaff);
-      if(!s||!confirm(`Supprimer ${s.prenom} ${s.nom} ?`)) return;
+      if(!s||!confirm(`Supprimer ${s.nom} ?`)) return;
       DATA.staff=DATA.staff.filter(x=>x.id!==s.id);
-      await saveData(`Suppression personnel ${s.prenom} ${s.nom}`); toast("Supprimé."); render();
+      await saveData(`Suppression personnel ${s.nom}`); toast("Supprimé."); render();
     });
   });
   // Import CSV/Excel enseignants
@@ -2101,10 +2110,10 @@ function attachAdminEvents(){
       const rows=await parseStaffFile(file);
       let added=0, skipped=0;
       rows.forEach(r=>{
-        if(!r.prenom||!r.nom||!r.code) return;
+        if(!r.nom||!r.code) return;
         if(!/^\d{5}$/.test(r.code)){ skipped++; return; }
         if(DATA.staff.some(s=>s.code===r.code)){ skipped++; return; }
-        DATA.staff.push({id:genId(),prenom:r.prenom,nom:r.nom,code:r.code,role:'teacher'});
+        DATA.staff.push({id:genId(),prenom:'',nom:r.nom,code:r.code,role:'teacher'});
         added++;
       });
       await saveData(`Import ${added} personnel(s)`);
@@ -2161,6 +2170,9 @@ function attachAdminEvents(){
     if(!DATA.blocResets) DATA.blocResets=[];
     DATA.blocResets.push(lundi);
     DATA.blocResets=[...new Set(DATA.blocResets)].sort();
+    // Si la date forcée est dans le passé ou aujourd'hui, mettre à jour
+    // currentWeekStart pour que le bandeau "Semaine en cours" soit correct
+    if(lundi <= todayISO()) DATA.currentWeekStart=lundi;
     await saveData('Forçage début de bloc'); toast("Bloc forcé."); render();
   });
   // Changer mdp admin
@@ -2463,28 +2475,24 @@ async function deleteStudent(id){
 /* ============================================================
    IMPORT CSV/EXCEL
    ============================================================ */
-/* parseStaffFile : lit un CSV/Excel avec colonnes Prénom, Nom, Code (5 chiffres)
-   Accepte les en-têtes en français, insensible à la casse et aux accents.
-   Retourne un tableau d'objets {prenom, nom, code}. */
+/* parseStaffFile : lit un CSV/Excel avec colonnes Nom, Code (5 chiffres).
+   Retourne un tableau d'objets {nom, code}. */
 function parseStaffFile(file){
   return new Promise((resolve,reject)=>{
     const ext=file.name.toLowerCase().split('.').pop();
     const processRows=rows=>{
       if(!rows.length){ resolve([]); return; }
-      // Détecter la ligne d'en-tête (première ligne)
       const header=rows[0].map(c=>String(c||'').trim().toLowerCase()
         .normalize('NFD').replace(/[\u0300-\u036f]/g,''));
-      const pi=header.findIndex(h=>h.includes('prenom')||h.includes('prénom'));
-      const ni=header.findIndex(h=>h.includes('nom')&&!h.includes('prenom'));
+      const ni=header.findIndex(h=>h.includes('nom'));
       const ci=header.findIndex(h=>h.includes('code'));
-      // Si pas d'en-tête reconnu, suppose ordre : Prénom, Nom, Code
-      const pi2=pi>=0?pi:0, ni2=ni>=0?ni:1, ci2=ci>=0?ci:2;
+      const ni2=ni>=0?ni:0, ci2=ci>=0?ci:1;
+      const hasHeader=ni>=0||ci>=0;
       const result=[];
-      rows.slice(pi>=0?1:0).forEach(row=>{
-        const prenom=String(row[pi2]||'').trim();
+      rows.slice(hasHeader?1:0).forEach(row=>{
         const nom=String(row[ni2]||'').trim();
         const code=String(row[ci2]||'').trim().replace(/\D/g,'').slice(0,5);
-        if(prenom&&nom) result.push({prenom,nom,code});
+        if(nom) result.push({nom,code});
       });
       resolve(result);
     };
