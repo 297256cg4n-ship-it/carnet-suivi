@@ -11,8 +11,8 @@
 :root{
   --ink:#23262b;--paper:#f6f3ec;--paper-2:#ffffff;--line:#dcd6c6;
   --accent:#0f5d4f;--accent-2:#b5552b;--muted:#7a7568;
-  --m1:#e8a838;--m2:#3d9bc4;--m3:#5ba35b;--m4:#2e7d5e;
-  --m1-light:#fdf6e3;--m2-light:#e8f4f9;--m3-light:#edf7ed;--m4-light:#e6f4f0;
+  --m1:#e8a838;--m2:#3d9bc4;--m3:#5ba35b;--m4:#7d5a3c;
+  --m1-light:#fdf6e3;--m2-light:#e8f4f9;--m3-light:#edf7ed;--m4-light:#f2ece6;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Georgia',serif;background:var(--paper);color:var(--ink);min-height:100vh;}
@@ -632,7 +632,11 @@ function showLoginStep(step){
 function trySessionAuth(){
   const saved=sessionStorage.getItem('cs-user');
   if(saved){
-    try{ currentUser=JSON.parse(saved); enterApp(); return; }catch{}
+    try{
+      currentUser=JSON.parse(saved);
+      currentTab='accueil'; // toujours ouvrir sur la page Élèves à la (re)connexion
+      enterApp(); return;
+    }catch{}
   }
   const hash=location.hash;
   if(hash.startsWith('#eleve=')){
@@ -1106,7 +1110,8 @@ function renderAccueil(){
   }
   students.sort((a,b)=>a.nom.localeCompare(b.nom));
   const bloc=currentBloc();
-  const semaineIdx=bloc?bloc.semaines.findIndex(s=>s.start===DATA.currentWeekStart)+1:1;
+  const idx=bloc?bloc.semaines.findIndex(s=>s.start===DATA.currentWeekStart):-1;
+  const semaineIdx=idx>=0?idx+1:1; // minimum 1, jamais 0
   const rows=students.map(s=>{
     const classe=DATA.classes.find(c=>c.id===s.classeId);
     return `<tr class="row-link" data-id="${s.id}">
@@ -1390,7 +1395,7 @@ function renderFiche(id){
     <div class="row" style="margin-top:16px;gap:8px;flex-wrap:wrap;">
       ${pastilleBtn}
       ${estEnCarnet(s)?`<button class="btn" id="btn-carnet" style="border-color:#e67e22;color:#e67e22;">✓ Retirer carnet oublié</button>`:`<button class="btn warn" id="btn-carnet">📓 Carnet oublié</button>`}
-      <button class="btn" id="btn-reset-points">\u21ba R\u00e9initialiser (20/20)</button>
+      ${isAdmin()?`<button class="btn" id="btn-reset-points">↺ Réinitialiser (20/20)</button>`:''}
     </div>
   </div>
 
