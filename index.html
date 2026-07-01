@@ -11,8 +11,8 @@
 :root{
   --ink:#23262b;--paper:#f6f3ec;--paper-2:#ffffff;--line:#dcd6c6;
   --accent:#0f5d4f;--accent-2:#b5552b;--muted:#7a7568;
-  --m1:#c0392b;--m2:#e67e22;--m3:#2980b9;--m4:#27ae60;
-  --m1-light:#fdecea;--m2-light:#fef5ec;--m3-light:#eaf4fb;--m4-light:#eafaf1;
+  --m1:#e8a838;--m2:#3d9bc4;--m3:#5ba35b;--m4:#2e7d5e;
+  --m1-light:#fdf6e3;--m2-light:#e8f4f9;--m3-light:#edf7ed;--m4-light:#e6f4f0;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Georgia',serif;background:var(--paper);color:var(--ink);min-height:100vh;}
@@ -116,25 +116,24 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
 .badge.m-pastille{background:#888;color:#fff;}
 .badge.m-carnet{background:#e67e22;color:#fff;}
 /* LADDER — design en escalier, hauteur croissante, numéro affiché dessus */
-.ladder{display:flex;flex-direction:row;align-items:flex-end;gap:6px;margin:16px 0 12px;height:110px;}
+.ladder{display:flex;flex-direction:row;align-items:flex-end;gap:6px;margin:16px 0 12px;height:130px;}
 .step{
   flex:1;border-radius:8px 8px 0 0;display:flex;flex-direction:column;
-  align-items:center;justify-content:flex-start;padding-top:10px;
-  font-size:12px;font-weight:700;cursor:default;position:relative;
-  transition:transform .1s;
+  align-items:center;justify-content:flex-start;padding-top:8px;
+  font-weight:700;cursor:default;position:relative;min-height:52px;
 }
-.step.m1{height:30%;background:var(--m1-light);border:2px solid var(--m1);color:var(--m1);}
-.step.m2{height:50%;background:var(--m2-light);border:2px solid var(--m2);color:var(--m2);}
-.step.m3{height:72%;background:var(--m3-light);border:2px solid var(--m3);color:var(--m3);}
-.step.m4{height:95%;background:var(--m4-light);border:2px solid var(--m4);color:var(--m4);}
-.step.current.m1{background:var(--m1);color:#fff;box-shadow:0 4px 14px rgba(192,57,43,.4);}
-.step.current.m2{background:var(--m2);color:#fff;box-shadow:0 4px 14px rgba(230,126,34,.4);}
-.step.current.m3{background:var(--m3);color:#fff;box-shadow:0 4px 14px rgba(41,128,185,.4);}
-.step.current.m4{background:var(--m4);color:#fff;box-shadow:0 4px 14px rgba(39,174,96,.4);}
-.step .step-num{font-size:20px;font-weight:800;line-height:1;}
-.step .step-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:4px;opacity:.85;}
+.step.m1{height:35%;background:var(--m1-light);border:2px solid var(--m1);color:var(--m1);}
+.step.m2{height:55%;background:var(--m2-light);border:2px solid var(--m2);color:var(--m2);}
+.step.m3{height:75%;background:var(--m3-light);border:2px solid var(--m3);color:var(--m3);}
+.step.m4{height:98%;background:var(--m4-light);border:2px solid var(--m4);color:var(--m4);}
+.step.current.m1{background:var(--m1);color:#fff;box-shadow:0 4px 14px rgba(232,168,56,.5);}
+.step.current.m2{background:var(--m2);color:#fff;box-shadow:0 4px 14px rgba(61,155,196,.5);}
+.step.current.m3{background:var(--m3);color:#fff;box-shadow:0 4px 14px rgba(91,163,91,.5);}
+.step.current.m4{background:var(--m4);color:#fff;box-shadow:0 4px 14px rgba(46,125,94,.5);}
+.step .step-num{font-size:22px;font-weight:800;line-height:1;margin-bottom:2px;}
+.step .step-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;opacity:.85;text-align:center;padding:0 2px;}
 .step.current .step-label{opacity:1;}
-.step .step-arrow{position:absolute;bottom:6px;font-size:14px;}
+.step .step-arrow{position:absolute;bottom:5px;font-size:13px;}
 /* MARCHE PICKER */
 .marche-picker{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
 .marche-picker button{padding:8px 16px;border-radius:8px;border:2px solid transparent;font-size:13px;font-weight:700;color:#fff;cursor:pointer;}
@@ -189,7 +188,15 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
 .pastille-banner{display:flex;align-items:center;background:#fdeceb;border:1px solid #e3b9b9;color:#7a2020;border-radius:9px;padding:12px 16px;margin-bottom:16px;font-size:14px;font-weight:700;}
 .pastille-card{border-color:#e3b9b9;}
 .pastille-card table th{color:#a32b2b;}
-/* MODAL */
+/* Journal mobile-friendly */
+.journal-table{width:100%;font-size:13px;}
+.journal-table .td-date{white-space:nowrap;width:80px;font-size:12px;}
+.journal-table .td-motif{min-width:140px;}
+.journal-table .td-auteur{font-size:12px;color:var(--muted);}
+@media(max-width:520px){
+  .journal-table .td-auteur{display:none;}
+  .journal-table th:nth-child(3){display:none;}
+}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;}
 .modal{background:#fff;border-radius:12px;padding:28px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;}
 .modal h3{font-size:18px;margin-bottom:16px;}
@@ -530,6 +537,9 @@ async function loadData(){
   if(!DATA.memo) DATA.memo={m1:"",m2:"",m3:"",m4:""};
   if(!DATA.blocResets) DATA.blocResets=[];
   if(!DATA.currentWeekStart) DATA.currentWeekStart=FIRST_BLOC_START;
+  if(!DATA.customMotifs) DATA.customMotifs={};
+  if(!DATA.memoAttachments) DATA.memoAttachments={};
+  if(!DATA.memoPresentation) DATA.memoPresentation='';
   // Migration des anciens formats (status='pastille'|'carnet') + expiration auto
   migrateOldPastilleData();
   checkPastillesExpirees();
@@ -1255,7 +1265,8 @@ function attachClasseDetailEvents(){
    ============================================================ */
 function weekBanner(){
   const bloc=currentBloc();
-  const semaineIdx=bloc?bloc.semaines.findIndex(s=>s.start===DATA.currentWeekStart)+1:1;
+  const idx=bloc?bloc.semaines.findIndex(s=>s.start===DATA.currentWeekStart):-1;
+  const semaineIdx=idx>=0?idx+1:1; // minimum 1, jamais 0
   const total=bloc?bloc.semaines.length:3;
   return `<div class="week-banner">
     <span>Semaine en cours : <strong>${formatDateFr(DATA.currentWeekStart)}</strong></span>
@@ -1287,32 +1298,37 @@ function renderFiche(id){
     </div>`).join('');
 
   // CATÉGORIES — liste verticale avec menu déroulant
-  const catItems=CATEGORIES.map(c=>`
+  // Catégories triées par points croissants (1pt → 2pts → 3pts), motifs custom inclus
+  const sortedCats=[...CATEGORIES].sort((a,b)=>a.points-b.points);
+  const catItems=sortedCats.map(c=>{
+    const customMotifs=(DATA.customMotifs&&DATA.customMotifs[c.key])||[];
+    const allMotifs=[...c.motifs,...customMotifs];
+    return `
     <div class="cat-item">
       <div class="cat-item-header" data-cat-key="${c.key}">
         <span class="cat-label">${esc(c.label)}</span>
         <span class="cat-meta">
-          <span class="cat-pts">\u2212${c.points} pt${c.points>1?'s':''}</span>
-          <span class="cat-arrow">\u25bc</span>
+          <span class="cat-pts">−${c.points} pt${c.points>1?'s':''}</span>
+          <span class="cat-arrow">▼</span>
         </span>
       </div>
       <div class="cat-item-motifs" id="motifs-${c.key}">
-        ${c.motifs.map(m=>`<button data-cat="${c.key}" data-motif="${esc(m)}" data-pts="${c.points}">${esc(m)}</button>`).join('')}
+        ${allMotifs.map(m=>`<button data-cat="${c.key}" data-motif="${esc(m)}" data-pts="${c.points}">${esc(m)}</button>`).join('')}
         ${c.freeText?`<div class="cat-item-autres">
-          <input type="text" id="autres-motif" placeholder="Pr\u00e9ciser le motif..." style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;margin-bottom:8px;font-family:inherit;">
-          <button data-cat="${c.key}" data-motif="" data-pts="${c.points}" id="btn-autres-valider" class="btn primary" style="width:100%;">Valider \u2014 \u2212${c.points} pt</button>
+          <input type="text" id="autres-motif" placeholder="Préciser le motif..." style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;margin-bottom:8px;font-family:inherit;">
+          <button data-cat="${c.key}" data-motif="" data-pts="${c.points}" id="btn-autres-valider" class="btn primary" style="width:100%;">Valider — −${c.points} pt</button>
         </div>`:''}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
-  // JOURNAL
+  // JOURNAL — version mobile-friendly
   const histRows=(s.history||[]).slice().reverse().slice(0,80).map(h=>`
     <tr class="${rowClass(h)}">
-      <td>${esc(h.date)}</td><td>${esc(h.heure||'\u2014')}</td>
-      <td>${esc(h.motif||h.label)}</td>
-      <td>${h.points?`-${h.points}`:'<span class="muted">\u2014</span>'}</td>
-      <td>${esc(h.auteur||'\u2014')}</td>
-      <td>${h.id?`<button class="btn warn" style="padding:4px 8px;font-size:12px;" data-del-hist="${h.id}">\u2715</button>`:''}</td>
+      <td class="td-date">${esc(h.date)}<br><span class="muted" style="font-size:11px;">${esc(h.heure||'')}</span></td>
+      <td class="td-motif">${esc(h.motif||h.label)}${h.points?`<br><span style="font-weight:700;color:var(--m1);">−${h.points} pt${h.points>1?'s':''}</span>`:''}</td>
+      <td class="td-auteur" style="white-space:nowrap;">${esc(h.auteur||'—')}</td>
+      <td>${h.id?`<button class="btn warn" style="padding:4px 8px;font-size:12px;" data-del-hist="${h.id}">✕</button>`:''}</td>
     </tr>`).join('');
 
   // BOUTON PASTILLE — logique selon type et rôle
@@ -1381,7 +1397,7 @@ function renderFiche(id){
   <div class="card">
     <div class="section-title">Journal de suivi</div>
     ${(s.history||[]).length
-      ?`<table><thead><tr><th>Date</th><th>Heure</th><th>Motif</th><th>Pts</th><th>Par</th><th></th></tr></thead><tbody>${histRows}</tbody></table>`
+      ?`<div style="overflow-x:auto;"><table class="journal-table"><thead><tr><th>Date</th><th>Motif & points</th><th>Par</th><th></th></tr></thead><tbody>${histRows}</tbody></table></div>`
       :`<p class="small muted" style="margin-top:8px;">Aucun \u00e9v\u00e8nement enregistr\u00e9.</p>`}
   </div>`;
 }
@@ -1411,12 +1427,22 @@ function attachFicheEvents(){
     });
   });
 
-  // Boutons de motifs
+  // Boutons de motifs — délai 3s pour éviter double-clic accidentel
+  const _lastClick = {};
   document.querySelectorAll('[data-cat][data-motif]').forEach(b=>{
     if(b.id==='btn-autres-valider') return;
     b.addEventListener('click',async()=>{
+      const key = b.dataset.cat + '|' + b.dataset.motif;
+      const now = Date.now();
+      if(_lastClick[key] && now - _lastClick[key] < 3000){
+        toast("⏱ Patientez 3 secondes avant de revalider la même action.");
+        return;
+      }
+      _lastClick[key] = now;
+      b.disabled = true;
       await retirerPoints(currentStudentId,b.dataset.cat,parseInt(b.dataset.pts),b.dataset.motif);
       render();
+      // render() recreates the DOM so the button is already re-enabled
     });
   });
 
@@ -1570,9 +1596,17 @@ async function deleteHistoryEntry(studentId,entryId){
   const entry=s.history.find(h=>h.id===entryId);
   if(!entry) return;
   const isRetrait=entry.type==='retrait'&&entry.points;
+  const isCarnet=(entry.label||'').toLowerCase().includes('carnet');
   if(!confirm(isRetrait?`Supprimer cette ligne ? Les ${entry.points} pt(s) seront recrédités.`:`Supprimer cette ligne du journal ?`)) return;
   s.history=s.history.filter(h=>h.id!==entryId);
   if(isRetrait) s.points=Math.min(20,s.points+entry.points);
+  // Si on supprime l'entrée carnet du jour, on lève aussi l'état carnet
+  if(isCarnet && estEnCarnet(s)){
+    const autreCarnetAujourdhui=s.history.some(h=>
+      (h.label||'').toLowerCase().includes('carnet') && h.date===new Date().toLocaleDateString('fr-FR')
+    );
+    if(!autreCarnetAujourdhui) s.carnet=null;
+  }
   await saveData(`Suppression ligne journal ${s.nom}`);
   toast("Ligne supprimée."); render();
 }
@@ -1591,25 +1625,48 @@ function renderStudentReadOnlyView(studentId){
   const sc=document.getElementById('student-view-screen');
   if(!s){sc.innerHTML=`<div style="padding:40px;text-align:center">Fiche introuvable.</div>`;return;}
   const classe=DATA.classes.find(c=>c.id===s.classeId);
-  const ladder=MARCHES.map((m,i)=>`<div class="step ${m} ${s.status===m?'current':''}">${i+1}. ${MARCHE_LABEL[m]}</div>`).join('');
+  const ladder=MARCHES.map((m,i)=>`
+    <div class="step ${m} ${s.status===m?'current':''}">
+      <span class="step-num">${i+1}</span>
+      <span class="step-label">${MARCHE_LABEL[m]}</span>
+      ${s.status===m?'<span class="step-arrow">▲</span>':''}
+    </div>`).join('');
   const histRows=s.history.slice().reverse().slice(0,30).map(h=>`
-    <tr class="${isPastilleEvent(h)?'pastille-row':''}">
-      <td>${esc(h.date)}</td><td>${esc(h.heure||'—')}</td>
-      <td>${esc(h.motif||h.label)}</td>
-      <td>${h.points?`-${h.points}`:'—'}</td>
+    <tr class="${rowClass(h)}">
+      <td>${esc(h.date)}</td>
+      <td>${esc(h.motif||h.label)}${h.points?`<br><span style="font-weight:700;">−${h.points} pt${h.points>1?'s':''}</span>`:''}</td>
       <td>${esc(h.auteur||'—')}</td>
     </tr>`).join('');
+  // Mémo simplifié pour les élèves
+  const memoHtml=MARCHES.map((m,i)=>`
+    <div style="margin-bottom:12px;">
+      <div style="font-weight:700;color:var(--m${i+1});margin-bottom:4px;">${i+1}. ${MARCHE_LABEL[m]}</div>
+      <p style="font-size:13px;line-height:1.6;color:var(--ink);">${esc(DATA.memo[m]||'—')}</p>
+    </div>`).join('');
   sc.innerHTML=`
     <div style="max-width:700px;margin:0 auto;padding:24px;">
-      <h2>${esc(displayNom(s))}</h2>
-      <p class="small muted">${classe?esc(classe.nom):''} · Lecture seule</p>
-      <div class="card" style="margin-top:16px;"><div class="ladder">${ladder}</div>
-        ${estEnPastille(s)?`<p><span class="badge m-pastille">Pastille jusqu'au ${formatDateFr(finPastille(s))}</span></p>`:''}${estEnCarnet(s)?`<p><span class="badge m-carnet">Carnet oublié</span></p>`:''}${(!estEnPastille(s)&&!estEnCarnet(s))?''
-        :`<p class="small" style="margin-top:8px;">Points : <strong>${s.points}</strong> / 20</p>`}
+      <h2 style="font-size:22px;">${esc(displayNom(s))}</h2>
+      <p class="small muted">${classe?esc(classe.nom):''} · Consultation seule</p>
+      <div class="card" style="margin-top:16px;">
+        <div class="ladder">${ladder}</div>
+        <div style="margin-top:10px;">
+          ${estEnPastille(s)?`<span class="badge m-pastille">Pastille jusqu'au ${formatDateFr(finPastille(s))}</span> `:''}
+          ${estEnCarnet(s)?`<span class="badge m-carnet">Carnet oublié</span> `:''}
+        </div>
+        <div style="margin-top:10px;">
+          <span class="small">Points : <strong>${s.points}</strong> / 20</span>
+        </div>
       </div>
-      <div class="card"><div class="section-title">Journal</div>
-        ${s.history.length?`<table><thead><tr><th>Date</th><th>Heure</th><th>Motif</th><th>Points</th><th>Par</th></tr></thead><tbody>${histRows}</tbody></table>`
-        :`<p class="small muted">Aucun évènement.</p>`}
+      <div class="card">
+        <div class="section-title">Journal</div>
+        ${s.history.length
+          ?`<div style="overflow-x:auto;"><table class="journal-table"><thead><tr><th>Date</th><th>Motif</th><th>Par</th></tr></thead><tbody>${histRows}</tbody></table></div>`
+          :`<p class="small muted">Aucun évènement.</p>`}
+      </div>
+      <div class="card">
+        <div class="section-title">Les Marches — rappel des droits</div>
+        ${DATA.memoPresentation?`<p style="font-size:13px;line-height:1.6;margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:12px;">${esc(DATA.memoPresentation)}</p>`:''}
+        ${memoHtml}
       </div>
       <button class="btn" onclick="location.hash='';location.reload();" style="margin-top:12px;">Quitter</button>
     </div>`;
@@ -1717,27 +1774,85 @@ function attachPastillesEvents(){
    MÉMO
    ============================================================ */
 function renderMemo(){
+  const attachments=DATA.memoAttachments||{};
+  const presentation=DATA.memoPresentation||'';
   return `
-  <div class="row" style="justify-content:space-between;margin-bottom:14px;">
-    <h2>Mémo — Droits par marche</h2>
-    ${isAdmin()?`<button class="btn primary" id="btn-save-memo">Enregistrer</button>`:''}
+  <div class="row" style="justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+    <h2>Mémo — Les Marches</h2>
+    ${isAdmin()?`<button class="btn primary" id="btn-save-memo">Enregistrer les modifications</button>`:''}
   </div>
-  ${MARCHES.map((m,i)=>`
-  <div class="card">
-    <div class="section-title" style="color:var(--m${i+1});">${i+1}. ${MARCHE_LABEL[m]}</div>
+
+  <!-- Encart présentation -->
+  <div class="card" style="border-left:4px solid var(--accent);">
+    <div class="section-title">Présentation du dispositif</div>
     ${isAdmin()
-      ?`<textarea id="memo-${m}" style="width:100%;min-height:100px;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;">${esc(DATA.memo[m]||'')}</textarea>`
-      :`<p style="white-space:pre-wrap;font-size:14px;line-height:1.6;">${esc(DATA.memo[m]||'Aucun contenu pour le moment.')}</p>`}
-  </div>`).join('')}`;
+      ?`<textarea id="memo-presentation" style="width:100%;min-height:120px;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;line-height:1.6;">${esc(presentation)}</textarea>`
+      :`<p style="white-space:pre-wrap;font-size:14px;line-height:1.7;">${esc(presentation||'Aucune présentation rédigée pour le moment.')}</p>`}
+  </div>
+
+  <!-- Une carte par marche -->
+  ${MARCHES.map((m,i)=>{
+    const color=`var(--m${i+1})`;
+    const att=attachments[m]||[];
+    return `
+  <div class="card" style="border-left:4px solid ${color};">
+    <div class="section-title" style="color:${color};">${i+1}. ${MARCHE_LABEL[m]}</div>
+    ${isAdmin()
+      ?`<textarea id="memo-${m}" style="width:100%;min-height:90px;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;margin-bottom:10px;">${esc(DATA.memo[m]||'')}</textarea>`
+      :`<p style="white-space:pre-wrap;font-size:14px;line-height:1.6;margin-bottom:${att.length?'12px':'0'}">${esc(DATA.memo[m]||'Aucun contenu pour le moment.')}</p>`}
+    ${att.length?`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">${att.map((a,ai)=>`
+      <div style="border:1px solid var(--line);border-radius:8px;overflow:hidden;max-width:200px;">
+        ${a.type==='image'?`<img src="${a.url}" style="width:100%;max-height:120px;object-fit:cover;">`
+        :a.type==='video'?`<video src="${a.url}" controls style="width:100%;max-height:120px;"></video>`
+        :`<a href="${a.url}" target="_blank" style="display:block;padding:10px 14px;font-size:13px;color:var(--accent);">📄 ${esc(a.name||'Document')}</a>`}
+        ${isAdmin()?`<button data-del-att="${m}|${ai}" style="display:block;width:100%;padding:4px;background:#fdecea;border:none;border-top:1px solid var(--line);font-size:12px;cursor:pointer;color:#a32b2b;">Supprimer</button>`:''}
+      </div>`).join('')}</div>`:''}
+    ${isAdmin()?`<div style="margin-top:10px;">
+      <label class="btn" for="memo-att-${m}" style="cursor:pointer;font-size:12px;">+ Ajouter image / PDF / vidéo</label>
+      <input type="file" id="memo-att-${m}" data-marche="${m}" accept="image/*,video/*,.pdf" class="hidden">
+    </div>`:''}
+  </div>`;
+  }).join('')}`;
 }
+
 function attachMemoEvents(){
   const sb=document.getElementById('btn-save-memo');
   if(sb) sb.addEventListener('click',async()=>{
+    const pres=document.getElementById('memo-presentation');
+    if(pres) DATA.memoPresentation=pres.value;
     MARCHES.forEach(m=>{
       const el=document.getElementById('memo-'+m);
       if(el) DATA.memo[m]=el.value;
     });
     await saveData('Mise à jour mémo'); toast("Mémo enregistré.");
+  });
+  // Pièces jointes par marche (stockées en base64 dans DATA.memoAttachments)
+  MARCHES.forEach(m=>{
+    const inp=document.getElementById('memo-att-'+m);
+    if(!inp) return;
+    inp.addEventListener('change',async e=>{
+      const file=e.target.files[0]; e.target.value='';
+      if(!file) return;
+      const type=file.type.startsWith('image/')?'image':file.type.startsWith('video/')?'video':'pdf';
+      const reader=new FileReader();
+      reader.onload=async ev=>{
+        if(!DATA.memoAttachments) DATA.memoAttachments={};
+        if(!DATA.memoAttachments[m]) DATA.memoAttachments[m]=[];
+        DATA.memoAttachments[m].push({type,url:ev.target.result,name:file.name});
+        await saveData('Ajout pièce jointe mémo'); toast("Fichier ajouté."); render();
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+  // Supprimer pièce jointe
+  document.querySelectorAll('[data-del-att]').forEach(b=>{
+    b.addEventListener('click',async()=>{
+      const [m,ai]=b.dataset.delAtt.split('|');
+      if(DATA.memoAttachments&&DATA.memoAttachments[m]){
+        DATA.memoAttachments[m].splice(parseInt(ai),1);
+        await saveData('Suppression pièce jointe'); render();
+      }
+    });
   });
 }
 
@@ -1747,11 +1862,27 @@ function attachMemoEvents(){
 function renderAdmin(){
   if(!isAdmin()) return `<div class="empty">Accès réservé à l'administrateur.</div>`;
   const staffRows=DATA.staff.map(s=>`
-    <tr><td>${esc(s.prenom)} ${esc(s.nom)}</td><td>${esc(s.code)}</td>
+    <tr><td>${esc(s.prenom)} ${esc(s.nom)}</td><td><code>${esc(s.code)}</code></td>
     <td><button class="btn warn" data-del-staff="${s.id}">Supprimer</button></td></tr>`).join('');
   const vacRows=DATA.vacances.map(v=>`
     <tr><td>${esc(v.label)}</td><td>${formatDateFr(v.debut)}</td><td>${formatDateFr(v.fin)}</td>
     <td><button class="btn warn" data-del-vac="${v.id}">Supprimer</button></td></tr>`).join('');
+
+  // Motifs custom par catégorie
+  const customMotifsHtml=CATEGORIES.filter(c=>!c.freeText).map(c=>{
+    const custom=(DATA.customMotifs&&DATA.customMotifs[c.key])||[];
+    return `<div style="margin-bottom:12px;">
+      <div style="font-weight:700;font-size:13px;margin-bottom:6px;">${esc(c.label)} (−${c.points} pt${c.points>1?'s':''})</div>
+      ${custom.length?custom.map((m,i)=>`<span style="display:inline-flex;align-items:center;gap:4px;background:#eef4f1;border:1px solid #cfe3da;border-radius:6px;padding:3px 8px;font-size:12px;margin:2px;">
+        ${esc(m)}<button data-del-motif="${c.key}|${i}" style="background:none;border:none;cursor:pointer;color:#a32b2b;font-size:14px;">×</button>
+      </span>`).join(''):'<span class="muted small">Aucun motif personnalisé</span>'}
+      <div class="row" style="margin-top:6px;gap:6px;">
+        <input type="text" id="new-motif-${c.key}" placeholder="Nouveau motif..." style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;flex:1;">
+        <button class="btn primary" data-add-motif="${c.key}" style="flex-shrink:0;">Ajouter</button>
+      </div>
+    </div>`;
+  }).join('');
+
   return `
   <h2 style="margin-bottom:20px;">⚙ Administration</h2>
 
@@ -1759,18 +1890,31 @@ function renderAdmin(){
   <div class="card">
     <div class="section-title">Personnels & codes d'accès</div>
     <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-      <input type="text" id="staff-prenom" placeholder="Prénom" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:140px;">
-      <input type="text" id="staff-nom" placeholder="Nom" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:140px;">
-      <input type="text" id="staff-code" placeholder="Code 5 chiffres" maxlength="5" inputmode="numeric" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:140px;">
+      <input type="text" id="staff-prenom" placeholder="Prénom" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:130px;">
+      <input type="text" id="staff-nom" placeholder="Nom" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:130px;">
+      <input type="text" id="staff-code" placeholder="Code 5 chiffres" maxlength="5" inputmode="numeric" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:130px;">
       <button class="btn primary" id="btn-add-staff">Ajouter</button>
     </div>
+    <div class="row" style="margin-bottom:12px;gap:8px;flex-wrap:wrap;">
+      <label class="btn" for="import-staff-file" style="cursor:pointer;">📥 Importer CSV/Excel</label>
+      <input type="file" id="import-staff-file" accept=".csv,.xlsx,.xls" class="hidden">
+      <span class="small muted">Colonnes attendues : Prénom, Nom, Code (5 chiffres)</span>
+    </div>
+    <div id="import-staff-status" class="small muted" style="margin-bottom:8px;"></div>
     ${DATA.staff.length?`<table><thead><tr><th>Nom</th><th>Code</th><th></th></tr></thead><tbody>${staffRows}</tbody></table>`
     :`<div class="empty">Aucun personnel enregistré.</div>`}
   </div>
 
+  <!-- MOTIFS PERSONNALISÉS -->
+  <div class="card">
+    <div class="section-title">Motifs personnalisés par catégorie</div>
+    <p class="small muted" style="margin-bottom:14px;">Ajoutez des motifs spécifiques à votre établissement dans chaque catégorie existante.</p>
+    ${customMotifsHtml}
+  </div>
+
   <!-- VACANCES -->
   <div class="card">
-    <div class="section-title">Périodes de vacances (suspendent le suivi)</div>
+    <div class="section-title">Périodes de vacances</div>
     <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px;">
       <input type="text" id="vac-label" placeholder="Libellé (ex: Toussaint)" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:180px;">
       <input type="date" id="vac-debut" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;">
@@ -1778,40 +1922,72 @@ function renderAdmin(){
       <button class="btn primary" id="btn-add-vac">Ajouter</button>
     </div>
     ${DATA.vacances.length?`<table><thead><tr><th>Libellé</th><th>Début</th><th>Fin</th><th></th></tr></thead><tbody>${vacRows}</tbody></table>`
-    :`<div class="empty">Aucune période de vacances enregistrée.</div>`}
+    :`<div class="empty">Aucune période enregistrée.</div>`}
   </div>
 
   <!-- RESET BLOC -->
   <div class="card">
     <div class="section-title">Forcer un début de bloc</div>
-    <p class="small muted" style="margin-bottom:12px;">Force un nouveau bloc de 3 semaines à partir d'un lundi spécifié. Tout le reste de l'année se calera sur ce nouveau cycle.</p>
+    <p class="small muted" style="margin-bottom:12px;">Force un nouveau bloc à partir d'un lundi spécifié.</p>
     <div class="row">
       <input type="date" id="bloc-reset-date" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;">
       <button class="btn primary" id="btn-add-bloc-reset">Appliquer</button>
     </div>
-    ${(DATA.blocResets||[]).length?`<p class="small muted" style="margin-top:10px;">Resets existants : ${DATA.blocResets.map(d=>formatDateFr(d)).join(', ')}</p>`:''}
+    ${(DATA.blocResets||[]).length?`<p class="small muted" style="margin-top:10px;">Resets : ${DATA.blocResets.map(d=>formatDateFr(d)).join(', ')}</p>`:''}
   </div>
 
   <!-- CHANGER MDP -->
   <div class="card">
     <div class="section-title">Changer le mot de passe administrateur</div>
-    <div class="field" style="max-width:300px;">
-      <label>Nouveau mot de passe</label>
-      <input type="password" id="new-admin-pwd">
+    <div class="row" style="flex-wrap:wrap;gap:10px;align-items:flex-end;">
+      <div class="field" style="margin-bottom:0;"><label>Nouveau</label><input type="password" id="new-admin-pwd" style="width:180px;"></div>
+      <div class="field" style="margin-bottom:0;"><label>Confirmer</label><input type="password" id="new-admin-pwd-confirm" style="width:180px;"></div>
+      <button class="btn primary" id="btn-change-admin-pwd">Changer</button>
     </div>
-    <div class="field" style="max-width:300px;">
-      <label>Confirmer</label>
-      <input type="password" id="new-admin-pwd-confirm">
-    </div>
-    <div id="pwd-err" class="err"></div>
-    <button class="btn primary" id="btn-change-admin-pwd">Changer</button>
+    <div id="pwd-err" class="err" style="margin-top:6px;"></div>
   </div>
 
-  <!-- RESET MARCHES -->
+  <!-- RÉINITIALISATIONS -->
   <div class="card">
-    <div class="section-title">Remettre tous les élèves à la marche 2</div>
-    <p class="small muted" style="margin-bottom:12px;">À utiliser au début du premier bloc (31 août 2026) pour initialiser tous les élèves.</p>
-    <button class="btn danger" id="btn-reset-all-marches">Réinitialiser toutes les marches à Marche 2</button>
+    <div class="section-title">Réinitialisations</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-weight:700;font-size:14px;">Remettre tous les élèves à la marche 2</div>
+          <div class="small muted">À utiliser au début du premier bloc (31 août 2026).</div>
+        </div>
+        <button class="btn danger" id="btn-reset-all-marches">Initialiser marche 2</button>
+      </div>
+      <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-weight:700;font-size:14px;">Réinitialiser les points à 20/20</div>
+          <div class="small muted">Réserve admin. Utile en cas de correction d'erreur uniquement.</div>
+        </div>
+        <select id="reset-pts-select" style="padding:7px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;">
+          <option value="">Choisir un élève…</option>
+          ${DATA.students.sort((a,b)=>a.nom.localeCompare(b.nom)).map(s=>`<option value="${s.id}">${esc(displayNom(s))}</option>`).join('')}
+        </select>
+        <button class="btn danger" id="btn-reset-pts-admin">Réinitialiser</button>
+      </div>
+      <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px;border-top:1px solid var(--line);padding-top:10px;">
+        <div>
+          <div style="font-weight:700;font-size:14px;">Réinitialiser le journal d'un élève</div>
+          <div class="small muted">⚠ Sauvegarde automatique avant suppression.</div>
+        </div>
+        <select id="reset-journal-select" style="padding:7px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;">
+          <option value="">Choisir un élève…</option>
+          ${DATA.students.sort((a,b)=>a.nom.localeCompare(b.nom)).map(s=>`<option value="${s.id}">${esc(displayNom(s))}</option>`).join('')}
+        </select>
+        <button class="btn danger" id="btn-reset-journal-one">Effacer le journal</button>
+      </div>
+      <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-weight:700;font-size:14px;">Réinitialiser TOUS les journaux</div>
+          <div class="small muted">⚠ Irréversible. Sauvegarde automatique avant suppression.</div>
+        </div>
+        <button class="btn danger" id="btn-reset-journal-all">Effacer tous les journaux</button>
+      </div>
+    </div>
   </div>`;
 }
 
@@ -1840,6 +2016,28 @@ function attachAdminEvents(){
       await saveData(`Suppression personnel ${s.prenom} ${s.nom}`); toast("Supprimé."); render();
     });
   });
+  // Import CSV/Excel enseignants
+  const importStaffFile=document.getElementById('import-staff-file');
+  if(importStaffFile) importStaffFile.addEventListener('change',async e=>{
+    const file=e.target.files[0]; e.target.value='';
+    if(!file) return;
+    const statusEl=document.getElementById('import-staff-status');
+    statusEl.textContent='Lecture...';
+    try{
+      const rows=await parseStaffFile(file);
+      let added=0, skipped=0;
+      rows.forEach(r=>{
+        if(!r.prenom||!r.nom||!r.code) return;
+        if(!/^\d{5}$/.test(r.code)){ skipped++; return; }
+        if(DATA.staff.some(s=>s.code===r.code)){ skipped++; return; }
+        DATA.staff.push({id:genId(),prenom:r.prenom,nom:r.nom,code:r.code,role:'teacher'});
+        added++;
+      });
+      await saveData(`Import ${added} personnel(s)`);
+      statusEl.textContent=`${added} personnel(s) importé(s)${skipped?`, ${skipped} ignoré(s) (code invalide ou déjà existant)`:''}`;
+      render();
+    }catch(err){ statusEl.textContent='Erreur : '+err.message; }
+  });
   // Vacances
   const av=document.getElementById('btn-add-vac');
   if(av) av.addEventListener('click',async()=>{
@@ -1855,6 +2053,28 @@ function attachAdminEvents(){
     b.addEventListener('click',async()=>{
       DATA.vacances=DATA.vacances.filter(v=>v.id!==b.dataset.delVac);
       await saveData('Suppression vacances'); toast("Supprimées."); render();
+    });
+  });
+  // Motifs personnalisés — ajouter
+  document.querySelectorAll('[data-add-motif]').forEach(b=>{
+    b.addEventListener('click',async()=>{
+      const key=b.dataset.addMotif;
+      const input=document.getElementById('new-motif-'+key);
+      const val=input?input.value.trim():'';
+      if(!val){toast("Saisis un motif.");return;}
+      if(!DATA.customMotifs) DATA.customMotifs={};
+      if(!DATA.customMotifs[key]) DATA.customMotifs[key]=[];
+      DATA.customMotifs[key].push(val);
+      await saveData(`Ajout motif ${key}`); toast("Motif ajouté."); render();
+    });
+  });
+  // Motifs personnalisés — supprimer
+  document.querySelectorAll('[data-del-motif]').forEach(b=>{
+    b.addEventListener('click',async()=>{
+      const [key,idx]=b.dataset.delMotif.split('|');
+      if(!DATA.customMotifs||!DATA.customMotifs[key]) return;
+      DATA.customMotifs[key].splice(parseInt(idx),1);
+      await saveData(`Suppression motif`); render();
     });
   });
   // Reset bloc
@@ -1884,12 +2104,41 @@ function attachAdminEvents(){
   // Reset toutes les marches
   const rm=document.getElementById('btn-reset-all-marches');
   if(rm) rm.addEventListener('click',async()=>{
-    if(!confirm("Remettre TOUS les élèves à la Marche 2 ? Cette action est irréversible.")) return;
+    if(!confirm("Remettre TOUS les élèves à la Marche 2 ?")) return;
     DATA.students.forEach(s=>{
       s.status=MARCHE_DEFAULT; s.pastille=null; s.carnet=null; s.points=20;
       logEvent(s,"Initialisation à la Marche 2 (début de suivi).");
     });
     await saveData('Réinitialisation toutes les marches'); toast("Marches réinitialisées."); render();
+  });
+  // Reset points admin
+  const rpa=document.getElementById('btn-reset-pts-admin');
+  if(rpa) rpa.addEventListener('click',async()=>{
+    const id=document.getElementById('reset-pts-select').value;
+    if(!id){toast("Choisis un élève.");return;}
+    const s=DATA.students.find(x=>x.id===id);
+    if(!s||!confirm(`Réinitialiser les points de ${displayNom(s)} à 20/20 ?`)) return;
+    s.points=20; logEvent(s,"Points réinitialisés à 20/20 par l'administrateur.");
+    await saveData(`Reset points admin ${s.nom}`); toast("Points réinitialisés."); render();
+  });
+  // Reset journal un élève
+  const rjo=document.getElementById('btn-reset-journal-one');
+  if(rjo) rjo.addEventListener('click',async()=>{
+    const id=document.getElementById('reset-journal-select').value;
+    if(!id){toast("Choisis un élève.");return;}
+    const s=DATA.students.find(x=>x.id===id);
+    if(!s||!confirm(`Effacer le journal de ${displayNom(s)} ? Une sauvegarde sera effectuée automatiquement.`)) return;
+    await saveData('Sauvegarde avant reset journal');
+    s.history=[];
+    await saveData(`Reset journal ${s.nom}`); toast("Journal effacé."); render();
+  });
+  // Reset journal tous
+  const rja=document.getElementById('btn-reset-journal-all');
+  if(rja) rja.addEventListener('click',async()=>{
+    if(!confirm("Effacer TOUS les journaux de tous les élèves ? Une sauvegarde sera effectuée automatiquement.")) return;
+    await saveData('Sauvegarde avant reset tous journaux');
+    DATA.students.forEach(s=>{ s.history=[]; });
+    await saveData('Reset tous journaux'); toast("Tous les journaux effacés."); render();
   });
 }
 
@@ -1905,7 +2154,11 @@ function renderQrCodes(){
     const students=DATA.students.filter(s=>s.classeId===c.id).sort((a,b)=>a.nom.localeCompare(b.nom));
     const url=appUrl();
     if(!url) return `<div class="card"><h3>${esc(c.nom)}</h3><p class="small muted">QR codes disponibles uniquement en HTTPS (déployé sur GitHub Pages).</p></div>`;
-    return `<div class="card"><h3 style="margin-bottom:12px;">${esc(c.nom)}</h3>
+    return `<div class="card">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h3>${esc(c.nom)}</h3>
+        <button class="btn" data-print-qr="${c.id}">🖨 Imprimer cette classe</button>
+      </div>
       <div style="display:flex;flex-wrap:wrap;gap:16px;">
         ${students.map(s=>`<div style="text-align:center;">
           <div id="qr-${s.id}" style="width:100px;height:100px;"></div>
@@ -1920,6 +2173,42 @@ function attachQrCodesEvents(){
     if(!host) return;
     const url=appUrl('#eleve='+s.id);
     if(url&&window.QRCode) new QRCode(host,{text:url,width:100,height:100,colorDark:"#23262b",colorLight:"#ffffff"});
+  });
+  // Impression PDF par classe
+  document.querySelectorAll('[data-print-qr]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const classeId=b.dataset.printQr;
+      const classe=DATA.classes.find(c=>c.id===classeId);
+      const students=DATA.students.filter(s=>s.classeId===classeId).sort((a,b)=>a.nom.localeCompare(b.nom));
+      // Collecter les QR codes depuis le DOM (déjà générés)
+      const items=students.map(s=>{
+        const host=document.getElementById('qr-'+s.id);
+        const canvas=host?host.querySelector('canvas'):null;
+        const img=host?host.querySelector('img'):null;
+        const dataUrl=canvas?canvas.toDataURL():img?img.src:'';
+        return {nom:displayNom(s),dataUrl};
+      });
+      const win=window.open('','_blank');
+      if(!win){toast("Pop-up bloquée.");return;}
+      win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+        <title>QR codes — ${esc(classe?classe.nom:'')}</title>
+        <style>
+          body{font-family:sans-serif;margin:20px;}
+          h1{font-size:18px;margin-bottom:20px;}
+          .grid{display:flex;flex-wrap:wrap;gap:20px;}
+          .item{text-align:center;border:1px solid #ddd;border-radius:8px;padding:12px;width:130px;}
+          .item img{width:100px;height:100px;}
+          .item .name{font-size:12px;margin-top:6px;font-weight:700;}
+          @media print{body{margin:10px;}}
+        </style></head><body>
+        <h1>QR codes — ${esc(classe?classe.nom:'Classe')}</h1>
+        <div class="grid">${items.map(it=>`<div class="item">
+          ${it.dataUrl?`<img src="${it.dataUrl}">`:'<div style="width:100px;height:100px;background:#eee;margin:auto;"></div>'}
+          <div class="name">${esc(it.nom)}</div>
+        </div>`).join('')}</div>
+        <scri`+`pt>window.onload=()=>{window.print();};</scri`+`pt></body></html>`);
+      win.document.close();
+    });
   });
 }
 
@@ -2100,6 +2389,48 @@ async function deleteStudent(id){
 /* ============================================================
    IMPORT CSV/EXCEL
    ============================================================ */
+/* parseStaffFile : lit un CSV/Excel avec colonnes Prénom, Nom, Code (5 chiffres)
+   Accepte les en-têtes en français, insensible à la casse et aux accents.
+   Retourne un tableau d'objets {prenom, nom, code}. */
+function parseStaffFile(file){
+  return new Promise((resolve,reject)=>{
+    const ext=file.name.toLowerCase().split('.').pop();
+    const processRows=rows=>{
+      if(!rows.length){ resolve([]); return; }
+      // Détecter la ligne d'en-tête (première ligne)
+      const header=rows[0].map(c=>String(c||'').trim().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,''));
+      const pi=header.findIndex(h=>h.includes('prenom')||h.includes('prénom'));
+      const ni=header.findIndex(h=>h.includes('nom')&&!h.includes('prenom'));
+      const ci=header.findIndex(h=>h.includes('code'));
+      // Si pas d'en-tête reconnu, suppose ordre : Prénom, Nom, Code
+      const pi2=pi>=0?pi:0, ni2=ni>=0?ni:1, ci2=ci>=0?ci:2;
+      const result=[];
+      rows.slice(pi>=0?1:0).forEach(row=>{
+        const prenom=String(row[pi2]||'').trim();
+        const nom=String(row[ni2]||'').trim();
+        const code=String(row[ci2]||'').trim().replace(/\D/g,'').slice(0,5);
+        if(prenom&&nom) result.push({prenom,nom,code});
+      });
+      resolve(result);
+    };
+    if(ext==='csv'){
+      Papa.parse(file,{complete:r=>processRows(r.data),error:reject});
+    } else {
+      const reader=new FileReader();
+      reader.onload=e=>{
+        try{
+          const wb=XLSX.read(e.target.result,{type:'array'});
+          const sheet=wb.Sheets[wb.SheetNames[0]];
+          processRows(XLSX.utils.sheet_to_json(sheet,{header:1}));
+        }catch(err){reject(err);}
+      };
+      reader.onerror=()=>reject(new Error("lecture impossible"));
+      reader.readAsArrayBuffer(file);
+    }
+  });
+}
+
 function extractNamesFromFile(file){
   return new Promise((resolve,reject)=>{
     const ext=file.name.toLowerCase().split('.').pop();
