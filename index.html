@@ -1118,7 +1118,7 @@ function renderAccueil(){
       <td>${esc(displayNom(s))}</td>
       <td>${classe?esc(classe.nom):'<span class="muted">—</span>'}</td>
       <td>${statusBadge(s)}</td>
-      <td>${estSuspendu(s)?'<span class="muted">—</span>':s.points+' / 20'}</td>
+      <td>${s.points} / 20</td>
       <td>${isAdmin()?`<button class="btn warn" data-del-student="${s.id}">Supprimer</button>`:''}</td>
     </tr>`;
   }).join('');
@@ -1216,7 +1216,7 @@ function renderClasseDetail(classeId){
   const rows=students.map(s=>`
     <tr class="row-link" data-id="${s.id}">
       <td>${esc(displayNom(s))}</td><td>${statusBadge(s)}</td>
-      <td>${estSuspendu(s)?'—':s.points+' / 20'}</td>
+      <td>${s.points} / 20</td>
       <td>${isAdmin()?`<button class="btn warn" data-del-student="${s.id}">Supprimer</button>`:''}</td>
     </tr>`).join('');
   return `
