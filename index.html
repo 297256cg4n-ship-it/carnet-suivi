@@ -183,11 +183,30 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
   border-bottom:2px solid var(--line);
 }
 /* POINTS METER */
-.points-meter{height:10px;background:var(--line);border-radius:5px;overflow:hidden;margin-top:8px;}
-.points-meter .fill{height:100%;border-radius:5px;transition:width .3s;}
+.points-meter{
+  height:18px;background:#e8e4d9;border-radius:9px;
+  overflow:visible;margin-top:10px;position:relative;
+}
+.points-meter .fill{
+  height:100%;border-radius:9px;transition:width .4s ease;position:relative;
+  display:flex;align-items:center;justify-content:flex-end;padding-right:8px;
+  min-width:24px;
+}
 .points-meter .fill.ok{background:var(--accent);}
 .points-meter .fill.warn{background:#e67e22;}
 .points-meter .fill.danger{background:#c0392b;}
+.points-meter .fill .fill-label{
+  font-size:11px;font-weight:700;color:#fff;white-space:nowrap;
+}
+/* Marqueurs de l'intervalle cible */
+.points-meter .zone-marker{
+  position:absolute;top:-4px;height:26px;
+  border-left:2px dashed rgba(0,0,0,.25);
+}
+.points-meter .zone-label{
+  position:absolute;top:-18px;font-size:10px;font-weight:700;
+  color:var(--muted);transform:translateX(-50%);white-space:nowrap;
+}
 /* BLOC BADGE */
 .bloc-badge{display:inline-flex;align-items:center;gap:6px;background:#eef4f1;border:1px solid #cfe3da;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;color:var(--accent);}
 /* WEEK BANNER */
@@ -614,6 +633,7 @@ async function loadData(){
   if(!DATA.editedMotifs) DATA.editedMotifs={};
   if(!DATA.memoAttachments) DATA.memoAttachments={};
   if(!DATA.memoPresentation) DATA.memoPresentation='';
+  if(!DATA.memoSections) DATA.memoSections=null; // sera initialisé par initMemoSections()
   // Si currentWeekStart est dans le futur mais qu'un blocReset dans le passé
   // existe, on recale sur ce blocReset (cas où l'admin a forcé un début anticipé)
   const today=todayISO();
@@ -1445,7 +1465,7 @@ function renderFiche(id){
   const classe=DATA.classes.find(c=>c.id===s.classeId);
   const pct=Math.round((s.points/20)*100);
   const [minPts,maxPts]=MARCHE_INTERVALLE[s.status]||[0,20];
-  const fillClass=pct>=80?'ok':pct>=50?'warn':'danger';
+  const fillClass=s.points>maxPts?'ok':s.points>=minPts?'warn':'danger';
 
   // Notification encouragement semaine 3
   const encouragement=checkEncouragementSemaine3(s);
@@ -1562,7 +1582,19 @@ function renderFiche(id){
           ${s.points>=minPts&&s.points<=maxPts?' ✓':s.points>maxPts?' ↑':' ✗'}
         </span>
       </div>
-      <div class="points-meter"><div class="fill ${fillClass}" style="width:${pct}%"></div></div>
+      <div class="points-meter" style="margin-top:18px;">
+        <!-- Marqueur début de zone cible -->
+        <div class="zone-marker" style="left:${Math.round((minPts/20)*100)}%">
+          <div class="zone-label">${minPts}</div>
+        </div>
+        <!-- Marqueur fin de zone cible -->
+        <div class="zone-marker" style="left:${Math.round((maxPts/20)*100)}%">
+          <div class="zone-label">${maxPts}</div>
+        </div>
+        <div class="fill ${fillClass}" style="width:${pct}%">
+          <span class="fill-label">${s.points}pts</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1869,10 +1901,10 @@ function renderStudentReadOnlyView(studentId){
       <td>${esc(h.date)}</td>
       <td>${esc(h.motif||h.label)}${h.points?`<br><span style="font-weight:700;">−${h.points} pt${h.points>1?'s':''}</span>`:''}</td>
     </tr>`).join('');
-  const memoHtml=MARCHES.map((m,i)=>`
-    <div style="margin-bottom:12px;">
-      <div style="font-weight:700;color:var(--m${i+1});margin-bottom:4px;">${i+1}. ${MARCHE_LABEL[m]} (${MARCHE_INTERVALLE_LABEL[m]||''})</div>
-      <p style="font-size:13px;line-height:1.6;color:var(--ink);">${esc(DATA.memo[m]||'—')}</p>
+  const memoHtml=(DATA.memoSections||[]).map(sec=>`
+    <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line);">
+      <div style="font-weight:700;color:${sec.color||'var(--accent)'};margin-bottom:6px;">${esc(sec.titre)}${sec.type==='marche'?` <span style="font-weight:400;font-size:12px;opacity:.8;">(${MARCHE_INTERVALLE_LABEL[sec.marche]||''})</span>`:''}</div>
+      <p style="font-size:13px;line-height:1.6;">${esc(sec.contenu||'—')}</p>
     </div>`).join('');
   sc.innerHTML=`
     <div style="max-width:700px;margin:0 auto;padding:24px;">
@@ -2090,91 +2122,182 @@ function attachRetenuesEvents(){
     });
   });
 }
+/* Initialise DATA.memoSections depuis les anciennes données si nécessaire */
+function initMemoSections(){
+  if(DATA.memoSections&&DATA.memoSections.length) return;
+  // Migration : créer les sections depuis les anciennes données
+  const sections=[];
+  sections.push({id:genId(), type:'presentation', titre:'Présentation du dispositif',
+    contenu:DATA.memoPresentation||'', color:null, attachments:[]});
+  MARCHES.forEach((m,i)=>{
+    sections.push({id:genId(), type:'marche', marche:m, titre:MARCHE_LABEL[m],
+      contenu:DATA.memo[m]||'', color:MARCHE_COLOR[m],
+      attachments:(DATA.memoAttachments&&DATA.memoAttachments[m])||[]});
+  });
+  DATA.memoSections=sections;
+}
+
 function renderMemo(){
-  const attachments=DATA.memoAttachments||{};
-  const presentation=DATA.memoPresentation||'';
+  initMemoSections();
+  const sections=DATA.memoSections;
+  const sectionsHtml=sections.map((sec,idx)=>{
+    const borderColor=sec.color||'var(--accent)';
+    const attHtml=sec.attachments&&sec.attachments.length?`
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+        ${sec.attachments.map((a,ai)=>`
+        <div style="border:1px solid var(--line);border-radius:8px;overflow:hidden;max-width:200px;">
+          ${a.type==='image'?`<img src="${a.url}" style="width:100%;max-height:120px;object-fit:cover;">`
+          :a.type==='video'?`<video src="${a.url}" controls style="width:100%;max-height:120px;"></video>`
+          :`<a href="${a.url}" target="_blank" style="display:block;padding:10px 14px;font-size:13px;color:var(--accent);">📄 ${esc(a.name||'Document')}</a>`}
+          ${isAdmin()?`<button data-del-sec-att="${sec.id}|${ai}" style="display:block;width:100%;padding:4px;background:#fdecea;border:none;border-top:1px solid var(--line);font-size:12px;cursor:pointer;color:#a32b2b;">Supprimer</button>`:''}
+        </div>`).join('')}
+      </div>`:'';
+    const titreDisplay=sec.type==='marche'
+      ?`${sec.titre} <span style="font-weight:400;font-size:12px;opacity:.8;">(${MARCHE_INTERVALLE_LABEL[sec.marche]||''})</span>`
+      :esc(sec.titre);
+    return `
+    <div class="card" style="border-left:4px solid ${borderColor};" data-sec-id="${sec.id}">
+      ${isAdmin()?`
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div class="section-title" style="color:${borderColor};margin-bottom:0;">${titreDisplay}</div>
+        <div class="row" style="gap:6px;">
+          ${idx>0?`<button class="btn" data-sec-up="${sec.id}" style="padding:4px 8px;font-size:13px;" title="Monter">↑</button>`:''}
+          ${idx<sections.length-1?`<button class="btn" data-sec-down="${sec.id}" style="padding:4px 8px;font-size:13px;" title="Descendre">↓</button>`:''}
+          <button class="btn warn" data-sec-del="${sec.id}" style="padding:4px 8px;font-size:12px;">✕ Supprimer</button>
+        </div>
+      </div>
+      <textarea data-sec-content="${sec.id}" style="width:100%;min-height:90px;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;margin-bottom:8px;line-height:1.6;">${esc(sec.contenu||'')}</textarea>
+      ${attHtml}
+      <div style="margin-top:8px;">
+        <label class="btn" for="sec-att-${sec.id}" style="cursor:pointer;font-size:12px;">+ Image / PDF / vidéo</label>
+        <input type="file" id="sec-att-${sec.id}" data-sec-att-id="${sec.id}" accept="image/*,video/*,.pdf" class="hidden">
+      </div>`
+      :`
+      <div class="section-title" style="color:${borderColor};">${titreDisplay}</div>
+      <p style="white-space:pre-wrap;font-size:14px;line-height:1.7;">${esc(sec.contenu||'Aucun contenu pour le moment.')}</p>
+      ${attHtml}`}
+    </div>`;
+  }).join('');
+
   return `
   <div class="row" style="justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
     <h2>Mémo — Les Marches</h2>
-    ${isAdmin()?`<button class="btn primary" id="btn-save-memo">Enregistrer les modifications</button>`:''}
+    ${isAdmin()?`<button class="btn primary" id="btn-save-memo">💾 Enregistrer</button>`:''}
   </div>
-
-  <!-- Encart présentation -->
-  <div class="card" style="border-left:4px solid var(--accent);">
-    <div class="section-title">Présentation du dispositif</div>
-    ${isAdmin()
-      ?`<textarea id="memo-presentation" style="width:100%;min-height:120px;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;line-height:1.6;">${esc(presentation)}</textarea>`
-      :`<p style="white-space:pre-wrap;font-size:14px;line-height:1.7;">${esc(presentation||'Aucune présentation rédigée pour le moment.')}</p>`}
+  ${sectionsHtml}
+  ${isAdmin()?`
+  <div class="card" style="border:2px dashed var(--line);background:transparent;">
+    <div class="section-title">Ajouter une rubrique</div>
+    <div class="row" style="gap:8px;flex-wrap:wrap;">
+      <input type="text" id="new-sec-titre" placeholder="Titre de la rubrique..." style="flex:1;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;min-width:200px;">
+      <input type="color" id="new-sec-color" value="#0f5d4f" style="width:44px;height:38px;border:1px solid var(--line);border-radius:8px;cursor:pointer;padding:2px;">
+      <button class="btn primary" id="btn-add-sec">+ Ajouter</button>
+    </div>
   </div>
-
-  <!-- Une carte par marche -->
-  ${MARCHES.map((m,i)=>{
-    const color=`var(--m${i+1})`;
-    const att=attachments[m]||[];
-    return `
-  <div class="card" style="border-left:4px solid ${color};">
-    <div class="section-title" style="color:${color};">${MARCHE_LABEL[m]} <span style="font-weight:400;font-size:12px;opacity:.8;">(${MARCHE_INTERVALLE_LABEL[m]||''})</span></div>
-    ${isAdmin()
-      ?`<textarea id="memo-${m}" style="width:100%;min-height:90px;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;margin-bottom:10px;">${esc(DATA.memo[m]||'')}</textarea>`
-      :`<p style="white-space:pre-wrap;font-size:14px;line-height:1.6;margin-bottom:${att.length?'12px':'0'}">${esc(DATA.memo[m]||'Aucun contenu pour le moment.')}</p>`}
-    ${att.length?`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">${att.map((a,ai)=>`
-      <div style="border:1px solid var(--line);border-radius:8px;overflow:hidden;max-width:200px;">
-        ${a.type==='image'?`<img src="${a.url}" style="width:100%;max-height:120px;object-fit:cover;">`
-        :a.type==='video'?`<video src="${a.url}" controls style="width:100%;max-height:120px;"></video>`
-        :`<a href="${a.url}" target="_blank" style="display:block;padding:10px 14px;font-size:13px;color:var(--accent);">📄 ${esc(a.name||'Document')}</a>`}
-        ${isAdmin()?`<button data-del-att="${m}|${ai}" style="display:block;width:100%;padding:4px;background:#fdecea;border:none;border-top:1px solid var(--line);font-size:12px;cursor:pointer;color:#a32b2b;">Supprimer</button>`:''}
-      </div>`).join('')}</div>`:''}
-    ${isAdmin()?`<div style="margin-top:10px;">
-      <label class="btn" for="memo-att-${m}" style="cursor:pointer;font-size:12px;">+ Ajouter image / PDF / vidéo</label>
-      <input type="file" id="memo-att-${m}" data-marche="${m}" accept="image/*,video/*,.pdf" class="hidden">
-    </div>`:''}
-  </div>`;
-  }).join('')}
-  ${isAdmin()?`<div style="text-align:right;margin-top:8px;">
-    <button class="btn primary" id="btn-save-memo-bottom">Enregistrer les modifications</button>
+  <div style="text-align:right;margin-top:8px;">
+    <button class="btn primary" id="btn-save-memo-bottom">💾 Enregistrer</button>
   </div>`:''}`;
 }
 
 function attachMemoEvents(){
   const saveMemo=async()=>{
-    const pres=document.getElementById('memo-presentation');
-    if(pres) DATA.memoPresentation=pres.value;
-    MARCHES.forEach(m=>{
-      const el=document.getElementById('memo-'+m);
-      if(el) DATA.memo[m]=el.value;
+    initMemoSections();
+    // Lire les contenus de tous les textareas
+    document.querySelectorAll('[data-sec-content]').forEach(ta=>{
+      const sec=DATA.memoSections.find(s=>s.id===ta.dataset.secContent);
+      if(sec) sec.contenu=ta.value;
     });
     await saveData('Mise à jour mémo'); toast("Mémo enregistré.");
   };
-  const sb=document.getElementById('btn-save-memo');
-  if(sb) sb.addEventListener('click',saveMemo);
-  const sb2=document.getElementById('btn-save-memo-bottom');
-  if(sb2) sb2.addEventListener('click',saveMemo);
-  // Pièces jointes par marche (stockées en base64 dans DATA.memoAttachments)
-  MARCHES.forEach(m=>{
-    const inp=document.getElementById('memo-att-'+m);
-    if(!inp) return;
+  document.getElementById('btn-save-memo')?.addEventListener('click',saveMemo);
+  document.getElementById('btn-save-memo-bottom')?.addEventListener('click',saveMemo);
+
+  // Monter une section
+  document.querySelectorAll('[data-sec-up]').forEach(b=>{
+    b.addEventListener('click',async()=>{
+      const idx=DATA.memoSections.findIndex(s=>s.id===b.dataset.secUp);
+      if(idx<=0) return;
+      // Sauvegarder les contenus avant de réordonner
+      document.querySelectorAll('[data-sec-content]').forEach(ta=>{
+        const sec=DATA.memoSections.find(s=>s.id===ta.dataset.secContent);
+        if(sec) sec.contenu=ta.value;
+      });
+      [DATA.memoSections[idx-1],DATA.memoSections[idx]]=[DATA.memoSections[idx],DATA.memoSections[idx-1]];
+      await saveData('Réordonnancement mémo'); render();
+    });
+  });
+
+  // Descendre une section
+  document.querySelectorAll('[data-sec-down]').forEach(b=>{
+    b.addEventListener('click',async()=>{
+      const idx=DATA.memoSections.findIndex(s=>s.id===b.dataset.secDown);
+      if(idx<0||idx>=DATA.memoSections.length-1) return;
+      document.querySelectorAll('[data-sec-content]').forEach(ta=>{
+        const sec=DATA.memoSections.find(s=>s.id===ta.dataset.secContent);
+        if(sec) sec.contenu=ta.value;
+      });
+      [DATA.memoSections[idx],DATA.memoSections[idx+1]]=[DATA.memoSections[idx+1],DATA.memoSections[idx]];
+      await saveData('Réordonnancement mémo'); render();
+    });
+  });
+
+  // Supprimer une section
+  document.querySelectorAll('[data-sec-del]').forEach(b=>{
+    b.addEventListener('click',async()=>{
+      const sec=DATA.memoSections.find(s=>s.id===b.dataset.secDel);
+      if(!sec||!confirm(`Supprimer la rubrique "${sec.titre}" ?`)) return;
+      DATA.memoSections=DATA.memoSections.filter(s=>s.id!==sec.id);
+      await saveData('Suppression section mémo'); render();
+    });
+  });
+
+  // Ajouter une section
+  document.getElementById('btn-add-sec')?.addEventListener('click',async()=>{
+    const titre=document.getElementById('new-sec-titre').value.trim();
+    const color=document.getElementById('new-sec-color').value;
+    if(!titre){toast("Saisis un titre.");return;}
+    initMemoSections();
+    // Sauvegarder les contenus en cours
+    document.querySelectorAll('[data-sec-content]').forEach(ta=>{
+      const sec=DATA.memoSections.find(s=>s.id===ta.dataset.secContent);
+      if(sec) sec.contenu=ta.value;
+    });
+    DATA.memoSections.push({id:genId(),type:'custom',titre,contenu:'',color,attachments:[]});
+    await saveData('Ajout section mémo'); render();
+  });
+
+  // Pièces jointes par section
+  document.querySelectorAll('[data-sec-att-id]').forEach(inp=>{
     inp.addEventListener('change',async e=>{
       const file=e.target.files[0]; e.target.value='';
       if(!file) return;
+      const secId=inp.dataset.secAttId;
+      const sec=DATA.memoSections.find(s=>s.id===secId);
+      if(!sec) return;
+      // Sauvegarder les contenus en cours
+      document.querySelectorAll('[data-sec-content]').forEach(ta=>{
+        const s2=DATA.memoSections.find(s=>s.id===ta.dataset.secContent);
+        if(s2) s2.contenu=ta.value;
+      });
       const type=file.type.startsWith('image/')?'image':file.type.startsWith('video/')?'video':'pdf';
       const reader=new FileReader();
       reader.onload=async ev=>{
-        if(!DATA.memoAttachments) DATA.memoAttachments={};
-        if(!DATA.memoAttachments[m]) DATA.memoAttachments[m]=[];
-        DATA.memoAttachments[m].push({type,url:ev.target.result,name:file.name});
+        if(!sec.attachments) sec.attachments=[];
+        sec.attachments.push({type,url:ev.target.result,name:file.name});
         await saveData('Ajout pièce jointe mémo'); toast("Fichier ajouté."); render();
       };
       reader.readAsDataURL(file);
     });
   });
-  // Supprimer pièce jointe
-  document.querySelectorAll('[data-del-att]').forEach(b=>{
+
+  // Supprimer pièce jointe de section
+  document.querySelectorAll('[data-del-sec-att]').forEach(b=>{
     b.addEventListener('click',async()=>{
-      const [m,ai]=b.dataset.delAtt.split('|');
-      if(DATA.memoAttachments&&DATA.memoAttachments[m]){
-        DATA.memoAttachments[m].splice(parseInt(ai),1);
-        await saveData('Suppression pièce jointe'); render();
-      }
+      const [secId,aiStr]=b.dataset.delSecAtt.split('|');
+      const sec=DATA.memoSections.find(s=>s.id===secId);
+      if(!sec||!sec.attachments) return;
+      sec.attachments.splice(parseInt(aiStr),1);
+      await saveData('Suppression pièce jointe mémo'); render();
     });
   });
 }
