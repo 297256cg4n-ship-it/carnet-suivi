@@ -125,26 +125,22 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
 .badge.m5{background:var(--m5);}
 .badge.m-pastille{background:#888;color:#fff;}
 .badge.m-carnet{background:#e67e22;color:#fff;}
-/* LADDER — design en escalier, hauteur croissante, numéro affiché dessus */
-.ladder{display:flex;flex-direction:row;align-items:flex-end;gap:6px;margin:16px 0 12px;height:130px;}
-.step{
-  flex:1;border-radius:8px 8px 0 0;display:flex;flex-direction:column;
-  align-items:center;justify-content:flex-start;padding-top:8px;
-  font-weight:700;cursor:default;position:relative;min-height:52px;
+/* LADDER — escalier 5 marches alignées par le bas */
+.ladder-container{
+  display:flex;flex-direction:row;align-items:flex-end;
+  gap:6px;height:130px;margin:14px 0 4px;
 }
-.step.m1{height:35%;background:var(--m1-light);border:2px solid var(--m1);color:var(--m1);}
-.step.m2{height:55%;background:var(--m2-light);border:2px solid var(--m2);color:var(--m2);}
-.step.m3{height:75%;background:var(--m3-light);border:2px solid var(--m3);color:var(--m3);}
-.step.m4{height:78%;background:var(--m4-light);border:2px solid var(--m4);color:var(--m4);}
-.step.m5{height:98%;background:var(--m5-light);border:2px solid var(--m5);color:var(--m5);}
-.step.current.m1{background:var(--m1);color:#fff;box-shadow:0 4px 14px rgba(232,168,56,.5);}
-.step.current.m2{background:var(--m2);color:#fff;box-shadow:0 4px 14px rgba(61,155,196,.5);}
-.step.current.m3{background:var(--m3);color:#fff;box-shadow:0 4px 14px rgba(91,163,91,.5);}
-.step.current.m4{background:var(--m4);color:#fff;box-shadow:0 4px 14px rgba(46,125,94,.5);}
-.step .step-num{font-size:22px;font-weight:800;line-height:1;margin-bottom:2px;}
-.step .step-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;opacity:.85;text-align:center;padding:0 2px;}
-.step.current .step-label{opacity:1;}
-.step .step-arrow{position:absolute;bottom:5px;font-size:13px;}
+.step{
+  flex:1;border-radius:6px 6px 0 0;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  padding-top:6px;font-weight:800;color:#fff;cursor:default;
+}
+.step.m1{background:var(--m1);}
+.step.m2{background:var(--m2);}
+.step.m3{background:var(--m3);}
+.step.m4{background:var(--m4);}
+.step.m5{background:var(--m5);}
+.step.current{box-shadow:0 4px 16px rgba(0,0,0,.3);}
 /* MARCHE PICKER */
 .marche-picker{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
 .marche-picker button{padding:8px 16px;border-radius:8px;border:2px solid transparent;font-size:13px;font-weight:700;color:#fff;cursor:pointer;}
@@ -1028,7 +1024,7 @@ function detectRole(fonction){
     return 'vie-scolaire';
   return 'teacher';
 }
-function marcheLabelNum(m){ return `${MARCHES.indexOf(m)+1}. ${MARCHE_LABEL[m]||m}`; }
+function marcheLabelNum(m){ return MARCHE_LABEL[m]||m; }
 
 /* --- Affichage abrégé du nom ---
    Format stocké : "DUPONT Lucas" (nom de famille en premier).
@@ -1163,7 +1159,7 @@ function checkPastillesExpirees(){
   const today=todayISO();
   let changed=false;
   DATA.students.forEach(s=>{
-    // Pastille manuelle : expire 7 jours après le début
+    // Pastille 7 jours : expire 7 jours après le début
     if(s.pastille&&s.pastille.fin&&today>s.pastille.fin){
       logEvent(s,`Pastille levée automatiquement (7 jours écoulés — fin le ${formatDateFr(s.pastille.fin)}).`);
       s.pastille=null;
@@ -1455,15 +1451,14 @@ function renderFiche(id){
   const encouragement=checkEncouragementSemaine3(s);
 
   // LADDER — 5 marches avec intervalle affiché au-dessus
+  const STEP_H=[26,52,78,104,128];
   const ladderSteps=MARCHES.map((m,i)=>{
     const [mn,mx]=MARCHE_INTERVALLE[m]||[0,20];
     const isCurrent=s.status===m;
     return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;">
-      <div style="font-size:10px;font-weight:700;color:var(--m${i+1});margin-bottom:3px;white-space:nowrap;">${mn}-${mx}pts</div>
-      <div class="step ${m} ${isCurrent?'current':''}">
-        <span class="step-num">${i+1}</span>
-        <span class="step-label">${MARCHE_LABEL[m]}</span>
-        ${isCurrent?'<span class="step-arrow">▲</span>':''}
+      <div style="font-size:10px;font-weight:700;margin-bottom:4px;color:${isCurrent?MARCHE_COLOR[m]:'var(--muted)'};">${mn}-${mx}pts</div>
+      <div class="step ${m} ${isCurrent?'current':''}" style="height:${STEP_H[i]}px;width:100%;align-self:flex-end;">
+        ${isCurrent?`<span style="font-size:18px;line-height:1;">${i+1}</span><span style="font-size:13px;margin-top:2px;">▲</span>`:''}
       </div>
     </div>`;
   }).join('');
@@ -1515,16 +1510,16 @@ function renderFiche(id){
         ?`<button class="btn" id="btn-toggle-pastille" style="border-color:#c0392b;color:#c0392b;">🔓 Lever la pastille (admin)</button>`
         :`<span class="small muted">Pastille automatique — levée automatiquement le ${formatDateFr(finPastille(s))}</span>`;
     } else {
-      pastilleBtn=`<button class="btn" id="btn-toggle-pastille" style="border-color:#888;color:#555;">🔓 Lever la pastille manuelle</button>`;
+      pastilleBtn=`<button class="btn" id="btn-toggle-pastille" style="border-color:#888;color:#555;">🔓 Lever la pastille 7 jours</button>`;
     }
   } else {
-    pastilleBtn=`<button class="btn danger" id="btn-toggle-pastille">⚠ Mettre en pastille</button>`;
+    pastilleBtn=`<button class="btn danger" id="btn-toggle-pastille">⚠ Mettre en pastille (7 jours)</button>`;
   }
 
   // Bannière pastille très visible
   const pastilleBanner=estEnPastille(s)?`
     <div class="pastille-active-banner">
-      <span class="pastille-icon">🚫</span>
+      <span class="pastille-icon" style="font-size:32px;line-height:1;">🔴</span>
       <div class="pastille-info">
         <div>Droits suspendus — Pastille ${typePastille(s)==='auto'?'automatique (0 point)':'manuelle'}</div>
         <small>Jusqu'au ${formatDateFr(finPastille(s))} · ${s.status.toUpperCase()} Marche ${MARCHES.indexOf(s.status)+1}</small>
@@ -1557,7 +1552,7 @@ function renderFiche(id){
 
   <div class="card">
     <div class="section-title">Marche actuelle</div>
-    <div class="ladder" style="height:140px;">${ladderSteps}</div>
+    <div class="ladder-container">${ladderSteps}</div>
     <div style="margin-top:14px;">
       <div class="row" style="justify-content:space-between;margin-bottom:6px;">
         <span class="small"><strong>${s.points}</strong> / 20 pts
@@ -1675,12 +1670,12 @@ function attachFicheEvents(){
       s.pastille=null;
       await saveData(`Levée pastille ${s.nom}`); render();
     } else {
-      // Mettre en pastille manuelle (7 jours glissants)
-      if(!confirm("⚠️ Avant de prendre cette décision, merci de vous concerter avec 2 autres personnels du collège.\n\nConfirmer la mise en pastille manuelle (7 jours glissants) ?")) return;
+      // Mettre en pastille 7 jours (7 jours glissants)
+      if(!confirm("⚠️ Avant de prendre cette décision, merci de vous concerter avec 2 autres personnels du collège.\n\nConfirmer la mise en pastille 7 jours (7 jours glissants) ?")) return;
       const fin=addDays(todayISO(),7);
       s.pastille={type:'manuelle', debut:todayISO(), fin};
-      logEvent(s,`Mise en pastille manuelle (concertation requise) — jusqu'au ${formatDateFr(fin)}.`);
-      await saveData(`Pastille manuelle ${s.nom}`); render();
+      logEvent(s,`Pastille 7 jours (concertation requise) — jusqu'au ${formatDateFr(fin)}.`);
+      await saveData(`Pastille 7 jours ${s.nom}`); render();
     }
   });
 
@@ -1858,12 +1853,17 @@ function renderStudentReadOnlyView(studentId){
     }
   }
 
-  const ladder=MARCHES.map((m,i)=>`
-    <div class="step ${m} ${s.status===m?'current':''}">
-      <span class="step-num">${i+1}</span>
-      <span class="step-label">${MARCHE_LABEL[m]}</span>
-      ${s.status===m?'<span class="step-arrow">▲</span>':''}
-    </div>`).join('');
+  const STEP_H2=[26,52,78,104,128];
+  const ladder=MARCHES.map((m,i)=>{
+    const [mn,mx]=MARCHE_INTERVALLE[m]||[0,20];
+    const isCurrent=s.status===m;
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+      <div style="font-size:10px;font-weight:700;margin-bottom:4px;color:${isCurrent?MARCHE_COLOR[m]:'var(--muted)'};">${mn}-${mx}pts</div>
+      <div class="step ${m} ${isCurrent?'current':''}" style="height:${STEP_H2[i]}px;width:100%;align-self:flex-end;">
+        ${isCurrent?`<span style="font-size:18px;line-height:1;">${i+1}</span><span style="font-size:13px;margin-top:2px;">▲</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
   const histRows=s.history.slice().reverse().slice(0,30).map(h=>`
     <tr class="${rowClass(h)}">
       <td>${esc(h.date)}</td>
@@ -1880,7 +1880,7 @@ function renderStudentReadOnlyView(studentId){
       <h2 style="font-size:22px;">${esc(displayNom(s))}</h2>
       <p class="small muted">${classe?esc(classe.nom):''} · Consultation seule</p>
       <div class="card" style="margin-top:16px;">
-        <div class="ladder">${ladder}</div>
+        <div class="ladder-container">${ladder}</div>
         <div style="margin-top:10px;">
           ${estEnPastille(s)?`<span class="badge m-pastille">Pastille jusqu'au ${formatDateFr(finPastille(s))}</span> `:''}
           ${estEnCarnet(s)?`<span class="badge m-carnet">Carnet oublié</span> `:''}
@@ -1963,7 +1963,7 @@ function renderPastilles(){
     if(estEnPastille(s)){
       const t=typePastille(s);
       const fin=finPastille(s);
-      badges.push(`<span class="badge m-pastille">${t==='auto'?'Pastille auto':'Pastille manuelle'}</span>`);
+      badges.push(`<span class="badge m-pastille">${t==='auto'?'Pastille auto':'Pastille 7 jours'}</span>`);
     }
     if(estEnCarnet(s)){
       badges.push(`<span class="badge m-carnet">Carnet oublié</span>`);
@@ -2113,7 +2113,7 @@ function renderMemo(){
     const att=attachments[m]||[];
     return `
   <div class="card" style="border-left:4px solid ${color};">
-    <div class="section-title" style="color:${color};">${i+1}. ${MARCHE_LABEL[m]}</div>
+    <div class="section-title" style="color:${color};">${MARCHE_LABEL[m]} <span style="font-weight:400;font-size:12px;opacity:.8;">(${MARCHE_INTERVALLE_LABEL[m]||''})</span></div>
     ${isAdmin()
       ?`<textarea id="memo-${m}" style="width:100%;min-height:90px;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;margin-bottom:10px;">${esc(DATA.memo[m]||'')}</textarea>`
       :`<p style="white-space:pre-wrap;font-size:14px;line-height:1.6;margin-bottom:${att.length?'12px':'0'}">${esc(DATA.memo[m]||'Aucun contenu pour le moment.')}</p>`}
@@ -2129,12 +2129,14 @@ function renderMemo(){
       <input type="file" id="memo-att-${m}" data-marche="${m}" accept="image/*,video/*,.pdf" class="hidden">
     </div>`:''}
   </div>`;
-  }).join('')}`;
+  }).join('')}
+  ${isAdmin()?`<div style="text-align:right;margin-top:8px;">
+    <button class="btn primary" id="btn-save-memo-bottom">Enregistrer les modifications</button>
+  </div>`:''}`;
 }
 
 function attachMemoEvents(){
-  const sb=document.getElementById('btn-save-memo');
-  if(sb) sb.addEventListener('click',async()=>{
+  const saveMemo=async()=>{
     const pres=document.getElementById('memo-presentation');
     if(pres) DATA.memoPresentation=pres.value;
     MARCHES.forEach(m=>{
@@ -2142,7 +2144,11 @@ function attachMemoEvents(){
       if(el) DATA.memo[m]=el.value;
     });
     await saveData('Mise à jour mémo'); toast("Mémo enregistré.");
-  });
+  };
+  const sb=document.getElementById('btn-save-memo');
+  if(sb) sb.addEventListener('click',saveMemo);
+  const sb2=document.getElementById('btn-save-memo-bottom');
+  if(sb2) sb2.addEventListener('click',saveMemo);
   // Pièces jointes par marche (stockées en base64 dans DATA.memoAttachments)
   MARCHES.forEach(m=>{
     const inp=document.getElementById('memo-att-'+m);
@@ -2572,7 +2578,7 @@ function attachAdminEvents(){
       await _ghWriteFile('donnees-sauvegarde.json', DATA, null, `Sauvegarde avant reset journal — ${s.nom}`);
       toast("✓ Sauvegarde effectuée dans donnees-sauvegarde.json");
     }catch(e){ toast("⚠ Sauvegarde impossible, annulation."); return; }
-    s.history=[]; s.pastille=null; s.carnet=null; s.retenuePendante=null; s.retenuesSeuils=[]; s.retardEmailsSent=[];
+    s.history=[]; s.pastille=null; s.carnet=null; s.retenuePendante=null; s.retenuesSeuils=[]; s.retardEmailsSent=[]; s.notifBlocFin=null; s.points=20;
     await saveData(`Reset journal ${s.nom}`); toast("Journal et suspensions effacés."); render();
   });
   // Reset journal tous
@@ -2584,7 +2590,7 @@ function attachAdminEvents(){
       await _ghWriteFile('donnees-sauvegarde.json', DATA, null, 'Sauvegarde avant reset tous journaux');
       toast("✓ Sauvegarde effectuée dans donnees-sauvegarde.json");
     }catch(e){ toast("⚠ Sauvegarde impossible, annulation."); return; }
-    DATA.students.forEach(s=>{ s.history=[]; s.pastille=null; s.carnet=null; s.retenuePendante=null; s.retenuesSeuils=[]; s.retardEmailsSent=[]; });
+    DATA.students.forEach(s=>{ s.history=[]; s.pastille=null; s.carnet=null; s.retenuePendante=null; s.retenuesSeuils=[]; s.retardEmailsSent=[]; s.notifBlocFin=null; s.points=20; });
     await saveData('Reset tous journaux'); toast("Tous les journaux et suspensions effacés."); render();
   });
 }
@@ -3058,7 +3064,7 @@ function printBilanClasse(classeId,period){
     </style></head><body>
     <h1>Bilan des marches — ${esc(classe.nom)}</h1>
     <div class="sub">${period==='previous'?'Bloc précédent':'Bilan instantané'} · Généré le ${formatDateFr(today)}</div>
-    <table><thead><tr><th>Élève</th><th>Marche</th><th>Intervalle</th><th>Points</th><th>Évolution</th></tr></thead><tbody>${rows}</tbody></table>
+    <table><thead><tr><th>Élève</th><th>Marche</th><th>Intervalle</th><th>Points</th><th>Évolution des marches</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="footer">Carnet de suivi des Marches · Collège Claude Debussy</div>
     <scri`+`pt>window.onload=()=>{window.print();};</scri`+`pt></body></html>`);
   win.document.close();
