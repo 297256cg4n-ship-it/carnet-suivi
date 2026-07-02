@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Carnet de suivi — Marches</title>
+<link rel="manifest" href="data:application/json,{%22name%22:%22Carnet%20de%20suivi%22,%22short_name%22:%22Marches%22,%22display%22:%22standalone%22,%22background_color%22:%22%23f6f3ec%22,%22theme_color%22:%220f5d4f%22}">
+<meta name="theme-color" content="#0f5d4f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Marches">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f5d4f'/%3E%3Crect x='8' y='75' width='14' height='17' rx='3' fill='%23e8a838'/%3E%3Crect x='25' y='60' width='14' height='32' rx='3' fill='%233d9bc4'/%3E%3Crect x='42' y='45' width='14' height='47' rx='3' fill='%235ba35b'/%3E%3Crect x='59' y='30' width='14' height='62' rx='3' fill='%237d5a3c'/%3E%3Crect x='76' y='15' width='14' height='77' rx='3' fill='%238b2fc9'/%3E%3C/svg%3E">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -11,8 +16,8 @@
 :root{
   --ink:#23262b;--paper:#f6f3ec;--paper-2:#ffffff;--line:#dcd6c6;
   --accent:#0f5d4f;--accent-2:#b5552b;--muted:#7a7568;
-  --m1:#e8a838;--m2:#3d9bc4;--m3:#5ba35b;--m4:#7d5a3c;
-  --m1-light:#fdf6e3;--m2-light:#e8f4f9;--m3-light:#edf7ed;--m4-light:#f2ece6;
+  --m1:#e8a838;--m2:#3d9bc4;--m3:#5ba35b;--m4:#7d5a3c;--m5:#8b2fc9;
+  --m1-light:#fdf6e3;--m2-light:#e8f4f9;--m3-light:#edf7ed;--m4-light:#f2ece6;--m5-light:#f5eeff;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Georgia',serif;background:var(--paper);color:var(--ink);min-height:100vh;}
@@ -117,6 +122,7 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
 .m1{background:var(--m1)!important;}.m2{background:var(--m2)!important;}.m3{background:var(--m3)!important;}.m4{background:var(--m4)!important;}
 .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;color:#fff;}
 .badge.m1{background:var(--m1);}.badge.m2{background:var(--m2);}.badge.m3{background:var(--m3);}.badge.m4{background:var(--m4);}
+.badge.m5{background:var(--m5);}
 .badge.m-pastille{background:#888;color:#fff;}
 .badge.m-carnet{background:#e67e22;color:#fff;}
 /* LADDER — design en escalier, hauteur croissante, numéro affiché dessus */
@@ -129,7 +135,8 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
 .step.m1{height:35%;background:var(--m1-light);border:2px solid var(--m1);color:var(--m1);}
 .step.m2{height:55%;background:var(--m2-light);border:2px solid var(--m2);color:var(--m2);}
 .step.m3{height:75%;background:var(--m3-light);border:2px solid var(--m3);color:var(--m3);}
-.step.m4{height:98%;background:var(--m4-light);border:2px solid var(--m4);color:var(--m4);}
+.step.m4{height:78%;background:var(--m4-light);border:2px solid var(--m4);color:var(--m4);}
+.step.m5{height:98%;background:var(--m5-light);border:2px solid var(--m5);color:var(--m5);}
 .step.current.m1{background:var(--m1);color:#fff;box-shadow:0 4px 14px rgba(232,168,56,.5);}
 .step.current.m2{background:var(--m2);color:#fff;box-shadow:0 4px 14px rgba(61,155,196,.5);}
 .step.current.m3{background:var(--m3);color:#fff;box-shadow:0 4px 14px rgba(91,163,91,.5);}
@@ -143,6 +150,7 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
 .marche-picker button{padding:8px 16px;border-radius:8px;border:2px solid transparent;font-size:13px;font-weight:700;color:#fff;cursor:pointer;}
 .marche-picker button.m1{background:var(--m1);}.marche-picker button.m2{background:var(--m2);}
 .marche-picker button.m3{background:var(--m3);}.marche-picker button.m4{background:var(--m4);}
+.marche-picker button.m5{background:var(--m5);}
 .marche-picker button.active{border-color:#23262b;box-shadow:0 0 0 2px #23262b;}
 /* CATEGORIES — menu déroulant vertical clair */
 .cat-list{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
@@ -192,6 +200,20 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
 .pastille-banner{display:flex;align-items:center;background:#fdeceb;border:1px solid #e3b9b9;color:#7a2020;border-radius:9px;padding:12px 16px;margin-bottom:16px;font-size:14px;font-weight:700;}
 .pastille-card{border-color:#e3b9b9;}
 .pastille-card table th{color:#a32b2b;}
+/* Pastille bannière visible */
+.pastille-active-banner{
+  background:linear-gradient(135deg,#c0392b,#e74c3c);
+  color:#fff;border-radius:10px;padding:16px 20px;margin-bottom:14px;
+  display:flex;align-items:center;gap:12px;font-weight:700;font-size:15px;
+  box-shadow:0 4px 16px rgba(192,57,43,.4);
+}
+.pastille-active-banner .pastille-icon{font-size:28px;}
+.pastille-active-banner .pastille-info{flex:1;}
+.pastille-active-banner .pastille-info small{font-weight:400;font-size:13px;opacity:.9;}
+/* Notification élève */
+.eleve-notif{background:linear-gradient(135deg,#0f5d4f,#1a8a6f);color:#fff;
+  border-radius:10px;padding:16px 20px;margin-bottom:14px;font-size:14px;line-height:1.5;}
+.eleve-notif-warning{background:linear-gradient(135deg,#e67e22,#f39c12);}
 /* Journal mobile-friendly */
 .journal-table{width:100%;font-size:13px;}
 .journal-table .td-date{white-space:nowrap;width:80px;font-size:12px;}
@@ -237,7 +259,7 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
     <!-- Étape 1 : choix du rôle -->
     <div id="login-step-choice">
       <h1>Connexion</h1>
-      <button class="primary" id="choose-teacher-btn">Espace enseignant</button>
+      <button class="primary" id="choose-teacher-btn">Espace personnels</button>
       <div class="login-sep"></div>
       <button class="secondary-login" id="choose-admin-btn">Espace administrateur</button>
     </div>
@@ -285,6 +307,13 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
 <div id="app" class="hidden">
   <header class="topbar">
     <div class="brand">
+      <svg viewBox="0 0 40 32" width="36" height="29" style="flex-shrink:0;" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="22" width="6" height="10" rx="1.5" fill="#e8a838"/>
+        <rect x="8" y="16" width="6" height="16" rx="1.5" fill="#3d9bc4"/>
+        <rect x="16" y="10" width="6" height="22" rx="1.5" fill="#5ba35b"/>
+        <rect x="24" y="4" width="6" height="28" rx="1.5" fill="#7d5a3c"/>
+        <rect x="32" y="0" width="6" height="32" rx="1.5" fill="#8b2fc9"/>
+      </svg>
       <h1>Carnet de suivi — les Marches</h1>
       <span class="role-badge" id="role-badge"></span>
     </div>
@@ -317,12 +346,17 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
 const PROXY_URL = "https://carnet-suivi-proxy.2hhvst2ycz.workers.dev";
 const ADMIN_PASSWORD_ENCODED = "Q0RBRE1JTjQ0MTAwIQ==";
 
-const MARCHES = ["m1","m2","m3","m4"];
-const MARCHE_LABEL = {m1:"Marche 1",m2:"Marche 2",m3:"Marche 3",m4:"Marche 4"};
-const MARCHE_COLOR = {m1:"#c0392b",m2:"#e67e22",m3:"#2980b9",m4:"#27ae60"};
+const MARCHES = ["m1","m2","m3","m4","m5"];
+const MARCHE_LABEL = {m1:"Marche 1",m2:"Marche 2",m3:"Marche 3",m4:"Marche 4",m5:"Marche 5"};
+const MARCHE_COLOR = {m1:"#e8a838",m2:"#3d9bc4",m3:"#5ba35b",m4:"#7d5a3c",m5:"#8b2fc9"};
 // Seuil de points minimum pour valider le contrat de la semaine (sur 20)
-const MARCHE_SEUIL = {m1:12, m2:14, m3:16, m4:19};
-const MARCHE_DEFAULT = "m2"; // Tous les élèves démarrent à la marche 2
+// Intervalles cibles [min, max] par marche
+const MARCHE_INTERVALLE = {m1:[1,12], m2:[13,14], m3:[15,16], m4:[17,18], m5:[19,20]};
+// Seuil min pour compatibilité (certains endroits l'utilisent encore)
+const MARCHE_SEUIL = {m1:1, m2:13, m3:15, m4:17, m5:19};
+const MARCHE_DEFAULT = "m2";
+// Intervalles affichés dans le mémo
+const MARCHE_INTERVALLE_LABEL = {m1:'1-12pts',m2:'13-14pts',m3:'15-16pts',m4:'17-18pts',m5:'19-20pts'};
 
 const CATEGORIES = [
   { key:"postures", label:"Postures de travail", points:1, motifs:[
@@ -775,6 +809,13 @@ function showStudentLoginScreen(studentId){
   document.getElementById('login-screen').style.display='none';
   const sc=document.getElementById('student-login-screen');
   sc.classList.remove('hidden'); sc.dataset.studentId=studentId;
+  // Afficher le nom abrégé de l'élève pour confirmation
+  const s=DATA.students.find(x=>x.id===studentId);
+  const nameEl=document.getElementById('student-qr-name');
+  if(nameEl&&s){
+    const {famille,prenom}=splitNom(s.nom);
+    nameEl.textContent=`${famille.charAt(0)}. ${prenom}`;
+  }
 }
 async function doStudentLogin(){
   const btn=document.getElementById('student-login-btn');
@@ -812,24 +853,29 @@ async function checkAutoNewWeek(){
 async function closeWeek(newWeekStart, silent){
   const endDate=todayISO();
   // Snapshot : la marche réelle + le fait d'être en pastille
-  const snap=DATA.students.map(s=>({
-    id:s.id, nom:s.nom, classeId:s.classeId,
-    status: s.status, // marche réelle (m1/m2/m3/m4)
-    enPastille: estEnPastille(s),
-    points: s.points,
-    contratValidé: !estEnPastille(s) && s.points>=(MARCHE_SEUIL[s.status]||0)
-  }));
+  const snap=DATA.students.map(s=>{
+    const [minPts,maxPts]=MARCHE_INTERVALLE[s.status]||[0,20];
+    return {
+      id:s.id, nom:s.nom, classeId:s.classeId,
+      status:s.status,
+      enPastille:estEnPastille(s),
+      points:s.points,
+      enIntervalle:!estEnPastille(s)&&s.points>=minPts&&s.points<=maxPts,
+      auDessus:!estEnPastille(s)&&s.points>maxPts,
+      contratValidé:!estEnPastille(s)&&s.points>=minPts // compat affichage semaines
+    };
+  });
   DATA.weeks.push({id:genId(),dateDebut:DATA.currentWeekStart,dateFin:endDate,snapshot:snap});
   DATA.currentWeekStart=newWeekStart||endDate;
 
   for(const s of DATA.students){
-    const seuil=MARCHE_SEUIL[s.status]||0;
-    // Journal fin de semaine
+    const [minPts,maxPts]=MARCHE_INTERVALLE[s.status]||[0,20];
     if(estEnPastille(s)){
-      logEvent(s,`Fin de semaine en pastille${s.pastille.type==='auto'?' (automatique)':' (manuelle)'} — les points ne comptent pas.`);
+      logEvent(s,`Fin de semaine en pastille — les points ne comptent pas.`);
     } else {
-      const obj=s.points>=seuil;
-      logEvent(s,`Fin de semaine : ${s.points}/20 pts — objectif ${seuil}pts ${obj?'✓ atteint':'✗ non atteint'}.`);
+      const dansBorne=s.points>=minPts&&s.points<=maxPts;
+      const auDessus=s.points>maxPts;
+      logEvent(s,`Fin de semaine : ${s.points}/20 pts — intervalle cible ${minPts}-${maxPts}pts ${auDessus?'✓ au-dessus':dansBorne?'✓ atteint':'✗ sous l\'intervalle'}.`);
     }
     // Vérifier changement de marche en fin de bloc
     await checkBlocEnd(s);
@@ -844,16 +890,13 @@ async function closeWeek(newWeekStart, silent){
 }
 
 async function checkBlocEnd(s){
-  // À appeler en fin de chaque semaine. Vérifie si c'est la fin d'un bloc
-  // et calcule le changement de marche éventuel.
   const bloc=currentBloc();
   if(!bloc) return;
   const lastSemaine=bloc.semaines[bloc.semaines.length-1];
   if(!lastSemaine) return;
   const today=todayISO();
-  if(today<lastSemaine.start||today>lastSemaine.end) return; // pas fin de bloc
+  if(today<lastSemaine.start||today>lastSemaine.end) return;
 
-  // Récupère les 3 semaines du bloc dans l'historique
   const weekResults=bloc.semaines.map(sem=>{
     const w=DATA.weeks.find(x=>x.dateDebut===sem.start);
     if(!w) return null;
@@ -861,32 +904,75 @@ async function checkBlocEnd(s){
     return snap||null;
   }).filter(Boolean);
 
-  if(weekResults.length<bloc.semaines.length) return; // bloc pas complet
+  if(weekResults.length<bloc.semaines.length) return;
 
-  const validées=weekResults.filter(r=>r.contratValidé).length;
+  const marcheIdx=MARCHES.indexOf(s.status);
+  const [minPts, maxPts]=MARCHE_INTERVALLE[s.status]||[0,20];
+
+  // Analyse chaque semaine du bloc
+  // Une semaine en pastille compte comme "en dessous de l'intervalle" (force la descente)
+  // Une semaine carnet est neutre (on regarde les points normalement)
+  const semainesDansIntervalle=weekResults.filter(r=>{
+    if(r.enPastille) return false; // pastille = sous l'intervalle
+    return r.points>=minPts && r.points<=maxPts;
+  }).length;
+  const semainesAuDessus=weekResults.filter(r=>{
+    if(r.enPastille) return false;
+    return r.points>maxPts;
+  }).length;
+  const semainesSousOuPastille=weekResults.filter(r=>{
+    if(r.enPastille) return true;
+    return r.points<minPts;
+  }).length;
 
   let newMarche=s.status;
-  const marcheIdx=MARCHES.indexOf(s.status);
+  let raison='';
 
-  // 2 semaines consécutives en pastille dans ce bloc → descend
-  let maxConsecutive=0, cur=0;
-  for(const r of weekResults){
-    if(r.enPastille){ cur++; maxConsecutive=Math.max(maxConsecutive,cur); }
-    else cur=0;
-  }
-  if(maxConsecutive>=2 && marcheIdx>0){
-    newMarche=MARCHES[marcheIdx-1];
-    logEvent(s,`Fin de bloc : 2 semaines consécutives en pastille → descend à ${MARCHE_LABEL[newMarche]}.`);
-  } else if(validées===3 && marcheIdx<MARCHES.length-1){
+  // Monte si TOUTES les 3 semaines AU-DESSUS de l'intervalle
+  if(semainesAuDessus===3 && marcheIdx<MARCHES.length-1){
     newMarche=MARCHES[marcheIdx+1];
-    logEvent(s,`Fin de bloc : contrat validé 3/3 → monte à ${MARCHE_LABEL[newMarche]}.`);
-  } else if(validées<3 && validées>0){
-    logEvent(s,`Fin de bloc : contrat validé ${validées}/3 → reste à ${MARCHE_LABEL[s.status]}.`);
-  } else if(validées===0 && marcheIdx>0){
-    newMarche=MARCHES[marcheIdx-1];
-    logEvent(s,`Fin de bloc : contrat non validé 0/3 → descend à ${MARCHE_LABEL[newMarche]}.`);
+    raison=`3/3 semaines au-dessus de l'intervalle (>${maxPts}pts) → monte à ${MARCHE_LABEL[newMarche]}`;
+    // Notification pour la vue élève
+    s.notifBlocFin={type:'monte', marche:newMarche};
   }
+  // Reste si toutes dans l'intervalle (ou mélange dessus/intervalle sans sous)
+  else if(semainesSousOuPastille===0){
+    raison=`Intervalle maintenu → reste à ${MARCHE_LABEL[s.status]}`;
+  }
+  // Descend si AU MOINS UNE semaine sous l'intervalle ou en pastille
+  else if(semainesSousOuPastille>0 && marcheIdx>0){
+    newMarche=MARCHES[marcheIdx-1];
+    raison=`${semainesSousOuPastille}/3 semaine(s) sous l'intervalle ou en pastille → descend à ${MARCHE_LABEL[newMarche]}`;
+  }
+  // M1 : ne descend pas
+  else if(semainesSousOuPastille>0 && marcheIdx===0){
+    raison=`${semainesSousOuPastille}/3 semaine(s) sous l'intervalle mais déjà en Marche 1 → reste`;
+  }
+
+  logEvent(s,`Fin de bloc : ${raison}.`);
   s.status=newMarche;
+}
+
+/* Vérifie à la semaine 3 si l'élève a dépassé son intervalle les 2 premières
+   semaines → message d'encouragement pour la vue élève */
+function checkEncouragementSemaine3(s){
+  const bloc=currentBloc();
+  if(!bloc||bloc.semaines.length<3) return null;
+  const idx=bloc.semaines.findIndex(sem=>sem.start===DATA.currentWeekStart);
+  if(idx!==2) return null; // pas la 3e semaine
+  // Vérifier les 2 premières semaines
+  const [maxPts]=MARCHE_INTERVALLE[s.status]||[0,20];
+  let auDessus=0;
+  for(let i=0;i<2;i++){
+    const w=DATA.weeks.find(x=>x.dateDebut===bloc.semaines[i].start);
+    if(!w) continue;
+    const snap=w.snapshot.find(x=>x.id===s.id);
+    if(snap&&!snap.enPastille&&snap.points>maxPts) auDessus++;
+  }
+  if(auDessus===2&&MARCHES.indexOf(s.status)<MARCHES.length-1){
+    return `⭐ Encore une semaine comme ça et tu montes à la marche supérieure !`;
+  }
+  return null;
 }
 
 /* ============================================================
@@ -1257,6 +1343,7 @@ function renderClasseDetail(classeId){
     <h2>${esc(classe.nom)}</h2>
     <div class="row">
       <button class="btn primary" id="btn-add-student-here">+ Ajouter un élève</button>
+      <button class="btn" id="btn-pdf-classe">📄 Bilan PDF</button>
       <label class="btn" for="import-file-classe">Importer CSV/Excel</label>
       <input type="file" id="import-file-classe" accept=".csv,.xlsx,.xls" class="hidden">
     </div>
@@ -1270,6 +1357,9 @@ function renderClasseDetail(classeId){
 function attachClasseDetailEvents(){
   document.getElementById('back-to-classes').addEventListener('click',e=>{e.preventDefault();currentClasseId=null;currentTab='classes';render();});
   document.getElementById('btn-add-student-here').addEventListener('click',()=>openStudentModal(null,currentClasseId));
+  // PDF bilan classe
+  const pdfClasse=document.getElementById('btn-pdf-classe');
+  if(pdfClasse) pdfClasse.addEventListener('click',()=>openPDFClasseModal(currentClasseId));
   const imp=document.getElementById('import-file-classe');
   if(imp) imp.addEventListener('change',async e=>{
     const file=e.target.files[0]; e.target.value='';
@@ -1319,22 +1409,30 @@ function rowClass(h){
 
 function renderFiche(id){
   const s=DATA.students.find(x=>x.id===id);
-  if(!s) return `<a class="back-link" href="#" id="back-to-list">\u2190 Retour</a><div class="empty">\u00c9l\u00e8ve introuvable.</div>`;
+  if(!s) return `<a class="back-link" href="#" id="back-to-list">← Retour</a><div class="empty">Élève introuvable.</div>`;
   const classe=DATA.classes.find(c=>c.id===s.classeId);
   const pct=Math.round((s.points/20)*100);
-  const seuil=MARCHE_SEUIL[s.status]||0;
+  const [minPts,maxPts]=MARCHE_INTERVALLE[s.status]||[0,20];
   const fillClass=pct>=80?'ok':pct>=50?'warn':'danger';
 
-  // LADDER — étages colorés, marche active mise en avant
-  const ladderSteps=MARCHES.map((m,i)=>`
-    <div class="step ${m} ${s.status===m?'current':''}">
-      <span class="step-num">${i+1}</span>
-      <span class="step-label">${MARCHE_LABEL[m]}</span>
-      ${s.status===m?'<span class="step-arrow">▲</span>':''}
-    </div>`).join('');
+  // Notification encouragement semaine 3
+  const encouragement=checkEncouragementSemaine3(s);
 
-  // CATÉGORIES — liste verticale avec menu déroulant
-  // Catégories triées par points croissants (1pt → 2pts → 3pts), motifs custom inclus
+  // LADDER — 5 marches avec intervalle affiché au-dessus
+  const ladderSteps=MARCHES.map((m,i)=>{
+    const [mn,mx]=MARCHE_INTERVALLE[m]||[0,20];
+    const isCurrent=s.status===m;
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+      <div style="font-size:10px;font-weight:700;color:var(--m${i+1});margin-bottom:3px;white-space:nowrap;">${mn}-${mx}pts</div>
+      <div class="step ${m} ${isCurrent?'current':''}">
+        <span class="step-num">${i+1}</span>
+        <span class="step-label">${MARCHE_LABEL[m]}</span>
+        ${isCurrent?'<span class="step-arrow">▲</span>':''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // CATÉGORIES
   const sortedCats=[...CATEGORIES].sort((a,b)=>a.points-b.points);
   const catItems=sortedCats.map(c=>{
     const customMotifs=(DATA.customMotifs&&DATA.customMotifs[c.key])||[];
@@ -1358,55 +1456,75 @@ function renderFiche(id){
     </div>`;
   }).join('');
 
-  // JOURNAL — version mobile-friendly
+  // JOURNAL
   const histRows=(s.history||[]).slice().reverse().slice(0,80).map(h=>`
     <tr class="${rowClass(h)}">
       <td class="td-date">${esc(h.date)}<br><span class="muted" style="font-size:11px;">${esc(h.heure||'')}</span></td>
       <td class="td-motif">${esc(h.motif||h.label)}${h.points?`<br><span style="font-weight:700;color:var(--m1);">−${h.points} pt${h.points>1?'s':''}</span>`:''}</td>
-      <td class="td-auteur" style="white-space:nowrap;">${esc(h.auteur||'—')}</td>
+      <td class="td-auteur">${esc(h.auteur||'—')}</td>
       <td>${h.id?`<button class="btn warn" style="padding:4px 8px;font-size:12px;" data-del-hist="${h.id}">✕</button>`:''}</td>
     </tr>`).join('');
 
-  // BOUTON PASTILLE — logique selon type et rôle
+  // BOUTON PASTILLE
   let pastilleBtn;
   if(estEnPastille(s)){
     const t=typePastille(s);
     if(t==='auto'){
       pastilleBtn=isAdmin()
-        ?`<button class="btn" id="btn-toggle-pastille" style="border-color:#c0392b;color:#c0392b;">\ud83d\udd13 Lever la pastille (admin)</button>`
-        :`<span class="badge m-pastille" style="font-size:13px;padding:8px 12px;">Pastille automatique — jusqu'au ${formatDateFr(finPastille(s))}</span>`;
+        ?`<button class="btn" id="btn-toggle-pastille" style="border-color:#c0392b;color:#c0392b;">🔓 Lever la pastille (admin)</button>`
+        :`<span class="small muted">Pastille automatique — levée automatiquement le ${formatDateFr(finPastille(s))}</span>`;
     } else {
-      pastilleBtn=`<button class="btn" id="btn-toggle-pastille" style="border-color:#888;color:#555;">\ud83d\udd13 Lever la pastille manuelle</button>`;
+      pastilleBtn=`<button class="btn" id="btn-toggle-pastille" style="border-color:#888;color:#555;">🔓 Lever la pastille manuelle</button>`;
     }
   } else {
-    pastilleBtn=`<button class="btn danger" id="btn-toggle-pastille">\u26a0 Mettre en pastille</button>`;
+    pastilleBtn=`<button class="btn danger" id="btn-toggle-pastille">⚠ Mettre en pastille</button>`;
   }
+
+  // Bannière pastille très visible
+  const pastilleBanner=estEnPastille(s)?`
+    <div class="pastille-active-banner">
+      <span class="pastille-icon">🚫</span>
+      <div class="pastille-info">
+        <div>Droits suspendus — Pastille ${typePastille(s)==='auto'?'automatique (0 point)':'manuelle'}</div>
+        <small>Jusqu'au ${formatDateFr(finPastille(s))} · ${s.status.toUpperCase()} Marche ${MARCHES.indexOf(s.status)+1}</small>
+      </div>
+    </div>`:'';
+
+  // Marche picker admin only
+  const marchePicker=isAdmin()?`
+    <div class="section-title" style="margin-top:12px;">Modifier la marche (admin)</div>
+    <div class="marche-picker">
+      ${MARCHES.map((m,i)=>`<button class="${m} ${s.status===m?'active':''}" data-set-marche="${m}">${i+1}. ${MARCHE_LABEL[m]}</button>`).join('')}
+    </div>`:'';
 
   return `
   ${weekBanner()}
-  <a class="back-link" href="#" id="back-to-list">\u2190 Retour \u00e0 la liste</a>
+  ${pastilleBanner}
+  ${encouragement?`<div class="eleve-notif eleve-notif-warning">⭐ ${esc(encouragement)}</div>`:''}
+  <a class="back-link" href="#" id="back-to-list">← Retour à la liste</a>
   <div class="row" style="justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
     <div>
-      <h2 style="font-size:24px;">${esc(displayNom(s))}</h2>
+      <h2 style="font-size:22px;">${esc(displayNom(s))}</h2>
       <p class="small muted">${classe?esc(classe.nom):'Aucune classe'}</p>
     </div>
     <div class="row">
       <button class="btn" id="btn-edit-student">Modifier</button>
       ${isAdmin()?`<button class="btn warn" id="btn-del-student">Supprimer</button>`:''}
-      <button class="btn" id="btn-export-pdf">\ud83d\udcc4 PDF</button>
+      <button class="btn" id="btn-export-pdf">📄 PDF</button>
     </div>
   </div>
 
   <div class="card">
     <div class="section-title">Marche actuelle</div>
-    <div class="ladder">${ladderSteps}</div>
+    <div class="ladder" style="height:140px;">${ladderSteps}</div>
     <div style="margin-top:14px;">
       <div class="row" style="justify-content:space-between;margin-bottom:6px;">
-        <span class="small"><strong>${s.points}</strong> / 20 points
-          ${estEnPastille(s)?`<span class="badge m-pastille" style="margin-left:6px;">Pastille jusqu'au ${formatDateFr(finPastille(s))}</span>`:''}
-          ${estEnCarnet(s)?'<span class="badge m-carnet" style="margin-left:6px;">Carnet oubli\u00e9</span>':''}
+        <span class="small"><strong>${s.points}</strong> / 20 pts
+          ${estEnCarnet(s)?'<span class="badge m-carnet" style="margin-left:6px;">Carnet oublié</span>':''}
         </span>
-        <span class="small ${s.points>=seuil?'':'muted'}">Objectif : ${seuil}/20 ${s.points>=seuil?'\u2713':'\u2717'}</span>
+        <span class="small">Intervalle cible : <strong>${minPts}-${maxPts}pts</strong>
+          ${s.points>=minPts&&s.points<=maxPts?' ✓':s.points>maxPts?' ↑':' ✗'}
+        </span>
       </div>
       <div class="points-meter"><div class="fill ${fillClass}" style="width:${pct}%"></div></div>
     </div>
@@ -1418,25 +1536,22 @@ function renderFiche(id){
   </div>
 
   <div class="card">
-    <div class="section-title">Actions manuelles</div>
-    <p class="small muted" style="margin-bottom:10px;">Modifier la marche</p>
-    <div class="marche-picker">
-      ${MARCHES.map((m,i)=>`<button class="${m} ${s.status===m?'active':''}" data-set-marche="${m}">${i+1}. ${MARCHE_LABEL[m]}</button>`).join('')}
-    </div>
-    <div class="row" style="margin-top:16px;gap:8px;flex-wrap:wrap;">
+    <div class="section-title">Actions</div>
+    <div class="row" style="gap:8px;flex-wrap:wrap;">
       ${pastilleBtn}
       ${estEnCarnet(s)?`<button class="btn" id="btn-carnet" style="border-color:#e67e22;color:#e67e22;">✓ Retirer carnet oublié</button>`:`<button class="btn warn" id="btn-carnet">📓 Carnet oublié</button>`}
       ${isAdmin()?`<button class="btn" id="btn-reset-points">↺ Réinitialiser (20/20)</button>`:''}
     </div>
+    ${marchePicker}
   </div>
 
   <div class="card">
     <div class="section-title">Journal de suivi</div>
     ${(s.history||[]).length
       ?`<div style="overflow-x:auto;"><table class="journal-table"><thead><tr><th>Date</th><th>Motif & points</th><th>Par</th><th></th></tr></thead><tbody>${histRows}</tbody></table></div>`
-      :`<p class="small muted" style="margin-top:8px;">Aucun \u00e9v\u00e8nement enregistr\u00e9.</p>`}
-  </div>`;
-}
+      :`<p class="small muted" style="margin-top:8px;">Aucun évènement enregistré.</p>`}
+  </div>`;}
+
 
 
 function attachFicheEvents(){
@@ -1685,6 +1800,23 @@ function renderStudentReadOnlyView(studentId){
   const sc=document.getElementById('student-view-screen');
   if(!s){sc.innerHTML=`<div style="padding:40px;text-align:center">Fiche introuvable.</div>`;return;}
   const classe=DATA.classes.find(c=>c.id===s.classeId);
+
+  // Notification montée de marche (stockée par checkBlocEnd)
+  let notifHtml='';
+  if(s.notifBlocFin){
+    const n=s.notifBlocFin;
+    if(n.type==='monte'){
+      const isLast=n.marche===MARCHES[MARCHES.length-1];
+      const msg=isLast
+        ?`🏆 Félicitations ! Tu es arrivé(e) à la dernière marche et tu peux bénéficier de l'ensemble des droits !`
+        :`🎉 Bravo ! Tu montes à la Marche ${MARCHES.indexOf(n.marche)+1} et tu as accès à de nouveaux droits !`;
+      notifHtml=`<div class="eleve-notif" style="margin-bottom:16px;font-size:15px;font-weight:700;">${msg}</div>`;
+      // Effacer la notif après affichage
+      s.notifBlocFin=null;
+      saveData(false);
+    }
+  }
+
   const ladder=MARCHES.map((m,i)=>`
     <div class="step ${m} ${s.status===m?'current':''}">
       <span class="step-num">${i+1}</span>
@@ -1697,14 +1829,14 @@ function renderStudentReadOnlyView(studentId){
       <td>${esc(h.motif||h.label)}${h.points?`<br><span style="font-weight:700;">−${h.points} pt${h.points>1?'s':''}</span>`:''}</td>
       <td>${esc(h.auteur||'—')}</td>
     </tr>`).join('');
-  // Mémo simplifié pour les élèves
   const memoHtml=MARCHES.map((m,i)=>`
     <div style="margin-bottom:12px;">
-      <div style="font-weight:700;color:var(--m${i+1});margin-bottom:4px;">${i+1}. ${MARCHE_LABEL[m]}</div>
+      <div style="font-weight:700;color:var(--m${i+1});margin-bottom:4px;">${i+1}. ${MARCHE_LABEL[m]} (${MARCHE_INTERVALLE_LABEL[m]||''})</div>
       <p style="font-size:13px;line-height:1.6;color:var(--ink);">${esc(DATA.memo[m]||'—')}</p>
     </div>`).join('');
   sc.innerHTML=`
     <div style="max-width:700px;margin:0 auto;padding:24px;">
+      ${notifHtml}
       <h2 style="font-size:22px;">${esc(displayNom(s))}</h2>
       <p class="small muted">${classe?esc(classe.nom):''} · Consultation seule</p>
       <div class="card" style="margin-top:16px;">
@@ -2007,7 +2139,7 @@ function attachMemoEvents(){
 function renderAdmin(){
   if(!isAdmin()) return `<div class="empty">Accès réservé à l'administrateur.</div>`;
   const staffRows=DATA.staff.map(s=>`
-    <tr>
+    <tr data-staff-row="1">
       <td>${esc(s.nom)}</td>
       <td>${esc(s.fonction||'—')}</td>
       <td>
@@ -2051,6 +2183,7 @@ function renderAdmin(){
   <!-- PERSONNELS -->
   <div class="card">
     <div class="section-title">Personnels & codes d'accès</div>
+    <input type="search" id="staff-search" placeholder="Rechercher un personnel..." style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;margin-bottom:12px;">
     <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px;">
       <input type="text" id="staff-nom" placeholder="Nom (ex: Mme Dupont)" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:180px;">
       <input type="text" id="staff-fonction" placeholder="Fonction (ex: Enseignante)" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:180px;">
@@ -2158,6 +2291,14 @@ function renderAdmin(){
 }
 
 function attachAdminEvents(){
+  // Recherche personnels
+  const staffSearch=document.getElementById('staff-search');
+  if(staffSearch) staffSearch.addEventListener('input',e=>{
+    const q=e.target.value.toLowerCase();
+    document.querySelectorAll('tbody tr[data-staff-row]').forEach(tr=>{
+      tr.style.display=tr.textContent.toLowerCase().includes(q)?'':'none';
+    });
+  });
   // Ajouter personnel
   const as=document.getElementById('btn-add-staff');
   if(as) as.addEventListener('click',async()=>{
@@ -2338,8 +2479,8 @@ function attachAdminEvents(){
       await _ghWriteFile('donnees-sauvegarde.json', DATA, null, `Sauvegarde avant reset journal — ${s.nom}`);
       toast("✓ Sauvegarde effectuée dans donnees-sauvegarde.json");
     }catch(e){ toast("⚠ Sauvegarde impossible, annulation."); return; }
-    s.history=[];
-    await saveData(`Reset journal ${s.nom}`); toast("Journal effacé."); render();
+    s.history=[]; s.pastille=null; s.carnet=null; s.retenuePendante=null; s.retenuesSeuils=[]; s.retardEmailsSent=[];
+    await saveData(`Reset journal ${s.nom}`); toast("Journal et suspensions effacés."); render();
   });
   // Reset journal tous
   const rja=document.getElementById('btn-reset-journal-all');
@@ -2350,8 +2491,8 @@ function attachAdminEvents(){
       await _ghWriteFile('donnees-sauvegarde.json', DATA, null, 'Sauvegarde avant reset tous journaux');
       toast("✓ Sauvegarde effectuée dans donnees-sauvegarde.json");
     }catch(e){ toast("⚠ Sauvegarde impossible, annulation."); return; }
-    DATA.students.forEach(s=>{ s.history=[]; });
-    await saveData('Reset tous journaux'); toast("Tous les journaux effacés."); render();
+    DATA.students.forEach(s=>{ s.history=[]; s.pastille=null; s.carnet=null; s.retenuePendante=null; s.retenuesSeuils=[]; s.retardEmailsSent=[]; });
+    await saveData('Reset tous journaux'); toast("Tous les journaux et suspensions effacés."); render();
   });
 }
 
@@ -2735,6 +2876,97 @@ function printAllStaffCodes(){
     </style></head><body>
     <h1>Codes d'accès — Carnet de suivi des Marches · Collège Claude Debussy</h1>
     <div class="grid">${cards}</div>
+    <scri`+`pt>window.onload=()=>{window.print();};</scri`+`pt></body></html>`);
+  win.document.close();
+}
+
+function openPDFClasseModal(classeId){
+  openModal(`
+    <h3>Bilan PDF de la classe</h3>
+    <div class="field">
+      <label>Période</label>
+      <select id="pdf-classe-period">
+        <option value="current">Bilan instantané (aujourd'hui)</option>
+        <option value="previous">Bilan du bloc précédent</option>
+      </select>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px;">
+      <button class="btn" id="modal-cancel">Annuler</button>
+      <button class="btn primary" id="modal-pdf-classe-go">Générer</button>
+    </div>`);
+  document.getElementById('modal-cancel').addEventListener('click',closeModal);
+  document.getElementById('modal-pdf-classe-go').addEventListener('click',()=>{
+    const period=document.getElementById('pdf-classe-period').value;
+    closeModal(); printBilanClasse(classeId,period);
+  });
+}
+
+function printBilanClasse(classeId,period){
+  const classe=DATA.classes.find(c=>c.id===classeId);
+  if(!classe) return;
+  const students=DATA.students.filter(s=>s.classeId===classeId).sort((a,b)=>a.nom.localeCompare(b.nom));
+  const blocs=buildBlocs();
+  const today=todayISO();
+
+  // Déterminer le bloc de référence
+  let refBloc=null;
+  if(period==='previous'){
+    const ci=blocs.findIndex(b=>b.semaines.some(sem=>today>=sem.start&&today<=sem.end));
+    refBloc=ci>0?blocs[ci-1]:null;
+  }
+
+  // Pour chaque élève, calculer la tendance (monte/reste/descend)
+  const rows=students.map(s=>{
+    const marcheIdx=MARCHES.indexOf(s.status);
+    let tendance='→ Reste';
+    let tendanceColor='#555';
+
+    if(refBloc){
+      // Analyser les résultats du bloc précédent
+      const weekResults=refBloc.semaines.map(sem=>{
+        const w=DATA.weeks.find(x=>x.dateDebut===sem.start);
+        if(!w) return null;
+        return w.snapshot.find(x=>x.id===s.id)||null;
+      }).filter(Boolean);
+      if(weekResults.length===refBloc.semaines.length){
+        const [mn,mx]=MARCHE_INTERVALLE[s.status]||[0,20];
+        const auDessus=weekResults.every(r=>!r.enPastille&&r.points>mx);
+        const sousOuPastille=weekResults.some(r=>r.enPastille||r.points<mn);
+        if(auDessus&&marcheIdx<MARCHES.length-1){tendance='↑ Monte';tendanceColor='#27ae60';}
+        else if(sousOuPastille&&marcheIdx>0){tendance='↓ Descend';tendanceColor='#c0392b';}
+      }
+    }
+
+    const [mn,mx]=MARCHE_INTERVALLE[s.status]||[0,20];
+    const marcheColor=MARCHE_COLOR[s.status]||'#555';
+    return `<tr>
+      <td style="font-weight:600;">${esc(displayNom(s))}</td>
+      <td><span style="display:inline-block;padding:4px 10px;background:${marcheColor};color:#fff;border-radius:6px;font-weight:700;font-size:13px;">${marcheIdx+1}. ${MARCHE_LABEL[s.status]}</span></td>
+      <td style="text-align:center;font-size:13px;color:#555;">${mn}-${mx}pts</td>
+      <td style="text-align:center;${estEnPastille(s)?'color:#c0392b;font-weight:700;':''}">${estEnPastille(s)?'🚫 Pastille':s.points+'/20'}</td>
+      <td style="text-align:center;font-weight:700;color:${tendanceColor};">${tendance}</td>
+    </tr>`;
+  }).join('');
+
+  const win=window.open('','_blank');
+  if(!win){toast("Pop-up bloquée.");return;}
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+    <title>Bilan — ${esc(classe.nom)}</title>
+    <style>
+    body{font-family:Georgia,serif;color:#23262b;max-width:800px;margin:24px auto;padding:0 20px;}
+    h1{font-size:20px;margin-bottom:4px;}
+    .sub{color:#666;font-size:13px;margin-bottom:20px;}
+    table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}
+    th{text-align:left;padding:8px 10px;border-bottom:2px solid #0f5d4f;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#0f5d4f;}
+    td{padding:8px 10px;border-bottom:1px solid #e3e3e3;vertical-align:middle;}
+    tr:nth-child(even) td{background:#f9f8f4;}
+    .footer{margin-top:24px;font-size:11px;color:#999;border-top:1px solid #e3e3e3;padding-top:8px;}
+    @media print{body{margin:10px;}}
+    </style></head><body>
+    <h1>Bilan des marches — ${esc(classe.nom)}</h1>
+    <div class="sub">${period==='previous'?'Bloc précédent':'Bilan instantané'} · Généré le ${formatDateFr(today)}</div>
+    <table><thead><tr><th>Élève</th><th>Marche</th><th>Intervalle</th><th>Points</th><th>Évolution</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="footer">Carnet de suivi des Marches · Collège Claude Debussy</div>
     <scri`+`pt>window.onload=()=>{window.print();};</scri`+`pt></body></html>`);
   win.document.close();
 }
