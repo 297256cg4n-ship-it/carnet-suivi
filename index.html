@@ -220,8 +220,42 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
 .journal-table .td-motif{min-width:140px;}
 .journal-table .td-auteur{font-size:12px;color:var(--muted);}
 @media(max-width:520px){
-  .journal-table .td-auteur{display:none;}
-  .journal-table th:nth-child(3){display:none;}
+
+
+  /* Tableaux élèves — masquer colonnes secondaires */
+  main{padding:14px 10px 40px;}
+  table{font-size:12px;}
+  th,td{padding:7px 6px;}
+
+  /* Liste accueil : masquer colonne "Points" sur très petit écran */
+  .eleve-table th:nth-child(4),
+  .eleve-table td:nth-child(4){ display:none; }
+
+  /* Liste pastilles : masquer colonne "Début" */
+  .pastille-table th:nth-child(4),
+  .pastille-table td:nth-child(4){ display:none; }
+
+  /* Badges plus compacts */
+  .badge{font-size:11px;padding:2px 7px;}
+
+  /* Bandeau semaine en colonne */
+  .week-banner{flex-direction:column;gap:4px;padding:10px 12px;font-size:12px;}
+  .bloc-badge{font-size:11px;}
+
+  /* Card padding réduit */
+  .card{padding:12px 10px;}
+
+  /* Boutons actions sur fiche élève */
+  .btn{padding:7px 10px;font-size:12px;}
+}
+
+@media(max-width:380px){
+  /* Liste accueil : masquer aussi la classe */
+  .eleve-table th:nth-child(2),
+  .eleve-table td:nth-child(2){ display:none; }
+  /* Liste pastilles : masquer aussi la fin */
+  .pastille-table th:nth-child(5),
+  .pastille-table td:nth-child(5){ display:none; }
 }
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;}
 .modal{background:#fff;border-radius:12px;padding:28px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;}
@@ -580,6 +614,8 @@ async function loadData(){
   if(!DATA.blocResets) DATA.blocResets=[];
   if(!DATA.currentWeekStart) DATA.currentWeekStart=FIRST_BLOC_START;
   if(!DATA.customMotifs) DATA.customMotifs={};
+  if(!DATA.suppressedMotifs) DATA.suppressedMotifs={};
+  if(!DATA.editedMotifs) DATA.editedMotifs={};
   if(!DATA.memoAttachments) DATA.memoAttachments={};
   if(!DATA.memoPresentation) DATA.memoPresentation='';
   // Si currentWeekStart est dans le futur mais qu'un blocReset dans le passé
@@ -1253,7 +1289,7 @@ function renderAccueil(){
     </div>
   </div>
   <div class="card">
-    ${students.length?`<table><thead><tr><th>Nom</th><th>Classe</th><th>Marche</th><th>Points</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+    ${students.length?`<div style="overflow-x:auto;"><table class="eleve-table"><thead><tr><th>Nom</th><th>Classe</th><th>Marche</th><th>Points</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
     :`<div class="empty">Aucun élève${currentSearchQuery?' correspondant':' enregistré'}.</div>`}
   </div>`;
 }
@@ -1350,7 +1386,7 @@ function renderClasseDetail(classeId){
   </div>
   <div id="import-status-classe" class="small muted" style="margin-bottom:8px;"></div>
   <div class="card">
-    ${students.length?`<table><thead><tr><th>Nom</th><th>Marche</th><th>Points</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+    ${students.length?`<div style="overflow-x:auto;"><table class="eleve-table"><thead><tr><th>Nom</th><th>Marche</th><th>Points</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
     :`<div class="empty">Aucun élève dans cette classe.</div>`}
   </div>`;
 }
@@ -1435,8 +1471,14 @@ function renderFiche(id){
   // CATÉGORIES
   const sortedCats=[...CATEGORIES].sort((a,b)=>a.points-b.points);
   const catItems=sortedCats.map(c=>{
+    const suppressed=(DATA.suppressedMotifs&&DATA.suppressedMotifs[c.key])||[];
+    const edited=(DATA.editedMotifs&&DATA.editedMotifs[c.key])||{};
     const customMotifs=(DATA.customMotifs&&DATA.customMotifs[c.key])||[];
-    const allMotifs=[...c.motifs,...customMotifs];
+    // Motifs de base (filtrés et éventuellement modifiés)
+    const baseMotifs=c.motifs
+      .map((m,i)=>suppressed.includes(i)?null:(edited[i]||m))
+      .filter(Boolean);
+    const allMotifs=[...baseMotifs,...customMotifs];
     return `
     <div class="cat-item">
       <div class="cat-item-header" data-cat-key="${c.key}">
@@ -1460,8 +1502,7 @@ function renderFiche(id){
   const histRows=(s.history||[]).slice().reverse().slice(0,80).map(h=>`
     <tr class="${rowClass(h)}">
       <td class="td-date">${esc(h.date)}<br><span class="muted" style="font-size:11px;">${esc(h.heure||'')}</span></td>
-      <td class="td-motif">${esc(h.motif||h.label)}${h.points?`<br><span style="font-weight:700;color:var(--m1);">−${h.points} pt${h.points>1?'s':''}</span>`:''}</td>
-      <td class="td-auteur">${esc(h.auteur||'—')}</td>
+      <td class="td-motif">${esc(h.motif||h.label)}${h.points?`<br><span style="font-weight:700;color:var(--m1);">−${h.points} pt${h.points>1?'s':''}</span>`:''}<br><span style="font-size:11px;color:var(--muted);">Par : ${esc(h.auteur||'—')}</span></td>
       <td>${h.id?`<button class="btn warn" style="padding:4px 8px;font-size:12px;" data-del-hist="${h.id}">✕</button>`:''}</td>
     </tr>`).join('');
 
@@ -1548,7 +1589,7 @@ function renderFiche(id){
   <div class="card">
     <div class="section-title">Journal de suivi</div>
     ${(s.history||[]).length
-      ?`<div style="overflow-x:auto;"><table class="journal-table"><thead><tr><th>Date</th><th>Motif & points</th><th>Par</th><th></th></tr></thead><tbody>${histRows}</tbody></table></div>`
+      ?`<div style="overflow-x:auto;"><table class="journal-table"><thead><tr><th>Date</th><th>Motif & points</th><th></th></tr></thead><tbody>${histRows}</tbody></table></div>`
       :`<p class="small muted" style="margin-top:8px;">Aucun évènement enregistré.</p>`}
   </div>`;}
 
@@ -1827,7 +1868,6 @@ function renderStudentReadOnlyView(studentId){
     <tr class="${rowClass(h)}">
       <td>${esc(h.date)}</td>
       <td>${esc(h.motif||h.label)}${h.points?`<br><span style="font-weight:700;">−${h.points} pt${h.points>1?'s':''}</span>`:''}</td>
-      <td>${esc(h.auteur||'—')}</td>
     </tr>`).join('');
   const memoHtml=MARCHES.map((m,i)=>`
     <div style="margin-bottom:12px;">
@@ -1852,7 +1892,7 @@ function renderStudentReadOnlyView(studentId){
       <div class="card">
         <div class="section-title">Journal</div>
         ${s.history.length
-          ?`<div style="overflow-x:auto;"><table class="journal-table"><thead><tr><th>Date</th><th>Motif</th><th>Par</th></tr></thead><tbody>${histRows}</tbody></table></div>`
+          ?`<div style="overflow-x:auto;"><table class="journal-table"><thead><tr><th>Date</th><th>Motif</th></tr></thead><tbody>${histRows}</tbody></table></div>`
           :`<p class="small muted">Aucun évènement.</p>`}
       </div>
       <div class="card">
@@ -1949,7 +1989,7 @@ function renderPastilles(){
   </div>
   <div class="card pastille-card">
     ${suspendus.length
-      ?`<table><thead><tr><th>Nom</th><th>Classe</th><th>Type</th><th>Début</th><th>Fin</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+      ?`<div style="overflow-x:auto;"><table class="pastille-table"><thead><tr><th>Nom</th><th>Classe</th><th>Type</th><th>Début</th><th>Fin</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
       :`<div class="empty">Aucun élève en suspension actuellement.</div>`}
   </div>`;
 }
@@ -2164,14 +2204,29 @@ function renderAdmin(){
 
   // Motifs custom par catégorie
   const customMotifsHtml=CATEGORIES.filter(c=>!c.freeText).map(c=>{
+    const baseMotifs=c.motifs||[];
     const custom=(DATA.customMotifs&&DATA.customMotifs[c.key])||[];
-    return `<div style="margin-bottom:12px;">
-      <div style="font-weight:700;font-size:13px;margin-bottom:6px;">${esc(c.label)} (−${c.points} pt${c.points>1?'s':''})</div>
-      ${custom.length?custom.map((m,i)=>`<span style="display:inline-flex;align-items:center;gap:4px;background:#eef4f1;border:1px solid #cfe3da;border-radius:6px;padding:3px 8px;font-size:12px;margin:2px;">
-        ${esc(m)}<button data-del-motif="${c.key}|${i}" style="background:none;border:none;cursor:pointer;color:#a32b2b;font-size:14px;">×</button>
-      </span>`).join(''):'<span class="muted small">Aucun motif personnalisé</span>'}
+    // Motifs de base supprimés (stockés dans DATA.suppressedMotifs)
+    const suppressed=(DATA.suppressedMotifs&&DATA.suppressedMotifs[c.key])||[];
+    // Motifs de base remplacés (stockés dans DATA.editedMotifs)
+    const edited=(DATA.editedMotifs&&DATA.editedMotifs[c.key])||{};
+    const baseBadges=baseMotifs.map((m,i)=>{
+      if(suppressed.includes(i)) return ''; // supprimé
+      const label=edited[i]||m;
+      return `<span style="display:inline-flex;align-items:center;gap:4px;background:#f0ede6;border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:12px;margin:2px;">
+        <span id="base-motif-label-${c.key}-${i}">${esc(label)}</span>
+        <button data-edit-base-motif="${c.key}|${i}" title="Modifier" style="background:none;border:none;cursor:pointer;color:#3d9bc4;font-size:12px;">✏</button>
+        <button data-del-base-motif="${c.key}|${i}" title="Supprimer" style="background:none;border:none;cursor:pointer;color:#a32b2b;font-size:14px;">×</button>
+      </span>`;
+    }).join('');
+    const customBadges=custom.map((m,i)=>`<span style="display:inline-flex;align-items:center;gap:4px;background:#eef4f1;border:1px solid #cfe3da;border-radius:6px;padding:3px 8px;font-size:12px;margin:2px;">
+      ${esc(m)}<button data-del-motif="${c.key}|${i}" style="background:none;border:none;cursor:pointer;color:#a32b2b;font-size:14px;">×</button>
+    </span>`).join('');
+    return `<div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line);">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">${esc(c.label)} <span class="muted" style="font-weight:400;">−${c.points} pt${c.points>1?'s':''}</span></div>
+      <div style="margin-bottom:6px;">${baseBadges}${customBadges}</div>
       <div class="row" style="margin-top:6px;gap:6px;">
-        <input type="text" id="new-motif-${c.key}" placeholder="Nouveau motif..." style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;flex:1;">
+        <input type="text" id="new-motif-${c.key}" placeholder="Ajouter un motif..." style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;flex:1;">
         <button class="btn primary" data-add-motif="${c.key}" style="flex-shrink:0;">Ajouter</button>
       </div>
     </div>`;
@@ -2204,10 +2259,10 @@ function renderAdmin(){
     :`<div class="empty">Aucun personnel enregistré.</div>`}
   </div>
 
-  <!-- MOTIFS PERSONNALISÉS -->
+  <!-- MOTIFS -->
   <div class="card">
-    <div class="section-title">Motifs personnalisés par catégorie</div>
-    <p class="small muted" style="margin-bottom:14px;">Ajoutez des motifs spécifiques à votre établissement dans chaque catégorie existante.</p>
+    <div class="section-title">Motifs de retrait de points</div>
+    <p class="small muted" style="margin-bottom:14px;">Modifiez, supprimez ou ajoutez des motifs dans chaque catégorie. Les motifs de base (fond gris) et personnalisés (fond vert) sont tous éditables.</p>
     ${customMotifsHtml}
   </div>
 
@@ -2396,6 +2451,44 @@ function attachAdminEvents(){
     b.addEventListener('click',async()=>{
       DATA.vacances=DATA.vacances.filter(v=>v.id!==b.dataset.delVac);
       await saveData('Suppression vacances'); toast("Supprimées."); render();
+    });
+  });
+  // Supprimer motif de base
+  document.querySelectorAll('[data-del-base-motif]').forEach(b=>{
+    b.addEventListener('click',async()=>{
+      const [key,idxStr]=b.dataset.delBaseMotif.split('|');
+      const idx=parseInt(idxStr);
+      if(!DATA.suppressedMotifs) DATA.suppressedMotifs={};
+      if(!DATA.suppressedMotifs[key]) DATA.suppressedMotifs[key]=[];
+      if(!DATA.suppressedMotifs[key].includes(idx)) DATA.suppressedMotifs[key].push(idx);
+      await saveData('Suppression motif base'); render();
+    });
+  });
+  // Modifier motif de base (inline)
+  document.querySelectorAll('[data-edit-base-motif]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const [key,idxStr]=b.dataset.editBaseMotif.split('|');
+      const idx=parseInt(idxStr);
+      const labelEl=document.getElementById(`base-motif-label-${key}-${idx}`);
+      if(!labelEl) return;
+      const current=labelEl.textContent;
+      const input=document.createElement('input');
+      input.type='text'; input.value=current;
+      input.style.cssText='padding:2px 6px;border:1px solid var(--accent);border-radius:4px;font-size:12px;width:180px;';
+      const saveBtn=document.createElement('button');
+      saveBtn.textContent='✓'; saveBtn.style.cssText='margin-left:4px;background:var(--accent);color:#fff;border:none;border-radius:4px;padding:2px 7px;cursor:pointer;';
+      saveBtn.addEventListener('click',async()=>{
+        const newVal=input.value.trim();
+        if(!newVal) return;
+        if(!DATA.editedMotifs) DATA.editedMotifs={};
+        if(!DATA.editedMotifs[key]) DATA.editedMotifs[key]={};
+        DATA.editedMotifs[key][idx]=newVal;
+        await saveData('Modification motif base'); render();
+      });
+      labelEl.parentNode.replaceChild(document.createDocumentFragment(),labelEl);
+      b.parentNode.insertBefore(input,b);
+      b.parentNode.insertBefore(saveBtn,b);
+      labelEl.remove();
     });
   });
   // Motifs personnalisés — ajouter
