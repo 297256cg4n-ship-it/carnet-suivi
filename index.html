@@ -335,15 +335,22 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
       <a href="#" class="login-back" id="back-to-choice-2">← Retour</a>
     </div>
 
-    <!-- Étape 2c : login élève direct (sans QR) -->
+    <!-- Étape 2c : choix élève/responsable -->
+    <div id="login-step-eleve-choice" class="hidden">
+      <div class="eyebrow">Carnet de suivi — les Marches</div>
+      <h1>Bienvenue</h1>
+      <button class="primary" id="choose-eleve-btn">Élèves et responsables</button>
+    </div>
+
+    <!-- Étape 2d : saisie code élève -->
     <div id="login-step-student" class="hidden">
-      <div class="eyebrow">Espace élève</div>
+      <div class="eyebrow">Élèves et responsables</div>
       <h1>Ton code d'accès</h1>
       <p class="login-hint">Saisis ton code à 5 lettres.</p>
       <div id="login-student-err" class="err"></div>
       <input type="text" id="login-student-input" placeholder="Code à 5 lettres" maxlength="5" style="text-transform:uppercase;letter-spacing:.1em;">
       <button class="primary" id="login-student-btn">Voir ma fiche</button>
-      <a href="#" class="login-back" id="back-to-choice-3">← Retour</a>
+      <a href="#" class="login-back" id="back-to-eleve-choice">← Retour</a>
     </div>
   </div>
 </div>
@@ -742,6 +749,7 @@ function showLoginStep(step){
   document.getElementById('login-step-choice').classList.toggle('hidden', step!=='choice');
   document.getElementById('login-step-teacher').classList.toggle('hidden', step!=='teacher');
   document.getElementById('login-step-admin').classList.toggle('hidden', step!=='admin');
+  document.getElementById('login-step-eleve-choice').classList.toggle('hidden', step!=='eleve-choice');
   document.getElementById('login-step-student').classList.toggle('hidden', step!=='student');
   if(step==='teacher'){
     const hint=document.getElementById('teacher-login-hint');
@@ -778,9 +786,7 @@ function trySessionAuth(){
     const sep=document.querySelector('#login-step-choice .login-sep');
     if(sep) sep.style.display='none';
     // Afficher directement l'espace élève
-    document.querySelector('#login-step-choice h1').textContent='Espace élève et parents';
-    // Montrer uniquement l'étape élève
-    showLoginStep('student');
+    showLoginStep('eleve-choice');
     return;
   }
   // Page normale : masquer le bouton élève (réservé à l'autre URL)
@@ -799,10 +805,11 @@ document.getElementById('back-to-choice-1').addEventListener('click', e=>{ e.pre
 document.getElementById('back-to-choice-2').addEventListener('click', e=>{ e.preventDefault(); showLoginStep('choice'); });
 document.getElementById('choose-student-btn').addEventListener('click', async()=>{
   if(!lastKnownData) await loadData();
-  showLoginStep('student');
+  showLoginStep('eleve-choice');
 });
-document.getElementById('back-to-choice-3').addEventListener('click', e=>{ e.preventDefault(); showLoginStep('choice'); });
-document.getElementById('login-student-btn').addEventListener('click', ()=>doDirectStudentLogin());
+document.getElementById('choose-eleve-btn').addEventListener('click', ()=>showLoginStep('student'));
+document.getElementById('back-to-choice-3') && document.getElementById('back-to-choice-3').addEventListener('click', e=>{ e.preventDefault(); showLoginStep('choice'); });
+document.getElementById('back-to-eleve-choice').addEventListener('click', e=>{ e.preventDefault(); showLoginStep('eleve-choice'); });
 document.getElementById('login-student-input').addEventListener('keydown', e=>{ if(e.key==='Enter') doDirectStudentLogin(); });
 
 // Système anti-brute-force — par session de navigateur (par appareil)
@@ -960,14 +967,20 @@ let _currentStudentViewId=null; // ID de l'élève actuellement connecté en vue
 function quitStudentView(){
   const sc=document.getElementById('student-view-screen');
   sc.classList.add('hidden'); sc.style.display='';
-  // Toujours revenir à la page de confirmation de l'élève (nom + code)
-  // que l'élève soit arrivé par QR ou par le lien général
-  if(_currentStudentViewId){
-    document.getElementById('login-screen').style.display='none';
+  const studentLoginSc=document.getElementById('student-login-screen');
+  if(studentLoginSc&&studentLoginSc.dataset.studentId&&!studentLoginSc.classList.contains('hidden')){
+    document.getElementById('student-login-input').value='';
+    document.getElementById('student-login-err').textContent='';
+    studentLoginSc.classList.remove('hidden');
+  } else if(_currentStudentViewId){
+    document.getElementById('login-screen').style.display='flex';
+    document.getElementById('login-student-input').value='';
+    document.getElementById('login-student-err').textContent='';
+    // Retour à la page de confirmation de l'élève
     showStudentLoginScreen(_currentStudentViewId).catch(()=>{});
   } else {
     document.getElementById('login-screen').style.display='flex';
-    showLoginStep('student');
+    showLoginStep(location.search.includes('eleve')?'eleve-choice':'choice');
   }
 }
 
