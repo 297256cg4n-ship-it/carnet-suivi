@@ -337,7 +337,6 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
 
     <!-- Étape 2c : choix élève/responsable -->
     <div id="login-step-eleve-choice" class="hidden">
-      <div class="eyebrow">Carnet de suivi — les Marches</div>
       <h1>Bienvenue</h1>
       <button class="primary" id="choose-eleve-btn">Élèves et responsables</button>
     </div>
@@ -810,6 +809,7 @@ document.getElementById('choose-student-btn').addEventListener('click', async()=
 document.getElementById('choose-eleve-btn').addEventListener('click', ()=>showLoginStep('student'));
 document.getElementById('back-to-choice-3') && document.getElementById('back-to-choice-3').addEventListener('click', e=>{ e.preventDefault(); showLoginStep('choice'); });
 document.getElementById('back-to-eleve-choice').addEventListener('click', e=>{ e.preventDefault(); showLoginStep('eleve-choice'); });
+document.getElementById('login-student-btn').addEventListener('click', ()=>doDirectStudentLogin());
 document.getElementById('login-student-input').addEventListener('keydown', e=>{ if(e.key==='Enter') doDirectStudentLogin(); });
 
 // Système anti-brute-force — par session de navigateur (par appareil)
@@ -3499,5 +3499,3 @@ trySessionAuth();
 </script>
 </body>
 </html>
- 
- 
