@@ -184,19 +184,19 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
 }
 /* POINTS METER */
 .points-meter{
-  height:18px;background:#e8e4d9;border-radius:9px;
+  height:24px;background:#e8e4d9;border-radius:12px;
   overflow:visible;margin-top:10px;position:relative;
 }
 .points-meter .fill{
-  height:100%;border-radius:9px;transition:width .4s ease;position:relative;
-  display:flex;align-items:center;justify-content:flex-end;padding-right:8px;
-  min-width:24px;
+  height:100%;border-radius:12px;transition:width .4s ease;position:relative;
+  display:flex;align-items:center;justify-content:flex-end;padding-right:10px;
+  min-width:32px;
 }
 .points-meter .fill.ok{background:var(--accent);}
 .points-meter .fill.warn{background:#e67e22;}
 .points-meter .fill.danger{background:#c0392b;}
 .points-meter .fill .fill-label{
-  font-size:11px;font-weight:700;color:#fff;white-space:nowrap;
+  font-size:12px;font-weight:700;color:#fff;white-space:nowrap;
 }
 /* Marqueurs de l'intervalle cible */
 .points-meter .zone-marker{
@@ -857,16 +857,24 @@ document.getElementById('goto-teacher-login').addEventListener('click',e=>{
 document.getElementById('student-login-btn').addEventListener('click',doStudentLogin);
 document.getElementById('student-login-input').addEventListener('keydown',e=>{ if(e.key==='Enter') doStudentLogin(); });
 
-function showStudentLoginScreen(studentId){
+async function showStudentLoginScreen(studentId){
   document.getElementById('login-screen').style.display='none';
   const sc=document.getElementById('student-login-screen');
   sc.classList.remove('hidden'); sc.dataset.studentId=studentId;
-  // Afficher le nom abrégé de l'élève pour confirmation
+  // Charger les données si pas encore chargées
+  if(!DATA.students||!DATA.students.length) await loadData();
+  // Afficher nom abrégé pour confirmer le bon QR code
   const s=DATA.students.find(x=>x.id===studentId);
   const nameEl=document.getElementById('student-qr-name');
-  if(nameEl&&s){
-    const {famille,prenom}=splitNom(s.nom);
-    nameEl.textContent=`${famille.charAt(0)}. ${prenom}`;
+  if(nameEl){
+    if(s){
+      const {famille,prenom}=splitNom(s.nom);
+      const abbr=famille.charAt(0).toUpperCase();
+      nameEl.textContent=`${abbr}. ${prenom}`;
+      nameEl.style.color='var(--accent)';
+    } else {
+      nameEl.textContent='Ta fiche de suivi';
+    }
   }
 }
 async function doStudentLogin(){
@@ -1553,11 +1561,20 @@ function renderFiche(id){
   }
 
   // Bannière pastille très visible
+  const carnetBanner=estEnCarnet(s)?`
+    <div style="background:linear-gradient(135deg,#e67e22,#f39c12);color:#fff;border-radius:10px;padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;gap:12px;font-weight:700;font-size:15px;box-shadow:0 4px 16px rgba(230,126,34,.4);">
+      <span style="font-size:32px;line-height:1;">📓</span>
+      <div>
+        <div>Carnet oublié — Suspendu pour la journée</div>
+        <small style="font-weight:400;font-size:13px;opacity:.9;">La marche n'est pas affectée</small>
+      </div>
+    </div>`:'';
+
   const pastilleBanner=estEnPastille(s)?`
     <div class="pastille-active-banner">
       <span class="pastille-icon" style="font-size:32px;line-height:1;">🔴</span>
       <div class="pastille-info">
-        <div>Droits suspendus — Pastille ${typePastille(s)==='auto'?'automatique (0 point)':'manuelle'}</div>
+        <div>Droits suspendus — Pastille ${typePastille(s)==='auto'?'automatique (0 point)':'7 jours'}</div>
         <small>Jusqu'au ${formatDateFr(finPastille(s))} · ${s.status.toUpperCase()} Marche ${MARCHES.indexOf(s.status)+1}</small>
       </div>
     </div>`:'';
@@ -1572,6 +1589,7 @@ function renderFiche(id){
   return `
   ${weekBanner()}
   ${pastilleBanner}
+  ${carnetBanner}
   ${encouragement?`<div class="eleve-notif eleve-notif-warning">⭐ ${esc(encouragement)}</div>`:''}
   <a class="back-link" href="#" id="back-to-list">← Retour à la liste</a>
   <div class="row" style="justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
@@ -1940,6 +1958,16 @@ function renderStudentReadOnlyView(studentId){
         </div>
         <div style="margin-top:10px;">
           <span class="small">Points : <strong>${s.points}</strong> / 20</span>
+          ${(()=>{
+            const [mn,mx]=MARCHE_INTERVALLE[s.status]||[0,20];
+            const pct2=Math.round((s.points/20)*100);
+            const fc2=s.points>mx?'ok':s.points>=mn?'warn':'danger';
+            return `<div class="points-meter" style="margin-top:10px;">
+              <div class="zone-marker" style="left:${Math.round((mn/20)*100)}%"><div class="zone-label">${mn}</div></div>
+              <div class="zone-marker" style="left:${Math.round((mx/20)*100)}%"><div class="zone-label">${mx}</div></div>
+              <div class="fill ${fc2}" style="width:${pct2}%"><span class="fill-label">${s.points}pts</span></div>
+            </div>`;
+          })()}
         </div>
       </div>
       <div class="card">
