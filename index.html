@@ -635,6 +635,8 @@ async function loadData(){
   if(!DATA.memoAttachments) DATA.memoAttachments={};
   if(!DATA.memoPresentation) DATA.memoPresentation='';
   if(!DATA.memoSections) DATA.memoSections=null; // sera initialisé par initMemoSections()
+  // Migration et initialisation du mémo — fait ici pour que la vue élève ait les données
+  // même si l'onglet Mémo admin n'a jamais été ouvert
   // Si currentWeekStart est dans le futur mais qu'un blocReset dans le passé
   // existe, on recale sur ce blocReset (cas où l'admin a forcé un début anticipé)
   const today=todayISO();
@@ -646,6 +648,7 @@ async function loadData(){
   // Migration des anciens formats (status='pastille'|'carnet') + expiration auto
   migrateOldPastilleData();
   checkPastillesExpirees();
+  initMemoSections(); // garantit que memoSections est toujours prêt
   lastKnownData=JSON.parse(JSON.stringify(DATA));
 }
 
@@ -1904,6 +1907,9 @@ function renderStudentReadOnlyView(studentId){
   if(!s){sc.innerHTML=`<div style="padding:40px;text-align:center">Fiche introuvable.</div>`;return;}
   const classe=DATA.classes.find(c=>c.id===s.classeId);
 
+  // S'assurer que les sections mémo sont initialisées
+  initMemoSections();
+
   // Notification montée de marche
   let notifHtml='';
   if(s.notifBlocFin&&s.notifBlocFin.type==='monte'){
@@ -2001,10 +2007,14 @@ function renderStudentReadOnlyView(studentId){
       <!-- Onglet Ma fiche -->
       <div id="student-tab-fiche">
         <div class="card">
+          <div class="section-title" style="margin-bottom:8px;">Ma marche actuelle</div>
           ${ladder}
-          ${estEnPastille(s)?`<div style="margin-top:10px;"><span class="badge m-pastille">Pastille jusqu'au ${formatDateFr(finPastille(s))}</span></div>`:''}
-          ${estEnCarnet(s)?`<div style="margin-top:6px;"><span class="badge m-carnet">Carnet oublié</span></div>`:''}
-          ${pointsBarre}
+          ${estEnPastille(s)?`<div style="margin-top:14px;"><span class="badge m-pastille">Pastille jusqu'au ${formatDateFr(finPastille(s))}</span></div>`:''}
+          ${estEnCarnet(s)?`<div style="margin-top:8px;"><span class="badge m-carnet">Carnet oublié</span></div>`:''}
+          <div style="margin-top:22px;">
+            <div class="section-title" style="margin-bottom:8px;">Mes points cette semaine</div>
+            ${pointsBarre}
+          </div>
         </div>
         <div class="card">
           <div class="section-title">Mon journal</div>
@@ -3323,4 +3333,3 @@ trySessionAuth();
 </script>
 </body>
 </html>
- 
