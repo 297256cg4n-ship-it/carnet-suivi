@@ -471,8 +471,23 @@ let currentClasseId  = null;
 let currentSearchQuery = "";
 let currentClassFilter = "";
 let lastKnownSha  = null;
+let lastKnownJournauxSha = null;
 let lastKnownData = null;
 let undoStack = [];
+
+/* Retourne l'année de début de l'année scolaire courante
+   Année scolaire : 30 août → 29 août suivant
+   Ex: 30/08/2025 → 29/08/2026 = "2025" */
+function anneeScolaireCourante(){
+  const d=new Date();
+  const m=d.getMonth()+1, j=d.getDate(), a=d.getFullYear();
+  if(m<8||(m===8&&j<30)) return a-1;
+  return a;
+}
+
+function nomFichierJournaux(annee){
+  return `journaux-${annee}.json`;
+}
 
 /* ============================================================
    DATES (heure locale, jamais toISOString pour éviter décalage UTC)
@@ -652,22 +667,31 @@ async function loadData(){
   if(!DATA.editedMotifs) DATA.editedMotifs={};
   if(!DATA.memoAttachments) DATA.memoAttachments={};
   if(!DATA.memoPresentation) DATA.memoPresentation='';
-  if(!DATA.memoSections) DATA.memoSections=null; // sera initialisé par initMemoSections()
-  // Migration et initialisation du mémo — fait ici pour que la vue élève ait les données
-  // même si l'onglet Mémo admin n'a jamais été ouvert
-  // Si currentWeekStart est dans le futur mais qu'un blocReset dans le passé
-  // existe, on recale sur ce blocReset (cas où l'admin a forcé un début anticipé)
+  if(!DATA.memoSections) DATA.memoSections=null;
+
+  // Charger les journaux de l'année scolaire courante
+  try{
+    const annee=anneeScolaireCourante();
+    const fichier=nomFichierJournaux(annee);
+    const {sha:jSha, content:journaux}=await _ghReadFile(fichier);
+    lastKnownJournauxSha=jSha;
+    DATA.students.forEach(s=>{
+      s.history=journaux[s.id]||[];
+    });
+  }catch(e){
+    // Fichier pas encore créé ou migration non faite → history déjà dans donnees.json
+    lastKnownJournauxSha=null;
+  }
+
   const today=todayISO();
   const resets=(DATA.blocResets||[]).slice().sort();
   const passedResets=resets.filter(r=>r<=today);
   if(passedResets.length && DATA.currentWeekStart > today){
     DATA.currentWeekStart=passedResets[passedResets.length-1];
   }
-  // Migration des anciens formats (status='pastille'|'carnet') + expiration auto
   migrateOldPastilleData();
   checkPastillesExpirees();
-  initMemoSections(); // garantit que memoSections est toujours prêt
-  // Générer les codes élèves manquants (migration des élèves existants)
+  initMemoSections();
   let codesMigrated=false;
   DATA.students.forEach(s=>{
     if(!s.codeEleve){ s.codeEleve=genStudentCode(); codesMigrated=true; }
@@ -679,10 +703,37 @@ async function loadData(){
 async function saveData(label){
   const localBefore=lastKnownData;
   const localAfter=JSON.parse(JSON.stringify(DATA));
+
+  // Construire l'objet à écrire dans donnees.json SANS les history
+  const dataToSave=JSON.parse(JSON.stringify(DATA));
+  dataToSave.students=dataToSave.students.map(s=>{
+    const {history, ...rest}=s;
+    return rest;
+  });
+
+  // Construire journaux.json : {studentId: [history]}
+  const journaux={};
+  DATA.students.forEach(s=>{ journaux[s.id]=s.history||[]; });
+
   const MAX=4;
   for(let attempt=0;attempt<=MAX;attempt++){
     try{
-      lastKnownSha=await _ghWriteFile('donnees.json',DATA,lastKnownSha,'Mise à jour du carnet');
+      // Écrire donnees.json (léger, sans journaux)
+      lastKnownSha=await _ghWriteFile('donnees.json',dataToSave,lastKnownSha,'Mise à jour du carnet');
+      // Écrire journaux-AAAA.json (année scolaire courante)
+      const anneeJ=anneeScolaireCourante();
+      const fichierJ=nomFichierJournaux(anneeJ);
+      try{
+        lastKnownJournauxSha=await _ghWriteFile(fichierJ,journaux,lastKnownJournauxSha,`Mise à jour journaux ${anneeJ}`);
+      }catch(je){
+        if(je.message==='CONFLICT'){
+          try{
+            const {sha}=await _ghReadFile(fichierJ);
+            lastKnownJournauxSha=sha;
+            lastKnownJournauxSha=await _ghWriteFile(fichierJ,journaux,lastKnownJournauxSha,`Mise à jour journaux ${anneeJ}`);
+          }catch{}
+        }
+      }
       lastKnownData=localAfter;
       if(label!==false){
         undoStack.push({before:localBefore,after:localAfter,label:label||'Action',date:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})});
@@ -694,6 +745,8 @@ async function saveData(label){
         try{
           const {sha,content:serverData}=await _ghReadFile('donnees.json');
           lastKnownSha=sha;
+          // Remettre les journaux dans serverData avant merge
+          serverData.students=(serverData.students||[]).map(s=>({...s,history:journaux[s.id]||[]}));
           DATA=_mergeIntoServer(serverData,localBefore,localAfter);
           render();
           continue;
