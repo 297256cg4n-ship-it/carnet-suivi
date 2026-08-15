@@ -807,7 +807,7 @@ function showLoginStep(step){
     const hint=document.getElementById('teacher-login-hint');
     if(hint) hint.textContent=DATA.staff.length
       ? "Saisissez votre code à 5 chiffres."
-      : "Aucun compte personnel créé — utilisez le mot de passe commun (CD44100!).";
+      : "Saisissez votre code d'accès.";
     document.getElementById('login-input').focus();
   }
   if(step==='admin') document.getElementById('login-admin-input').focus();
