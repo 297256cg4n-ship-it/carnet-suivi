@@ -692,11 +692,11 @@ async function loadData(){
   migrateOldPastilleData();
   checkPastillesExpirees();
   initMemoSections();
-  let codesMigrated=false;
+  // Générer les codes élèves manquants en mémoire uniquement
+  // (pas de saveData automatique ici pour éviter d'écraser les données)
   DATA.students.forEach(s=>{
-    if(!s.codeEleve){ s.codeEleve=genStudentCode(); codesMigrated=true; }
+    if(!s.codeEleve) s.codeEleve=genStudentCode();
   });
-  if(codesMigrated) saveData(false);
   lastKnownData=JSON.parse(JSON.stringify(DATA));
 }
 
