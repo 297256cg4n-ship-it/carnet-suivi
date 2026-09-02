@@ -469,6 +469,7 @@ let currentTab  = "accueil";
 let currentStudentId = null;
 let currentClasseId  = null;
 let currentSearchQuery = "";
+let currentSort = "nom"; // nom | marche | points
 let currentClassFilter = "";
 let lastKnownSha  = null;
 let lastKnownJournauxSha = null;
@@ -1501,10 +1502,19 @@ function renderAccueil(){
     const q=currentSearchQuery.trim().toLowerCase();
     students=students.filter(s=>s.nom.toLowerCase().includes(q));
   }
-  students.sort((a,b)=>a.nom.localeCompare(b.nom));
+  // Tri
+  if(currentSort==='marche'){
+    students.sort((a,b)=>MARCHES.indexOf(a.status)-MARCHES.indexOf(b.status)||a.nom.localeCompare(b.nom));
+  } else if(currentSort==='points'){
+    students.sort((a,b)=>b.points-a.points||a.nom.localeCompare(b.nom));
+  } else if(currentSort==='points-asc'){
+    students.sort((a,b)=>a.points-b.points||a.nom.localeCompare(b.nom));
+  } else {
+    students.sort((a,b)=>a.nom.localeCompare(b.nom));
+  }
   const bloc=currentBloc();
   const idx=bloc?bloc.semaines.findIndex(s=>s.start===DATA.currentWeekStart):-1;
-  const semaineIdx=idx>=0?idx+1:1; // minimum 1, jamais 0
+  const semaineIdx=idx>=0?idx+1:1;
   const rows=students.map(s=>{
     const classe=DATA.classes.find(c=>c.id===s.classeId);
     return `<tr class="row-link" data-id="${s.id}">
@@ -1520,11 +1530,17 @@ function renderAccueil(){
     <span>Semaine en cours : <strong>${formatDateFr(DATA.currentWeekStart)}</strong>${bloc?` — Semaine ${semaineIdx}/${bloc.semaines.length} du bloc`:''}</span>
     <span class="bloc-badge">${bloc?`Bloc débuté le ${formatDateFr(bloc.dateDebut)}`:'—'}</span>
   </div>
-  <div class="row" style="justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;">
+  <div class="row" style="justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
     <h2>Élèves</h2>
-    <div class="row">
-      <input type="search" id="search-eleve" placeholder="Rechercher par nom..." value="${esc(currentSearchQuery)}" style="padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;min-width:200px;">
+    <div class="row" style="flex-wrap:wrap;gap:6px;">
+      <input type="search" id="search-eleve" placeholder="Rechercher par nom..." value="${esc(currentSearchQuery)}" style="padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;min-width:180px;">
       <select id="filter-classe"><option value="">Toutes les classes</option>${classesOptions}</select>
+      <select id="sort-eleve" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;">
+        <option value="nom" ${currentSort==='nom'?'selected':''}>Trier : Nom A→Z</option>
+        <option value="marche" ${currentSort==='marche'?'selected':''}>Trier : Marche ↑</option>
+        <option value="points" ${currentSort==='points'?'selected':''}>Trier : Points ↓</option>
+        <option value="points-asc" ${currentSort==='points-asc'?'selected':''}>Trier : Points ↑</option>
+      </select>
       <button class="btn primary" id="btn-new-student">+ Ajouter</button>
     </div>
   </div>
@@ -1543,6 +1559,8 @@ function attachAccueilEvents(){
   });
   const fc=document.getElementById('filter-classe');
   if(fc) fc.addEventListener('change',e=>{currentClassFilter=e.target.value;render();});
+  const so=document.getElementById('sort-eleve');
+  if(so) so.addEventListener('change',e=>{currentSort=e.target.value;render();});
   const ns=document.getElementById('btn-new-student');
   if(ns) ns.addEventListener('click',()=>openStudentModal());
   document.querySelectorAll('[data-del-student]').forEach(b=>{
@@ -1817,6 +1835,7 @@ function renderFiche(id){
       <button class="btn" id="btn-edit-student">Modifier</button>
       ${isAdmin()?`<button class="btn warn" id="btn-del-student">Supprimer</button>`:''}
       <button class="btn" id="btn-export-pdf">📄 PDF</button>
+      <button class="btn" id="btn-dl-qr">⬇ QR Code</button>
     </div>
   </div>
 
@@ -2005,6 +2024,10 @@ function attachFicheEvents(){
   // Export PDF
   const pf=document.getElementById('btn-export-pdf');
   if(pf) pf.addEventListener('click',()=>openPDFModal(currentStudentId));
+
+  // Télécharger QR code de l'élève
+  const qrBtn=document.getElementById('btn-dl-qr');
+  if(qrBtn) qrBtn.addEventListener('click',()=>downloadStudentQR(currentStudentId));
 
   // Suppression ligne journal
   document.querySelectorAll('[data-del-hist]').forEach(b=>{
@@ -2655,6 +2678,7 @@ function renderAdmin(){
         </span>
       </td>
       <td style="white-space:nowrap;">
+        <button class="btn" data-edit-staff="${s.id}" style="padding:4px 8px;font-size:12px;">✏ Modifier</button>
         <button class="btn" data-edit-code="${s.id}" style="padding:4px 8px;font-size:12px;">✏ Code</button>
         <button class="btn" data-pdf-staff="${s.id}" style="padding:4px 8px;font-size:12px;">📄 PDF</button>
         <button class="btn warn" data-del-staff="${s.id}" style="padding:4px 8px;font-size:12px;">Supprimer</button>
@@ -2835,6 +2859,30 @@ function attachAdminEvents(){
     document.getElementById('staff-fonction').value='';
     document.getElementById('staff-code').value='';
     await saveData(`Ajout personnel ${nom}`); toast("Personnel ajouté."); render();
+  });
+  // Modifier personnel (nom, fonction)
+  document.querySelectorAll('[data-edit-staff]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const s=DATA.staff.find(x=>x.id===b.dataset.editStaff);
+      if(!s) return;
+      openModal(`
+        <h3>Modifier le personnel</h3>
+        <div class="field"><label>Nom</label><input type="text" id="edit-staff-nom" value="${esc(s.nom)}" style="width:100%;"></div>
+        <div class="field"><label>Fonction</label><input type="text" id="edit-staff-fonction" value="${esc(s.fonction||'')}" style="width:100%;"></div>
+        <div class="row" style="justify-content:flex-end;margin-top:12px;gap:8px;">
+          <button class="btn" id="modal-cancel">Annuler</button>
+          <button class="btn primary" id="modal-edit-staff-save">Enregistrer</button>
+        </div>`);
+      document.getElementById('modal-cancel').addEventListener('click',closeModal);
+      document.getElementById('modal-edit-staff-save').addEventListener('click',async()=>{
+        const nom=document.getElementById('edit-staff-nom').value.trim();
+        const fonction=document.getElementById('edit-staff-fonction').value.trim();
+        if(!nom){ toast("Le nom est obligatoire."); return; }
+        s.nom=nom; s.fonction=fonction; s.role=detectRole(fonction);
+        await saveData(`Modification personnel ${nom}`);
+        toast("Personnel modifié."); closeModal(); render();
+      });
+    });
   });
   // Modifier code
   document.querySelectorAll('[data-edit-code]').forEach(b=>{
@@ -3535,6 +3583,45 @@ function printBilanClasse(classeId,period){
     <div class="footer">Carnet de suivi des Marches · Collège Claude Debussy</div>
     <scri`+`pt>window.onload=()=>{window.print();};</scri`+`pt></body></html>`);
   win.document.close();
+}
+
+function downloadStudentQR(studentId){
+  const s=DATA.students.find(x=>x.id===studentId);
+  if(!s){ toast("Élève introuvable."); return; }
+  const url=appUrl('#eleve='+studentId);
+  if(!url){ toast("QR code disponible uniquement en HTTPS."); return; }
+  // Créer un conteneur temporaire pour générer le QR
+  const tmp=document.createElement('div');
+  tmp.style.cssText='position:fixed;left:-9999px;top:0;width:200px;height:200px;';
+  document.body.appendChild(tmp);
+  try{
+    new QRCode(tmp,{text:url,width:200,height:200,colorDark:"#23262b",colorLight:"#ffffff"});
+    setTimeout(()=>{
+      const canvas=tmp.querySelector('canvas');
+      if(!canvas){ toast("Génération QR échouée."); document.body.removeChild(tmp); return; }
+      // Créer une canvas avec nom + code en dessous
+      const final=document.createElement('canvas');
+      final.width=200; final.height=240;
+      const ctx=final.getContext('2d');
+      ctx.fillStyle='#ffffff';
+      ctx.fillRect(0,0,200,240);
+      ctx.drawImage(canvas,0,0,200,200);
+      ctx.fillStyle='#23262b';
+      ctx.font='bold 13px Arial';
+      ctx.textAlign='center';
+      ctx.fillText(displayNom(s),100,220);
+      ctx.font='12px Arial';
+      ctx.fillStyle='#0f5d4f';
+      ctx.fillText(s.codeEleve||'',100,236);
+      // Télécharger
+      const a=document.createElement('a');
+      a.download=`QR_${s.nom.replace(/\s+/g,'_')}.png`;
+      a.href=final.toDataURL('image/png');
+      a.click();
+      document.body.removeChild(tmp);
+      toast("QR code téléchargé.");
+    },300);
+  }catch(e){ document.body.removeChild(tmp); toast("Erreur : "+e.message); }
 }
 
 function exportData(){
