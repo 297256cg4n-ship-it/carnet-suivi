@@ -715,11 +715,13 @@ async function reloadJournauxFrais(){
   }catch(e){ /* continue si rechargement échoue */ }
 }
 
+let _lastJournauxReload=0; // timestamp du dernier rechargement des journaux
+
 async function saveData(label){
   const localBefore=lastKnownData;
   const localAfter=JSON.parse(JSON.stringify(DATA));
 
-  // Journaux locaux (nos modifications en mémoire)
+  // Journaux locaux
   const journauxLocaux={};
   DATA.students.forEach(s=>{ journauxLocaux[s.id]=s.history||[]; });
 
@@ -731,13 +733,15 @@ async function saveData(label){
     if(avantH!==apresH) elevesModifies.add(s.id);
   });
 
-  // Fusionner avec serveur pour les élèves non modifiés
-  if(label!==false && elevesModifies.size<DATA.students.length){
+  // Recharger les journaux serveur max toutes les 60 secondes
+  const now=Date.now();
+  if(label!==false && elevesModifies.size<DATA.students.length && (now-_lastJournauxReload)>60000){
     try{
       const annee=anneeScolaireCourante();
       const fichier=nomFichierJournaux(annee);
       const {sha:jSha,content:journauxServeur}=await _ghReadFile(fichier);
       lastKnownJournauxSha=jSha;
+      _lastJournauxReload=Date.now();
       DATA.students.forEach(s=>{
         if(!elevesModifies.has(s.id)){
           const serveurH=journauxServeur[s.id]||[];
@@ -747,6 +751,20 @@ async function saveData(label){
       });
     }catch(e){}
   }
+
+  // Recharger donnees.json serveur et fusionner avant d'écrire
+  // pour préserver les modifications des autres utilisateurs (staff, classes, etc.)
+  try{
+    const {sha:dSha,content:serverData}=await _ghReadFile('donnees.json');
+    lastKnownSha=dSha;
+    // Fusionner : appliquer nos changements sur la version serveur fraîche
+    const merged=_mergeIntoServer(serverData,localBefore,localAfter);
+    // Réappliquer les journaux locaux sur le résultat fusionné
+    merged.students=(merged.students||[]).map(s=>({...s,history:journauxLocaux[s.id]||[]}));
+    DATA=merged;
+    // Recalculer journauxLocaux depuis DATA fusionné
+    DATA.students.forEach(s=>{ journauxLocaux[s.id]=s.history||[]; });
+  }catch(e){}
 
   // donnees.json sans history
   const dataToSave=JSON.parse(JSON.stringify(DATA));
@@ -1980,14 +1998,13 @@ function attachFicheEvents(){
         return; // silencieux, juste ignorer
       }
       _lastClick[key] = now;
-      // Confirmation visuelle
-      const orig = b.textContent;
-      b.textContent = '✓ Validé';
-      b.style.color = 'var(--accent)';
-      b.style.fontWeight = '700';
-      b.disabled = true;
+      const orig=b.textContent;
+      b.textContent='✓ Validé';
+      b.style.color='var(--accent)';
+      b.style.fontWeight='700';
+      b.disabled=true;
       await retirerPoints(currentStudentId,b.dataset.cat,parseInt(b.dataset.pts),b.dataset.motif);
-      setTimeout(()=>{ render(); }, 600);
+      render();
     });
   });
 
@@ -2092,29 +2109,29 @@ function attachFicheEvents(){
 /* ============================================================
    RETIRER DES POINTS
    ============================================================ */
-async function retirerPoints(studentId,categorie,pts,motif){
+async function retirerPoints(studentId,categorie,pts,motif,skipApply){
   const s=DATA.students.find(x=>x.id===studentId);
   if(!s) return;
-  const cat=CATEGORIES.find(c=>c.key===categorie);
-  const newPts=Math.max(0,s.points-pts);
-  s.points=newPts;
-  logEvent(s,`-${pts} pt(s) — ${cat?cat.label:categorie}${motif?' : '+motif:''} (reste ${newPts}/20)`,{
-    motif:(cat?cat.label:categorie)+(motif?' : '+motif:''),
-    points:pts,type:'retrait',categorie
-  });
-  // Vérifier si l'élève tombe à 0 → pastille automatique jusqu'au dimanche
-  if(newPts===0&&!estEnPastille(s)){
-    // Trouver le prochain dimanche
-    const d=new Date(todayISO()+'T00:00:00');
-    const dayOfWeek=d.getDay(); // 0=dim, 1=lun...
-    const daysUntilSunday=dayOfWeek===0?0:7-dayOfWeek;
-    const finAuto=addDays(todayISO(),daysUntilSunday);
-    s.pastille={type:'auto', debut:todayISO(), fin:finAuto};
-    logEvent(s,`0 point — pastille automatique jusqu'au dimanche ${formatDateFr(finAuto)}.`);
-    toast(`${s.nom} passe en pastille automatique (0 point).`);
+  if(!skipApply){
+    // Application normale (si pas déjà fait par le listener)
+    const cat=CATEGORIES.find(c=>c.key===categorie);
+    const newPts=Math.max(0,s.points-pts);
+    s.points=newPts;
+    logEvent(s,`-${pts} pt(s) — ${cat?cat.label:categorie}${motif?' : '+motif:''} (reste ${newPts}/20)`,{
+      motif:(cat?cat.label:categorie)+(motif?' : '+motif:''),
+      points:pts,type:'retrait',categorie
+    });
+    if(newPts===0&&!estEnPastille(s)){
+      const d=new Date(todayISO()+'T00:00:00');
+      const dayOfWeek=d.getDay();
+      const daysUntilSunday=dayOfWeek===0?0:7-dayOfWeek;
+      const finAuto=addDays(todayISO(),daysUntilSunday);
+      s.pastille={type:'auto',debut:todayISO(),fin:finAuto};
+      logEvent(s,`0 point — pastille automatique jusqu'au dimanche ${formatDateFr(finAuto)}.`);
+      toast(`${s.nom} passe en pastille automatique (0 point).`);
+    }
+    if(categorie==='retard') checkRetardsSeuil(s);
   }
-  // Vérifier retards → mettre à jour la liste des retenues
-  if(categorie==='retard') checkRetardsSeuil(s);
   await saveData(`Retrait ${pts}pt(s) — ${s.nom}`);
 }
 
