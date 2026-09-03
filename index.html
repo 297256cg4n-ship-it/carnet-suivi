@@ -719,25 +719,29 @@ async function saveData(label){
   const localBefore=lastKnownData;
   const localAfter=JSON.parse(JSON.stringify(DATA));
 
-  // Journaux locaux (nos modifications)
+  // Journaux locaux (nos modifications en mémoire)
   const journauxLocaux={};
   DATA.students.forEach(s=>{ journauxLocaux[s.id]=s.history||[]; });
 
-  // Fusionner avec les journaux GitHub pour préserver les actions des autres
-  if(label!==false){
+  // Identifier quels élèves ont été modifiés
+  const elevesModifies=new Set();
+  DATA.students.forEach(s=>{
+    const avantH=JSON.stringify(((localBefore.students||[]).find(x=>x.id===s.id)||{}).history||[]);
+    const apresH=JSON.stringify(journauxLocaux[s.id]||[]);
+    if(avantH!==apresH) elevesModifies.add(s.id);
+  });
+
+  // Fusionner avec serveur pour les élèves non modifiés
+  if(label!==false && elevesModifies.size<DATA.students.length){
     try{
       const annee=anneeScolaireCourante();
       const fichier=nomFichierJournaux(annee);
-      const {sha:jSha, content:journauxServeur}=await _ghReadFile(fichier);
+      const {sha:jSha,content:journauxServeur}=await _ghReadFile(fichier);
       lastKnownJournauxSha=jSha;
       DATA.students.forEach(s=>{
-        const avantH=((localBefore.students||[]).find(x=>x.id===s.id)||{}).history||[];
-        const apresH=journauxLocaux[s.id]||[];
-        const serveurH=journauxServeur[s.id]||[];
-        if(JSON.stringify(avantH)!==JSON.stringify(apresH)){
-          journauxLocaux[s.id]=apresH; // on a modifié cet élève → garder
-        } else {
-          journauxLocaux[s.id]=serveurH; // pas modifié → prendre serveur
+        if(!elevesModifies.has(s.id)){
+          const serveurH=journauxServeur[s.id]||[];
+          journauxLocaux[s.id]=serveurH;
           s.history=serveurH;
         }
       });
@@ -787,7 +791,6 @@ async function saveData(label){
     }
   }
 }
-
 
 async function undoLastAction(){
   if(!undoStack.length){ toast("Rien à annuler."); return; }
@@ -866,9 +869,11 @@ function trySessionAuth(){
   if(saved){
     try{
       currentUser=JSON.parse(saved);
-      currentTab='accueil'; // toujours revenir à l'accueil à la reconnexion
+      currentTab='accueil';
       currentStudentId=null;
-      location.hash=''; // effacer le hash pour éviter d'ouvrir une fiche
+      // Préserver le hash #eleve= si on arrive via QR code
+      const hash=location.hash;
+      if(!hash.startsWith('#eleve=')) location.hash='';
       enterApp(); return;
     }catch{}
   }
