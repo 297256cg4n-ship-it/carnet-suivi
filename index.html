@@ -716,44 +716,56 @@ async function reloadJournauxFrais(){
 }
 
 async function saveData(label){
-  // Recharger les journaux frais avant toute sauvegarde
-  // pour éviter les écrasements entre utilisateurs simultanés
-  if(label!==false) await reloadJournauxFrais();
-
   const localBefore=lastKnownData;
   const localAfter=JSON.parse(JSON.stringify(DATA));
 
-  // Construire l'objet à écrire dans donnees.json SANS les history
-  const dataToSave=JSON.parse(JSON.stringify(DATA));
-  dataToSave.students=dataToSave.students.map(s=>{
-    const {history, ...rest}=s;
-    return rest;
-  });
+  // Journaux locaux (nos modifications)
+  const journauxLocaux={};
+  DATA.students.forEach(s=>{ journauxLocaux[s.id]=s.history||[]; });
 
-  // Construire journaux.json : {studentId: [history]}
-  const journaux={};
-  DATA.students.forEach(s=>{ journaux[s.id]=s.history||[]; });
+  // Fusionner avec les journaux GitHub pour préserver les actions des autres
+  if(label!==false){
+    try{
+      const annee=anneeScolaireCourante();
+      const fichier=nomFichierJournaux(annee);
+      const {sha:jSha, content:journauxServeur}=await _ghReadFile(fichier);
+      lastKnownJournauxSha=jSha;
+      DATA.students.forEach(s=>{
+        const avantH=((localBefore.students||[]).find(x=>x.id===s.id)||{}).history||[];
+        const apresH=journauxLocaux[s.id]||[];
+        const serveurH=journauxServeur[s.id]||[];
+        if(JSON.stringify(avantH)!==JSON.stringify(apresH)){
+          journauxLocaux[s.id]=apresH; // on a modifié cet élève → garder
+        } else {
+          journauxLocaux[s.id]=serveurH; // pas modifié → prendre serveur
+          s.history=serveurH;
+        }
+      });
+    }catch(e){}
+  }
+
+  // donnees.json sans history
+  const dataToSave=JSON.parse(JSON.stringify(DATA));
+  dataToSave.students=dataToSave.students.map(s=>{const {history,...rest}=s;return rest;});
 
   const MAX=4;
   for(let attempt=0;attempt<=MAX;attempt++){
     try{
-      // Écrire donnees.json (léger, sans journaux)
       lastKnownSha=await _ghWriteFile('donnees.json',dataToSave,lastKnownSha,'Mise à jour du carnet');
-      // Écrire journaux-AAAA.json (année scolaire courante)
       const anneeJ=anneeScolaireCourante();
       const fichierJ=nomFichierJournaux(anneeJ);
       try{
-        lastKnownJournauxSha=await _ghWriteFile(fichierJ,journaux,lastKnownJournauxSha,`Mise à jour journaux ${anneeJ}`);
+        lastKnownJournauxSha=await _ghWriteFile(fichierJ,journauxLocaux,lastKnownJournauxSha,`Mise à jour journaux ${anneeJ}`);
       }catch(je){
         if(je.message==='CONFLICT'){
           try{
             const {sha}=await _ghReadFile(fichierJ);
             lastKnownJournauxSha=sha;
-            lastKnownJournauxSha=await _ghWriteFile(fichierJ,journaux,lastKnownJournauxSha,`Mise à jour journaux ${anneeJ}`);
+            lastKnownJournauxSha=await _ghWriteFile(fichierJ,journauxLocaux,lastKnownJournauxSha,`Mise à jour journaux ${anneeJ}`);
           }catch{}
         }
       }
-      lastKnownData=localAfter;
+      lastKnownData=JSON.parse(JSON.stringify(DATA));
       if(label!==false){
         undoStack.push({before:localBefore,after:localAfter,label:label||'Action',date:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})});
         if(undoStack.length>20) undoStack.shift();
@@ -764,11 +776,9 @@ async function saveData(label){
         try{
           const {sha,content:serverData}=await _ghReadFile('donnees.json');
           lastKnownSha=sha;
-          // Remettre les journaux dans serverData avant merge
-          serverData.students=(serverData.students||[]).map(s=>({...s,history:journaux[s.id]||[]}));
+          serverData.students=(serverData.students||[]).map(s=>({...s,history:journauxLocaux[s.id]||[]}));
           DATA=_mergeIntoServer(serverData,localBefore,localAfter);
-          render();
-          continue;
+          render(); continue;
         }catch{ toast("⚠️ Enregistrement impossible. Réessaie."); return; }
       } else {
         toast("⚠️ Enregistrement impossible. Réessaie.");
@@ -777,6 +787,7 @@ async function saveData(label){
     }
   }
 }
+
 
 async function undoLastAction(){
   if(!undoStack.length){ toast("Rien à annuler."); return; }
@@ -855,7 +866,9 @@ function trySessionAuth(){
   if(saved){
     try{
       currentUser=JSON.parse(saved);
-      currentTab='accueil';
+      currentTab='accueil'; // toujours revenir à l'accueil à la reconnexion
+      currentStudentId=null;
+      location.hash=''; // effacer le hash pour éviter d'ouvrir une fiche
       enterApp(); return;
     }catch{}
   }
