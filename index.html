@@ -466,6 +466,7 @@ let DATA = {
 };
 let currentUser = null;   // objet staff complet de la personne connectée
 let currentTab  = "accueil";
+let previousTab = "accueil"; // mémorise la page précédente pour le bouton Retour
 let currentStudentId = null;
 let currentClasseId  = null;
 let currentSearchQuery = "";
@@ -701,7 +702,24 @@ async function loadData(){
   lastKnownData=JSON.parse(JSON.stringify(DATA));
 }
 
+async function reloadJournauxFrais(){
+  // Recharge les journaux depuis GitHub pour éviter les écrasements multi-utilisateurs
+  try{
+    const annee=anneeScolaireCourante();
+    const fichier=nomFichierJournaux(annee);
+    const {sha:jSha, content:journaux}=await _ghReadFile(fichier);
+    lastKnownJournauxSha=jSha;
+    DATA.students.forEach(s=>{
+      if(journaux[s.id]) s.history=journaux[s.id];
+    });
+  }catch(e){ /* continue si rechargement échoue */ }
+}
+
 async function saveData(label){
+  // Recharger les journaux frais avant toute sauvegarde
+  // pour éviter les écrasements entre utilisateurs simultanés
+  if(label!==false) await reloadJournauxFrais();
+
   const localBefore=lastKnownData;
   const localAfter=JSON.parse(JSON.stringify(DATA));
 
@@ -762,16 +780,33 @@ async function saveData(label){
 
 async function undoLastAction(){
   if(!undoStack.length){ toast("Rien à annuler."); return; }
-  const last=undoStack.pop();
-  try{
-    const {sha,content:serverData}=await _ghReadFile('donnees.json');
-    lastKnownSha=sha;
-    DATA=_mergeIntoServer(serverData,last.after,last.before);
-    lastKnownData=JSON.parse(JSON.stringify(DATA));
-    await _ghWriteFile('donnees.json',DATA,lastKnownSha,'Annulation : '+last.label).then(s=>lastKnownSha=s);
-    toast(`Annulé : ${last.label}`);
-    render();
-  }catch{ undoStack.push(last); toast("⚠️ Impossible d'annuler."); }
+  const last=undoStack[undoStack.length-1];
+  // Confirmation avant annulation
+  openModal(`
+    <h3>Confirmer l'annulation</h3>
+    <p style="margin:12px 0;">Voulez-vous vraiment annuler cette action ?</p>
+    <div style="background:var(--paper);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:14px;">
+      <strong>${esc(last.label)}</strong><br>
+      <span class="muted small">à ${esc(last.date)}</span>
+    </div>
+    <div class="row" style="justify-content:flex-end;gap:8px;">
+      <button class="btn" id="modal-cancel">Non, garder</button>
+      <button class="btn danger" id="modal-confirm-undo">Oui, annuler</button>
+    </div>`);
+  document.getElementById('modal-cancel').addEventListener('click',closeModal);
+  document.getElementById('modal-confirm-undo').addEventListener('click',async()=>{
+    closeModal();
+    undoStack.pop();
+    try{
+      const {sha,content:serverData}=await _ghReadFile('donnees.json');
+      lastKnownSha=sha;
+      DATA=_mergeIntoServer(serverData,last.after,last.before);
+      lastKnownData=JSON.parse(JSON.stringify(DATA));
+      await _ghWriteFile('donnees.json',DATA,lastKnownSha,'Annulation : '+last.label).then(s=>lastKnownSha=s);
+      toast(`Annulé : ${last.label}`);
+      render();
+    }catch{ undoStack.push(last); toast("⚠️ Impossible d'annuler."); }
+  });
 }
 
 /* ============================================================
@@ -1457,6 +1492,7 @@ function closeModal(){ const bg=document.getElementById('modal-bg'); if(bg) bg.r
 document.getElementById('tabs').addEventListener('click',e=>{
   const btn=e.target.closest('button[data-tab]');
   if(!btn) return;
+  previousTab=currentTab; // mémoriser l'onglet précédent
   currentTab=btn.dataset.tab;
   render();
 });
@@ -1572,7 +1608,7 @@ function attachAccueilEvents(){
   document.querySelectorAll('tr.row-link[data-id]').forEach(tr=>{
     tr.addEventListener('click',e=>{
       if(e.target.closest('[data-del-student]')) return;
-      currentStudentId=tr.dataset.id; currentTab='fiche'; location.hash='#eleve='+tr.dataset.id; render();
+      previousTab=currentTab; currentStudentId=tr.dataset.id; currentTab='fiche'; location.hash='#eleve='+tr.dataset.id; render();
     });
   });
 }
@@ -1675,7 +1711,7 @@ function attachClasseDetailEvents(){
   document.querySelectorAll('tr.row-link[data-id]').forEach(tr=>{
     tr.addEventListener('click',e=>{
       if(e.target.closest('[data-del-student]')) return;
-      currentStudentId=tr.dataset.id;currentTab='fiche';location.hash='#eleve='+tr.dataset.id;render();
+      previousTab=currentTab; currentStudentId=tr.dataset.id;currentTab='fiche';location.hash='#eleve='+tr.dataset.id;render();
     });
   });
 }
@@ -1893,7 +1929,7 @@ function renderFiche(id){
 
 function attachFicheEvents(){
   const back=document.getElementById('back-to-list');
-  if(back) back.addEventListener('click',e=>{e.preventDefault();currentTab='accueil';currentStudentId=null;location.hash='';render();});
+  if(back) back.addEventListener('click',e=>{e.preventDefault();currentTab=previousTab||'accueil';currentStudentId=null;location.hash='';render();});
 
   // Catégories : ouvrir/fermer (nouvelle classe cat-item-header)
   document.querySelectorAll('.cat-item-header').forEach(h=>{
@@ -2412,7 +2448,7 @@ function attachPastillesEvents(){
   document.querySelectorAll('tr.row-link[data-id]').forEach(tr=>{
     tr.addEventListener('click',e=>{
       if(e.target.closest('[data-lever-pastille],[data-lever-carnet]')) return;
-      currentStudentId=tr.dataset.id;currentTab='fiche';location.hash='#eleve='+tr.dataset.id;render();
+      previousTab=currentTab; currentStudentId=tr.dataset.id;currentTab='fiche';location.hash='#eleve='+tr.dataset.id;render();
     });
   });
 }
