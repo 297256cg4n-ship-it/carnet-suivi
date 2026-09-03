@@ -715,8 +715,6 @@ async function reloadJournauxFrais(){
   }catch(e){ /* continue si rechargement échoue */ }
 }
 
-let _lastJournauxReload=0; // timestamp du dernier rechargement des journaux
-
 async function saveData(label){
   const localBefore=lastKnownData;
   const localAfter=JSON.parse(JSON.stringify(DATA));
@@ -733,15 +731,14 @@ async function saveData(label){
     if(avantH!==apresH) elevesModifies.add(s.id);
   });
 
-  // Recharger les journaux serveur max toutes les 60 secondes
-  const now=Date.now();
-  if(label!==false && elevesModifies.size<DATA.students.length && (now-_lastJournauxReload)>60000){
+  // Recharger les journaux serveur à chaque sauvegarde (pas de cache)
+  // pour préserver les actions simultanées des autres utilisateurs
+  if(label!==false && elevesModifies.size<DATA.students.length){
     try{
       const annee=anneeScolaireCourante();
       const fichier=nomFichierJournaux(annee);
       const {sha:jSha,content:journauxServeur}=await _ghReadFile(fichier);
       lastKnownJournauxSha=jSha;
-      _lastJournauxReload=Date.now();
       DATA.students.forEach(s=>{
         if(!elevesModifies.has(s.id)){
           const serveurH=journauxServeur[s.id]||[];
