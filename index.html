@@ -698,6 +698,8 @@ async function loadData(){
   // (pas de saveData automatique ici pour éviter d'écraser les données)
   DATA.students.forEach(s=>{
     if(!s.codeEleve) s.codeEleve=genStudentCode();
+    // Migration classeId → classeIds
+    if(!s.classeIds){ s.classeIds=s.classeId?[s.classeId]:[]; }
   });
   lastKnownData=JSON.parse(JSON.stringify(DATA));
 }
@@ -1189,7 +1191,7 @@ async function closeWeek(newWeekStart, silent){
   const snap=DATA.students.map(s=>{
     const [minPts,maxPts]=MARCHE_INTERVALLE[s.status]||[0,20];
     return {
-      id:s.id, nom:s.nom, classeId:s.classeId,
+      id:s.id, nom:s.nom, classeId:getClassePrincipale(s),
       status:s.status,
       enPastille:estEnPastille(s),
       points:s.points,
@@ -1314,6 +1316,14 @@ function checkEncouragementSemaine3(s){
 function genId(){ return Math.random().toString(36).slice(2,10); }
 function esc(str){ return String(str||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function isAdmin(){ return currentUser&&currentUser.role==='admin'; }
+// Retourne la liste des classeIds d'un élève (compatible ancien format classeId unique)
+function getClasseIds(s){ 
+  if(s.classeIds&&s.classeIds.length) return s.classeIds;
+  if(s.classeId) return [s.classeId];
+  return [];
+}
+// Retourne la première classe d'un élève (pour l'affichage résumé)
+function getClassePrincipale(s){ return getClasseIds(s)[0]||null; }
 function isVieScolaire(){ return currentUser&&(currentUser.role==='vie-scolaire'||currentUser.role==='admin'); }
 /* Détecte le rôle depuis la fonction : vie-scolaire si AED, CPE, principal, secrétaire, etc. */
 function detectRole(fonction){
@@ -1447,7 +1457,7 @@ function genStudentCode(){
 
 function newStudent(nom,classeId){
   return {
-    id:genId(), nom, classeId,
+    id:genId(), nom, classeIds:[classeId].filter(Boolean),
     status:MARCHE_DEFAULT,
     points:20, history:[],
     pastille:null,
@@ -1585,7 +1595,7 @@ function renderAccueil(){
   const idx=bloc?bloc.semaines.findIndex(s=>s.start===DATA.currentWeekStart):-1;
   const semaineIdx=idx>=0?idx+1:1;
   const rows=students.map(s=>{
-    const classe=DATA.classes.find(c=>c.id===s.classeId);
+    const classe=DATA.classes.find(c=>getClasseIds(s).includes(c.id));
     return `<tr class="row-link" data-id="${s.id}">
       <td>${esc(displayNom(s))}</td>
       <td>${classe?esc(classe.nom):'<span class="muted">—</span>'}</td>
@@ -1692,12 +1702,15 @@ function attachClassesEvents(){
 function renderClasseDetail(classeId){
   const classe=DATA.classes.find(c=>c.id===classeId);
   if(!classe) return `<a class="back-link" href="#" id="back-to-classes">← Retour</a><div class="empty">Classe introuvable.</div>`;
-  const students=DATA.students.filter(s=>s.classeId===classeId).sort((a,b)=>a.nom.localeCompare(b.nom));
+  const students=DATA.students.filter(s=>getClasseIds(s).includes(classeId)).sort((a,b)=>a.nom.localeCompare(b.nom));
   const rows=students.map(s=>`
     <tr class="row-link" data-id="${s.id}">
       <td>${esc(displayNom(s))}</td><td>${statusBadge(s)}</td>
       <td>${s.points} / 20</td>
-      <td>${isAdmin()?`<button class="btn warn" data-del-student="${s.id}">Supprimer</button>`:''}</td>
+      <td style="white-space:nowrap;">
+        ${isAdmin()?`<button class="btn" data-remove-from-classe="${s.id}" style="font-size:12px;padding:4px 8px;">Retirer</button>
+        <button class="btn warn" data-del-student="${s.id}" style="font-size:12px;padding:4px 8px;">Supprimer</button>`:''}
+      </td>
     </tr>`).join('');
   return `
   ${weekBanner()}
@@ -1705,7 +1718,8 @@ function renderClasseDetail(classeId){
   <div class="row" style="justify-content:space-between;margin-bottom:14px;">
     <h2>${esc(classe.nom)}</h2>
     <div class="row">
-      <button class="btn primary" id="btn-add-student-here">+ Ajouter un élève</button>
+      <button class="btn primary" id="btn-add-student-here">+ Nouvel élève</button>
+      <button class="btn" id="btn-add-existing-student">+ Élève existant</button>
       <button class="btn" id="btn-pdf-classe">📄 Bilan PDF</button>
       <label class="btn" for="import-file-classe">Importer CSV/Excel</label>
       <input type="file" id="import-file-classe" accept=".csv,.xlsx,.xls" class="hidden">
@@ -1719,7 +1733,20 @@ function renderClasseDetail(classeId){
 }
 function attachClasseDetailEvents(){
   document.getElementById('back-to-classes').addEventListener('click',e=>{e.preventDefault();currentClasseId=null;currentTab='classes';render();});
+  // Retirer un élève de cette classe (sans le supprimer)
+  document.querySelectorAll('[data-remove-from-classe]').forEach(b=>{
+    b.addEventListener('click',async e=>{
+      e.stopPropagation();
+      const s=DATA.students.find(x=>x.id===b.dataset.removeFromClasse);
+      if(!s||!confirm(`Retirer ${displayNom(s)} de cette classe (sans le supprimer) ?`)) return;
+      s.classeIds=(s.classeIds||[]).filter(id=>id!==currentClasseId);
+      s.classeId=s.classeIds[0]||null;
+      await saveData(`Retrait ${s.nom} de classe`);
+      toast(`${displayNom(s)} retiré de la classe.`); render();
+    });
+  });
   document.getElementById('btn-add-student-here').addEventListener('click',()=>openStudentModal(null,currentClasseId));
+  document.getElementById('btn-add-existing-student').addEventListener('click',()=>openAddExistingStudentModal(currentClasseId));
   // PDF bilan classe
   const pdfClasse=document.getElementById('btn-pdf-classe');
   if(pdfClasse) pdfClasse.addEventListener('click',()=>openPDFClasseModal(currentClasseId));
@@ -1779,7 +1806,7 @@ function rowClass(h){
 function renderFiche(id){
   const s=DATA.students.find(x=>x.id===id);
   if(!s) return `<a class="back-link" href="#" id="back-to-list">← Retour</a><div class="empty">Élève introuvable.</div>`;
-  const classe=DATA.classes.find(c=>c.id===s.classeId);
+  const classe=DATA.classes.find(c=>getClasseIds(s).includes(c.id));
   const pct=Math.round((s.points/20)*100);
   const [minPts,maxPts]=MARCHE_INTERVALLE[s.status]||[0,20];
   const fillClass=s.points>maxPts?'ok':s.points>=minPts?'warn':'danger';
@@ -2212,7 +2239,7 @@ function renderStudentReadOnlyView(studentId){
   const s=DATA.students.find(x=>x.id===studentId);
   const sc=document.getElementById('student-view-screen');
   if(!s){sc.innerHTML=`<div style="padding:40px;text-align:center">Fiche introuvable.</div>`;return;}
-  const classe=DATA.classes.find(c=>c.id===s.classeId);
+  const classe=DATA.classes.find(c=>getClasseIds(s).includes(c.id));
 
   // S'assurer que les sections mémo sont initialisées
   initMemoSections();
@@ -2414,7 +2441,7 @@ function renderPastilles(){
   const totalCarnets=DATA.students.filter(s=>estEnCarnet(s)).length;
 
   const rows=suspendus.map(s=>{
-    const classe=DATA.classes.find(c=>c.id===s.classeId);
+    const classe=DATA.classes.find(c=>getClasseIds(s).includes(c.id));
     const badges=[];
     if(estEnPastille(s)){
       const t=typePastille(s);
@@ -2506,7 +2533,7 @@ function renderRetenues(){
   const enAttente=DATA.students.filter(s=>s.retenuePendante).sort((a,b)=>a.nom.localeCompare(b.nom));
   // Recalculer pour s'assurer que les données sont à jour
   const rows=enAttente.map(s=>{
-    const classe=DATA.classes.find(c=>c.id===s.classeId);
+    const classe=DATA.classes.find(c=>getClasseIds(s).includes(c.id));
     const r=s.retenuePendante;
     const nbRetards=countRetardsDansBloc(s,bloc);
     return `<tr>
@@ -3213,7 +3240,7 @@ function attachQrCodesEvents(){
     b.addEventListener('click',()=>{
       const classeId=b.dataset.printQr;
       const classe=DATA.classes.find(c=>c.id===classeId);
-      const students=DATA.students.filter(s=>s.classeId===classeId).sort((a,b)=>a.nom.localeCompare(b.nom));
+      const students=DATA.students.filter(s=>getClasseIds(s).includes(classeId)).sort((a,b)=>a.nom.localeCompare(b.nom));
       // Collecter les QR codes depuis le DOM (déjà générés)
       const items=students.map(s=>{
         const host=document.getElementById('qr-'+s.id);
@@ -3278,7 +3305,7 @@ function openPDFModal(studentId){
 function exportFichePDF(studentId,period){
   const s=DATA.students.find(x=>x.id===studentId);
   if(!s) return;
-  const classe=DATA.classes.find(c=>c.id===s.classeId);
+  const classe=DATA.classes.find(c=>getClasseIds(s).includes(c.id));
   const blocs=buildBlocs();
   const today=todayISO();
   let targetBlocs=[];
@@ -3372,11 +3399,21 @@ function exportFichePDF(studentId,period){
    ============================================================ */
 function openStudentModal(id,classeId){
   const editing=id?DATA.students.find(s=>s.id===id):null;
-  const classesOptions=DATA.classes.map(c=>`<option value="${c.id}" ${(classeId===c.id||(editing&&editing.classeId===c.id))?'selected':''}>${esc(c.nom)}</option>`).join('');
+  const currentClasseIds=editing?getClasseIds(editing):(classeId?[classeId]:[]);
+  const classesCheckboxes=DATA.classes.map(c=>`
+    <label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;">
+      <input type="checkbox" value="${c.id}" ${currentClasseIds.includes(c.id)?'checked':''} style="width:16px;height:16px;">
+      ${esc(c.nom)}
+    </label>`).join('');
   openModal(`
     <h3>${editing?'Modifier l\'élève':'Ajouter un élève'}</h3>
     <div class="field"><label>Nom complet</label><input type="text" id="modal-eleve-nom" value="${editing?esc(editing.nom):''}" placeholder="Nom Prénom"></div>
-    <div class="field"><label>Classe</label><select id="modal-eleve-classe"><option value="">Sans classe</option>${classesOptions}</select></div>
+    <div class="field">
+      <label>Classes</label>
+      <div style="max-height:180px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:8px 12px;">
+        ${classesCheckboxes||'<span class="muted small">Aucune classe créée</span>'}
+      </div>
+    </div>
     <div class="row" style="justify-content:flex-end;">
       <button class="btn" id="modal-cancel">Annuler</button>
       <button class="btn primary" id="modal-save">${editing?'Enregistrer':'Ajouter'}</button>
@@ -3384,12 +3421,60 @@ function openStudentModal(id,classeId){
   document.getElementById('modal-cancel').addEventListener('click',closeModal);
   document.getElementById('modal-save').addEventListener('click',async()=>{
     const nom=document.getElementById('modal-eleve-nom').value.trim();
-    const classeId=document.getElementById('modal-eleve-classe').value;
+    const classeIds=[...document.querySelectorAll('#modal-save')].length>0
+      ?[...document.querySelectorAll('input[type=checkbox]:checked')].map(cb=>cb.value)
+      :[];
+    const selectedIds=[...document.querySelectorAll('input[type=checkbox]:checked')].map(cb=>cb.value);
     if(!nom){toast("Saisis un nom.");return;}
-    if(editing){editing.nom=nom;editing.classeId=classeId;}
-    else DATA.students.push(newStudent(nom,classeId));
+    if(editing){
+      editing.nom=nom;
+      editing.classeIds=selectedIds;
+      editing.classeId=selectedIds[0]||null; // compat
+    } else {
+      const s=newStudent(nom,selectedIds[0]||null);
+      s.classeIds=selectedIds;
+      DATA.students.push(s);
+    }
     await saveData(editing?`Modification ${nom}`:`Ajout ${nom}`);
     closeModal(); toast(editing?"Modifié.":"Ajouté."); render();
+  });
+}
+
+function openAddExistingStudentModal(classeId){
+  // Élèves qui ne sont pas encore dans cette classe
+  const dejaDedans=DATA.students.filter(s=>getClasseIds(s).includes(classeId)).map(s=>s.id);
+  const disponibles=DATA.students.filter(s=>!dejaDedans.includes(s.id)).sort((a,b)=>a.nom.localeCompare(b.nom));
+  openModal(`
+    <h3>Ajouter un élève existant</h3>
+    <p class="small muted" style="margin-bottom:10px;">Sélectionnez un élève à ajouter dans cette classe.</p>
+    <input type="search" id="modal-search-eleve" placeholder="Rechercher..." style="width:100%;padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;margin-bottom:8px;">
+    <div id="modal-eleve-list" style="max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;">
+      ${disponibles.map(s=>`<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--line);">
+        <input type="radio" name="eleve-existant" value="${s.id}">
+        ${esc(s.nom)} <span class="muted small">${DATA.classes.filter(c=>getClasseIds(s).includes(c.id)).map(c=>c.nom).join(', ')||'Sans classe'}</span>
+      </label>`).join('')||'<p class="small muted" style="padding:12px;">Tous les élèves sont déjà dans cette classe.</p>'}
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px;">
+      <button class="btn" id="modal-cancel">Annuler</button>
+      <button class="btn primary" id="modal-add-existing">Ajouter</button>
+    </div>`);
+  // Filtre recherche
+  document.getElementById('modal-search-eleve').addEventListener('input',e=>{
+    const q=e.target.value.toLowerCase();
+    document.querySelectorAll('#modal-eleve-list label').forEach(l=>{
+      l.style.display=l.textContent.toLowerCase().includes(q)?'':'none';
+    });
+  });
+  document.getElementById('modal-cancel').addEventListener('click',closeModal);
+  document.getElementById('modal-add-existing').addEventListener('click',async()=>{
+    const sel=document.querySelector('input[name=eleve-existant]:checked');
+    if(!sel){toast("Sélectionnez un élève.");return;}
+    const s=DATA.students.find(x=>x.id===sel.value);
+    if(!s) return;
+    if(!s.classeIds) s.classeIds=s.classeId?[s.classeId]:[];
+    if(!s.classeIds.includes(classeId)) s.classeIds.push(classeId);
+    await saveData(`Ajout ${s.nom} dans classe`);
+    closeModal(); toast(`${s.nom} ajouté à la classe.`); render();
   });
 }
 function openClassModal(){
@@ -3586,7 +3671,7 @@ function openPDFClasseModal(classeId){
 function printBilanClasse(classeId,period){
   const classe=DATA.classes.find(c=>c.id===classeId);
   if(!classe) return;
-  const students=DATA.students.filter(s=>s.classeId===classeId).sort((a,b)=>a.nom.localeCompare(b.nom));
+  const students=DATA.students.filter(s=>getClasseIds(s).includes(classeId)).sort((a,b)=>a.nom.localeCompare(b.nom));
   const blocs=buildBlocs();
   const today=todayISO();
 
