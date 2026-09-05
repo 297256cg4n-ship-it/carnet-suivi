@@ -3066,7 +3066,9 @@ function attachAdminEvents(){
   // On retire d'abord l'ancien listener pour éviter les doublons
   if(window._motifDelegate) document.body.removeEventListener('click', window._motifDelegate);
   window._motifDelegate=async function(e){
-    if(currentTab!=='admin') return; // uniquement sur l'onglet admin
+    if(currentTab!=='admin') return;
+    // Ignorer les clics sur les boutons créés dynamiquement (✓ de validation)
+    if(e.target.closest('button')&&!e.target.closest('[data-del-base-motif]')&&!e.target.closest('[data-edit-base-motif]')&&!e.target.closest('[data-add-motif]')&&!e.target.closest('[data-del-motif]')) return;
     // Supprimer motif de base
     const delBase=e.target.closest('[data-del-base-motif]');
     if(delBase){
@@ -3091,7 +3093,8 @@ function attachAdminEvents(){
       const saveBtn=document.createElement('button');
       saveBtn.textContent='✓';
       saveBtn.style.cssText='margin-left:4px;background:var(--accent);color:#fff;border:none;border-radius:4px;padding:2px 7px;cursor:pointer;font-size:12px;';
-      saveBtn.addEventListener('click',async()=>{
+      saveBtn.addEventListener('click',async(ev)=>{
+        ev.stopPropagation();
         const newVal=input.value.trim();
         if(!newVal) return;
         if(!DATA.editedMotifs) DATA.editedMotifs={};
