@@ -3062,8 +3062,11 @@ function attachAdminEvents(){
       await saveData('Suppression vacances'); toast("Supprimées."); render();
     });
   });
-  // Motifs — délégation d'événements sur le conteneur principal
-  document.getElementById('main').addEventListener('click',async function motifDelegate(e){
+  // Motifs — délégation d'événements sur document.body (résiste aux re-renders)
+  // On retire d'abord l'ancien listener pour éviter les doublons
+  if(window._motifDelegate) document.body.removeEventListener('click', window._motifDelegate);
+  window._motifDelegate=async function(e){
+    if(currentTab!=='admin') return; // uniquement sur l'onglet admin
     // Supprimer motif de base
     const delBase=e.target.closest('[data-del-base-motif]');
     if(delBase){
@@ -3125,7 +3128,8 @@ function attachAdminEvents(){
       DATA.customMotifs[key].splice(parseInt(idx),1);
       await saveData('Suppression motif'); render(); return;
     }
-  });
+  };
+  document.body.addEventListener('click', window._motifDelegate);
   // Reset bloc
   const rb=document.getElementById('btn-add-bloc-reset');
   if(rb) rb.addEventListener('click',async()=>{
