@@ -3093,15 +3093,19 @@ function attachAdminEvents(){
       const saveBtn=document.createElement('button');
       saveBtn.textContent='✓';
       saveBtn.style.cssText='margin-left:4px;background:var(--accent);color:#fff;border:none;border-radius:4px;padding:2px 7px;cursor:pointer;font-size:12px;';
-      saveBtn.addEventListener('click',async(ev)=>{
-        ev.stopPropagation();
+      const saveBtnId=`save-motif-${key}-${idx}`;
+      saveBtn.id=saveBtnId;
+      window[`_saveMotif_${key}_${idx}`]=async function(){
         const newVal=input.value.trim();
         if(!newVal) return;
         if(!DATA.editedMotifs) DATA.editedMotifs={};
         if(!DATA.editedMotifs[key]) DATA.editedMotifs[key]={};
         DATA.editedMotifs[key][idx]=newVal;
+        delete window[`_saveMotif_${key}_${idx}`];
         await saveData('Modification motif base'); render();
-      });
+      };
+      saveBtn.setAttribute('onclick',`event.stopPropagation();window['_saveMotif_${key}_${idx}']()`);
+      saveBtn.removeEventListener('click', ()=>{});
       const parent=labelEl.parentNode;
       parent.insertBefore(input,labelEl);
       parent.insertBefore(saveBtn,labelEl);
