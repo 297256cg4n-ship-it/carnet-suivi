@@ -3067,8 +3067,8 @@ function attachAdminEvents(){
   if(window._motifDelegate) document.body.removeEventListener('click', window._motifDelegate);
   window._motifDelegate=async function(e){
     if(currentTab!=='admin') return;
-    // Ignorer les clics sur les boutons créés dynamiquement (✓ de validation)
-    if(e.target.closest('button')&&!e.target.closest('[data-del-base-motif]')&&!e.target.closest('[data-edit-base-motif]')&&!e.target.closest('[data-add-motif]')&&!e.target.closest('[data-del-motif]')) return;
+    // Ignorer les clics dans les modales
+    if(e.target.closest('#modal-bg')) return;
     // Supprimer motif de base
     const delBase=e.target.closest('[data-del-base-motif]');
     if(delBase){
@@ -3094,18 +3094,21 @@ function attachAdminEvents(){
           <button class="btn" id="modal-cancel">Annuler</button>
           <button class="btn primary" id="modal-save-motif">Enregistrer</button>
         </div>`);
-      document.getElementById('modal-cancel').addEventListener('click',closeModal);
-      document.getElementById('modal-edit-motif-input').focus();
-      document.getElementById('modal-save-motif').addEventListener('click',async()=>{
-        const newVal=document.getElementById('modal-edit-motif-input').value.trim();
-        if(!newVal){toast("Le motif ne peut pas être vide.");return;}
-        if(!DATA.editedMotifs) DATA.editedMotifs={};
-        if(!DATA.editedMotifs[key]) DATA.editedMotifs[key]={};
-        DATA.editedMotifs[key][idx]=newVal;
-        closeModal();
-        await saveData('Modification motif base');
-        toast("Motif modifié."); render();
-      });
+      setTimeout(()=>{
+        document.getElementById('modal-cancel')?.addEventListener('click',closeModal);
+        document.getElementById('modal-edit-motif-input')?.focus();
+        document.getElementById('modal-save-motif')?.addEventListener('click',async(ev)=>{
+          ev.stopPropagation();
+          const newVal=document.getElementById('modal-edit-motif-input')?.value.trim();
+          if(!newVal){toast("Le motif ne peut pas être vide.");return;}
+          if(!DATA.editedMotifs) DATA.editedMotifs={};
+          if(!DATA.editedMotifs[key]) DATA.editedMotifs[key]={};
+          DATA.editedMotifs[key][idx]=newVal;
+          closeModal();
+          await saveData('Modification motif base');
+          toast("Motif modifié."); render();
+        });
+      },50);
       return;
     }
     // Ajouter motif custom
