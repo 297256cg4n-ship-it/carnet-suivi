@@ -645,6 +645,10 @@ function _mergeIntoServer(serverData,before,after){
   if(after.adminPasswordHash!==before.adminPasswordHash) m.adminPasswordHash=after.adminPasswordHash;
   if(JSON.stringify(after.memo)!==JSON.stringify(before.memo)) m.memo=after.memo;
   if(JSON.stringify(after.blocResets)!==JSON.stringify(before.blocResets)) m.blocResets=after.blocResets;
+  if(JSON.stringify(after.editedMotifs)!==JSON.stringify(before.editedMotifs)) m.editedMotifs=after.editedMotifs;
+  if(JSON.stringify(after.customMotifs)!==JSON.stringify(before.customMotifs)) m.customMotifs=after.customMotifs;
+  if(JSON.stringify(after.suppressedMotifs)!==JSON.stringify(before.suppressedMotifs)) m.suppressedMotifs=after.suppressedMotifs;
+  if(JSON.stringify(after.memoSections)!==JSON.stringify(before.memoSections)) m.memoSections=after.memoSections;
   return m;
 }
 
