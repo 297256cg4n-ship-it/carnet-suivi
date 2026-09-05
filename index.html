@@ -3079,39 +3079,33 @@ function attachAdminEvents(){
       if(!DATA.suppressedMotifs[key].includes(idx)) DATA.suppressedMotifs[key].push(idx);
       await saveData('Suppression motif base'); render(); return;
     }
-    // Modifier motif de base
+    // Modifier motif de base — modale simple
     const editBase=e.target.closest('[data-edit-base-motif]');
     if(editBase){
       const [key,idxStr]=editBase.dataset.editBaseMotif.split('|');
       const idx=parseInt(idxStr);
-      const labelEl=document.getElementById(`base-motif-label-${key}-${idx}`);
-      if(!labelEl) return;
-      const current=labelEl.textContent;
-      const input=document.createElement('input');
-      input.type='text'; input.value=current;
-      input.style.cssText='padding:2px 6px;border:1px solid var(--accent);border-radius:4px;font-size:12px;width:180px;';
-      const saveBtn=document.createElement('button');
-      saveBtn.textContent='✓';
-      saveBtn.style.cssText='margin-left:4px;background:var(--accent);color:#fff;border:none;border-radius:4px;padding:2px 7px;cursor:pointer;font-size:12px;';
-      const saveBtnId=`save-motif-${key}-${idx}`;
-      saveBtn.id=saveBtnId;
-      window[`_saveMotif_${key}_${idx}`]=async function(){
-        const newVal=input.value.trim();
-        if(!newVal) return;
+      const current=(DATA.editedMotifs&&DATA.editedMotifs[key]&&DATA.editedMotifs[key][idx])||CATEGORIES.find(c=>c.key===key)?.motifs[idx]||'';
+      openModal(`
+        <h3>Modifier le motif</h3>
+        <div class="field">
+          <input type="text" id="modal-edit-motif-input" value="${esc(current)}" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;">
+        </div>
+        <div class="row" style="justify-content:flex-end;gap:8px;margin-top:12px;">
+          <button class="btn" id="modal-cancel">Annuler</button>
+          <button class="btn primary" id="modal-save-motif">Enregistrer</button>
+        </div>`);
+      document.getElementById('modal-cancel').addEventListener('click',closeModal);
+      document.getElementById('modal-edit-motif-input').focus();
+      document.getElementById('modal-save-motif').addEventListener('click',async()=>{
+        const newVal=document.getElementById('modal-edit-motif-input').value.trim();
+        if(!newVal){toast("Le motif ne peut pas être vide.");return;}
         if(!DATA.editedMotifs) DATA.editedMotifs={};
         if(!DATA.editedMotifs[key]) DATA.editedMotifs[key]={};
         DATA.editedMotifs[key][idx]=newVal;
-        delete window[`_saveMotif_${key}_${idx}`];
-        await saveData('Modification motif base'); render();
-      };
-      saveBtn.setAttribute('onclick',`event.stopPropagation();window['_saveMotif_${key}_${idx}']()`);
-      saveBtn.removeEventListener('click', ()=>{});
-      const parent=labelEl.parentNode;
-      parent.insertBefore(input,labelEl);
-      parent.insertBefore(saveBtn,labelEl);
-      parent.removeChild(labelEl);
-      editBase.style.display='none';
-      input.focus(); input.select();
+        closeModal();
+        await saveData('Modification motif base');
+        toast("Motif modifié."); render();
+      });
       return;
     }
     // Ajouter motif custom
