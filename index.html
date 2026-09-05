@@ -3062,21 +3062,22 @@ function attachAdminEvents(){
       await saveData('Suppression vacances'); toast("Supprimées."); render();
     });
   });
-  // Supprimer motif de base
-  document.querySelectorAll('[data-del-base-motif]').forEach(b=>{
-    b.addEventListener('click',async()=>{
-      const [key,idxStr]=b.dataset.delBaseMotif.split('|');
+  // Motifs — délégation d'événements sur le conteneur principal
+  document.getElementById('main').addEventListener('click',async function motifDelegate(e){
+    // Supprimer motif de base
+    const delBase=e.target.closest('[data-del-base-motif]');
+    if(delBase){
+      const [key,idxStr]=delBase.dataset.delBaseMotif.split('|');
       const idx=parseInt(idxStr);
       if(!DATA.suppressedMotifs) DATA.suppressedMotifs={};
       if(!DATA.suppressedMotifs[key]) DATA.suppressedMotifs[key]=[];
       if(!DATA.suppressedMotifs[key].includes(idx)) DATA.suppressedMotifs[key].push(idx);
-      await saveData('Suppression motif base'); render();
-    });
-  });
-  // Modifier motif de base (inline)
-  document.querySelectorAll('[data-edit-base-motif]').forEach(b=>{
-    b.addEventListener('click',()=>{
-      const [key,idxStr]=b.dataset.editBaseMotif.split('|');
+      await saveData('Suppression motif base'); render(); return;
+    }
+    // Modifier motif de base
+    const editBase=e.target.closest('[data-edit-base-motif]');
+    if(editBase){
+      const [key,idxStr]=editBase.dataset.editBaseMotif.split('|');
       const idx=parseInt(idxStr);
       const labelEl=document.getElementById(`base-motif-label-${key}-${idx}`);
       if(!labelEl) return;
@@ -3085,7 +3086,8 @@ function attachAdminEvents(){
       input.type='text'; input.value=current;
       input.style.cssText='padding:2px 6px;border:1px solid var(--accent);border-radius:4px;font-size:12px;width:180px;';
       const saveBtn=document.createElement('button');
-      saveBtn.textContent='✓'; saveBtn.style.cssText='margin-left:4px;background:var(--accent);color:#fff;border:none;border-radius:4px;padding:2px 7px;cursor:pointer;';
+      saveBtn.textContent='✓';
+      saveBtn.style.cssText='margin-left:4px;background:var(--accent);color:#fff;border:none;border-radius:4px;padding:2px 7px;cursor:pointer;font-size:12px;';
       saveBtn.addEventListener('click',async()=>{
         const newVal=input.value.trim();
         if(!newVal) return;
@@ -3098,31 +3100,31 @@ function attachAdminEvents(){
       parent.insertBefore(input,labelEl);
       parent.insertBefore(saveBtn,labelEl);
       parent.removeChild(labelEl);
-      b.style.display='none'; // masquer le bouton ✏ pendant l'édition
+      editBase.style.display='none';
       input.focus(); input.select();
-    });
-  });
-  // Motifs personnalisés — ajouter
-  document.querySelectorAll('[data-add-motif]').forEach(b=>{
-    b.addEventListener('click',async()=>{
-      const key=b.dataset.addMotif;
+      return;
+    }
+    // Ajouter motif custom
+    const addMotif=e.target.closest('[data-add-motif]');
+    if(addMotif){
+      const key=addMotif.dataset.addMotif;
       const input=document.getElementById('new-motif-'+key);
       const val=input?input.value.trim():'';
       if(!val){toast("Saisis un motif.");return;}
       if(!DATA.customMotifs) DATA.customMotifs={};
       if(!DATA.customMotifs[key]) DATA.customMotifs[key]=[];
       DATA.customMotifs[key].push(val);
-      await saveData(`Ajout motif ${key}`); toast("Motif ajouté."); render();
-    });
-  });
-  // Motifs personnalisés — supprimer
-  document.querySelectorAll('[data-del-motif]').forEach(b=>{
-    b.addEventListener('click',async()=>{
-      const [key,idx]=b.dataset.delMotif.split('|');
+      if(input) input.value='';
+      await saveData(`Ajout motif ${key}`); toast("Motif ajouté."); render(); return;
+    }
+    // Supprimer motif custom
+    const delMotif=e.target.closest('[data-del-motif]');
+    if(delMotif){
+      const [key,idx]=delMotif.dataset.delMotif.split('|');
       if(!DATA.customMotifs||!DATA.customMotifs[key]) return;
       DATA.customMotifs[key].splice(parseInt(idx),1);
-      await saveData(`Suppression motif`); render();
-    });
+      await saveData('Suppression motif'); render(); return;
+    }
   });
   // Reset bloc
   const rb=document.getElementById('btn-add-bloc-reset');
