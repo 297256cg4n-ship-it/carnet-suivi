@@ -1501,6 +1501,21 @@ function checkPastillesExpirees(){
   return changed;
 }
 
+// Vérification automatique toutes les heures — si la date a changé, on recheck et sauvegarde
+let _lastDailyCheckDate=todayISO();
+setInterval(async()=>{
+  const today=todayISO();
+  if(today!==_lastDailyCheckDate && DATA.students && DATA.students.length){
+    _lastDailyCheckDate=today;
+    const changed=checkPastillesExpirees();
+    if(changed){
+      await saveData(false); // sauvegarde silencieuse
+      render();
+      toast("Pastilles expirées effacées automatiquement.");
+    }
+  }
+}, 60*60*1000); // toutes les heures
+
 /* Migration des anciennes données (status='pastille'|'carnet') vers le nouveau modèle */
 function migrateOldPastilleData(){
   let changed=false;
