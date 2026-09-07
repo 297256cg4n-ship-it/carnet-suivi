@@ -755,20 +755,6 @@ async function saveData(label){
     }catch(e){}
   }
 
-  // Recharger donnees.json serveur et fusionner avant d'écrire
-  // pour préserver les modifications des autres utilisateurs (staff, classes, etc.)
-  try{
-    const {sha:dSha,content:serverData}=await _ghReadFile('donnees.json');
-    lastKnownSha=dSha;
-    // Fusionner : appliquer nos changements sur la version serveur fraîche
-    const merged=_mergeIntoServer(serverData,localBefore,localAfter);
-    // Réappliquer les journaux locaux sur le résultat fusionné
-    merged.students=(merged.students||[]).map(s=>({...s,history:journauxLocaux[s.id]||[]}));
-    DATA=merged;
-    // Recalculer journauxLocaux depuis DATA fusionné
-    DATA.students.forEach(s=>{ journauxLocaux[s.id]=s.history||[]; });
-  }catch(e){}
-
   // donnees.json sans history
   const dataToSave=JSON.parse(JSON.stringify(DATA));
   dataToSave.students=dataToSave.students.map(s=>{const {history,...rest}=s;return rest;});
