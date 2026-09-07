@@ -1210,11 +1210,11 @@ async function closeWeek(newWeekStart, silent){
   for(const s of DATA.students){
     const [minPts,maxPts]=MARCHE_INTERVALLE[s.status]||[0,20];
     if(estEnPastille(s)){
-      logEvent(s,`Fin de semaine en pastille — les points ne comptent pas.`);
+      logEvent(s,`Fin de semaine en pastille — les points ne comptent pas.`,true);
     } else {
       const dansBorne=s.points>=minPts&&s.points<=maxPts;
       const auDessus=s.points>maxPts;
-      logEvent(s,`Fin de semaine : ${s.points}/20 pts — intervalle cible ${minPts}-${maxPts}pts ${auDessus?'✓ au-dessus':dansBorne?'✓ atteint':'✗ sous l\'intervalle'}.`);
+      logEvent(s,`Fin de semaine : ${s.points}/20 pts — intervalle cible ${minPts}-${maxPts}pts ${auDessus?'✓ au-dessus':dansBorne?'✓ atteint':'✗ sous l\'intervalle'}.`,true);
     }
     // Vérifier changement de marche en fin de bloc
     await checkBlocEnd(s);
@@ -1288,7 +1288,7 @@ async function checkBlocEnd(s){
     raison=`${semainesSousOuPastille}/3 semaine(s) sous l'intervalle mais déjà en Marche 1 → reste`;
   }
 
-  logEvent(s,`Fin de bloc : ${raison}.`);
+  logEvent(s,`Fin de bloc : ${raison}.`,true);
   s.status=newMarche;
 }
 
@@ -1427,13 +1427,13 @@ function statusBadge(s){
   return `<span class="badge ${s.status}">${marcheLabelNum(s.status)}</span>`;
 }
 
-function logEvent(s,label,details){
+function logEvent(s,label,details,systeme){
   s.history=s.history||[];
   s.history.push(Object.assign({
     id:genId(),
     date:new Date().toLocaleDateString('fr-FR'),
     heure:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
-    auteur:currentUser?currentUser.nom:'—',
+    auteur:systeme?null:(currentUser?currentUser.nom:'—'),
     label
   },details||{}));
 }
@@ -1488,7 +1488,7 @@ function checkPastillesExpirees(){
   DATA.students.forEach(s=>{
     // Pastille 7 jours : expire 7 jours après le début
     if(s.pastille&&s.pastille.fin&&today>s.pastille.fin){
-      logEvent(s,`Pastille levée automatiquement (7 jours écoulés — fin le ${formatDateFr(s.pastille.fin)}).`);
+      logEvent(s,`Pastille levée automatiquement (7 jours écoulés — fin le ${formatDateFr(s.pastille.fin,true)},true).`,true);
       s.pastille=null;
       changed=true;
     }
@@ -1890,7 +1890,7 @@ function renderFiche(id){
   const histRows=(s.history||[]).slice().reverse().slice(0,80).map(h=>`
     <tr class="${rowClass(h)}">
       <td class="td-date">${esc(h.date)}<br><span class="muted" style="font-size:11px;">${esc(h.heure||'')}</span></td>
-      <td class="td-motif">${esc(h.motif||h.label)}${h.points?`<br><span style="font-weight:700;color:var(--m1);">−${h.points} pt${h.points>1?'s':''}</span>`:''}<br><span style="font-size:11px;color:var(--muted);">Par : ${esc(h.auteur||'—')}</span></td>
+      <td class="td-motif">${esc(h.motif||h.label)}${h.points?`<br><span style="font-weight:700;color:var(--m1);">−${h.points} pt${h.points>1?'s':''}</span>`:''}${h.auteur?`<br><span style="font-size:11px;color:var(--muted);">Par : ${esc(h.auteur)}</span>`:''}</td>
       <td>${h.id?`<button class="btn warn" style="padding:4px 8px;font-size:12px;" data-del-hist="${h.id}">✕</button>`:''}</td>
     </tr>`).join('');
 
@@ -2171,7 +2171,7 @@ async function retirerPoints(studentId,categorie,pts,motif,skipApply){
       const daysUntilSunday=dayOfWeek===0?0:7-dayOfWeek;
       const finAuto=addDays(todayISO(),daysUntilSunday);
       s.pastille={type:'auto',debut:todayISO(),fin:finAuto};
-      logEvent(s,`0 point — pastille automatique jusqu'au dimanche ${formatDateFr(finAuto)}.`);
+      logEvent(s,`0 point — pastille automatique jusqu'au dimanche ${formatDateFr(finAuto,true)}.`,true);
       toast(`${s.nom} passe en pastille automatique (0 point).`);
     }
     if(categorie==='retard') checkRetardsSeuil(s);
@@ -2314,7 +2314,7 @@ function renderStudentReadOnlyView(studentId){
   const histRows=s.history.slice().reverse().slice(0,30).map(h=>`
     <tr class="${rowClass(h)}">
       <td style="white-space:nowrap;">${esc(h.date)}${h.heure?`<br><span style="font-size:11px;color:var(--muted);">${esc(h.heure)}</span>`:''}</td>
-      <td>${esc(h.motif||h.label)}${h.points?`<br><span style="font-weight:700;color:var(--m1);">−${h.points} pt${h.points>1?'s':''}</span>`:''}<br><span style="font-size:11px;color:var(--muted);">Par : ${esc(h.auteur||'—')}</span></td>
+      <td>${esc(h.motif||h.label)}${h.points?`<br><span style="font-weight:700;color:var(--m1);">−${h.points} pt${h.points>1?'s':''}</span>`:''}${h.auteur?`<br><span style="font-size:11px;color:var(--muted);">Par : ${esc(h.auteur)}</span>`:''}</td>
     </tr>`).join('');
 
   // Mémo complet avec pièces jointes
@@ -3190,7 +3190,7 @@ function attachAdminEvents(){
     if(!confirm(`Remettre TOUS les élèves à la ${label} ? Leurs points seront remis à 20/20.`)) return;
     DATA.students.forEach(s=>{
       s.status=marche; s.pastille=null; s.carnet=null; s.points=20;
-      logEvent(s,`Réinitialisation à la ${label} par l'administrateur.`);
+      logEvent(s,`Réinitialisation à la ${label} par l'administrateur.`,true);
     });
     await saveData(`Réinitialisation toutes les marches → ${label}`);
     toast(`Tous les élèves placés en ${label}.`); render();
