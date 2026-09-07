@@ -1680,7 +1680,7 @@ function attachAccueilEvents(){
    ============================================================ */
 function renderClasses(){
   const rows=DATA.classes.map(c=>{
-    const n=DATA.students.filter(s=>s.classeId===c.id).length;
+    const n=DATA.students.filter(s=>getClasseIds(s).includes(c.id)).length;
     return `<tr class="row-link" data-classe="${c.id}">
       <td>${esc(c.nom)}</td><td>${n} élève(s)</td>
       <td>${isAdmin()?`<button class="btn warn" data-del="${c.id}">Supprimer</button>`:''}</td>
@@ -1704,7 +1704,7 @@ function attachClassesEvents(){
       if(!isAdmin()){toast("Réservé à l'admin.");return;}
       const id=b.dataset.del;
       const nom=(DATA.classes.find(c=>c.id===id)||{}).nom||'';
-      const n=DATA.students.filter(s=>s.classeId===id).length;
+      const n=DATA.students.filter(s=>getClasseIds(s).includes(id)).length;
       if(n>0&&!confirm(`Cette classe contient ${n} élève(s). Continuer ?`)) return;
       DATA.classes=DATA.classes.filter(c=>c.id!==id);
       await saveData(`Suppression classe ${nom}`); toast("Classe supprimée."); render();
@@ -2038,14 +2038,15 @@ function attachFicheEvents(){
       const key = b.dataset.cat + '|' + b.dataset.motif;
       const now = Date.now();
       if(_lastClick[key] && now - _lastClick[key] < 1000){
-        return; // silencieux, juste ignorer
+        return;
       }
       _lastClick[key] = now;
-      const orig=b.textContent;
+      // Désactiver TOUS les boutons de motif pendant la sauvegarde
+      const allBtns=document.querySelectorAll('[data-cat][data-motif]');
+      allBtns.forEach(btn=>{ btn.disabled=true; });
       b.textContent='✓ Validé';
       b.style.color='var(--accent)';
       b.style.fontWeight='700';
-      b.disabled=true;
       await retirerPoints(currentStudentId,b.dataset.cat,parseInt(b.dataset.pts),b.dataset.motif);
       render();
     });
