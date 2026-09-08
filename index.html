@@ -467,7 +467,8 @@ let DATA = {
 };
 let currentUser = null;   // objet staff complet de la personne connectée
 let currentTab  = "accueil";
-let previousTab = "accueil"; // mémorise la page précédente pour le bouton Retour
+let previousTab = "accueil";
+const _lastClick = {}; // persistant entre les render() pour la détection double-clic
 let currentStudentId = null;
 let currentClasseId  = null;
 let currentSearchQuery = "";
@@ -1979,8 +1980,7 @@ function attachFicheEvents(){
     });
   });
 
-  // Boutons de motifs — délai 3s pour éviter double-clic accidentel
-  const _lastClick = {};
+  // Boutons de motifs — confirmation si même motif dans les 30 secondes
   document.querySelectorAll('[data-cat][data-motif]').forEach(b=>{
     if(b.id==='btn-autres-valider') return;
     b.addEventListener('click',async()=>{
