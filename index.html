@@ -411,7 +411,8 @@ tr.retenue-row td{border-bottom-color:#f7dc6f;}
 /* ============================================================
    CONFIG & CONSTANTES
    ============================================================ */
-const PROXY_URL = "https://carnet-suivi-proxy.2hhvst2ycz.workers.dev";
+const SUPABASE_URL = "https://xosvgsqdyrtcluszxeot.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvc3Znc3FkeXJ0Y2x1c3p4ZW90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4NTg5NzMsImV4cCI6MjEwNDQzNDk3M30.zsHDYbtSM9EZHkj77aZ_CaiikClN97eGZ3aJNsVIuX8";
 const ADMIN_PASSWORD_ENCODED = "Q0RBRE1JTjQ0MTAwIQ==";
 
 const MARCHES = ["m1","m2","m3","m4","m5"];
@@ -472,8 +473,7 @@ let currentClasseId  = null;
 let currentSearchQuery = "";
 let currentSort = "nom"; // nom | marche | points
 let currentClassFilter = "";
-let lastKnownSha  = null;
-let lastKnownJournauxSha = null;
+// Supabase — pas de SHA nécessaire (transactions atomiques)
 let lastKnownData = null;
 let undoStack = [];
 
@@ -592,30 +592,14 @@ function semaineIndexInBloc(semaineStart){
 /* ============================================================
    STORAGE (GitHub via Cloudflare Worker proxy)
    ============================================================ */
-function _proxyUrl(filename){
-  return `${PROXY_URL}?file=${encodeURIComponent(filename)}`;
+// Supabase headers
+function _sbHeaders(){
+  return {'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`};
 }
 function _b64encode(str){ return btoa(unescape(encodeURIComponent(str))); }
 function _b64decode(b64){ return decodeURIComponent(escape(atob(b64))); }
 
-async function _ghReadFile(filename){
-  const res = await fetch(_proxyUrl(filename));
-  if(!res.ok) throw new Error('HTTP '+res.status);
-  const json = await res.json();
-  if(!json||!json.content) throw new Error('HTTP 404');
-  return {sha:json.sha, content:JSON.parse(_b64decode(json.content))};
-}
-async function _ghWriteFile(filename,dataObj,sha,message){
-  const body={message:message||'Mise à jour',content:_b64encode(JSON.stringify(dataObj,null,2))};
-  if(sha) body.sha=sha;
-  const res = await fetch(_proxyUrl(filename),{
-    method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)
-  });
-  if(res.status===409||res.status===422) throw new Error('CONFLICT');
-  if(!res.ok) throw new Error('HTTP '+res.status);
-  const json = await res.json();
-  return json.content.sha;
-}
+// Supabase remplace GitHub pour le stockage des données
 
 function _diffById(before,after){
   const bm=new Map((before||[]).map(x=>[x.id,x]));
@@ -654,10 +638,11 @@ function _mergeIntoServer(serverData,before,after){
 
 async function loadData(){
   try{
-    const {sha,content}=await _ghReadFile('donnees.json');
-    lastKnownSha=sha; DATA=content;
+    const data=await _sbReadDonnees();
+    if(data) DATA=data;
+    else DATA={staff:[],classes:[],students:[],weeks:[],blocs:[],vacances:[],memo:{m1:"",m2:"",m3:"",m4:"",m5:""},currentWeekStart:FIRST_BLOC_START,adminPasswordHash:null,blocResets:[]};
   }catch(e){
-    DATA={staff:[],classes:[],students:[],weeks:[],blocs:[],vacances:[],memo:{m1:"",m2:"",m3:"",m4:""},currentWeekStart:FIRST_BLOC_START,adminPasswordHash:null,blocResets:[]};
+    DATA={staff:[],classes:[],students:[],weeks:[],blocs:[],vacances:[],memo:{m1:"",m2:"",m3:"",m4:"",m5:""},currentWeekStart:FIRST_BLOC_START,adminPasswordHash:null,blocResets:[]};
     toast("Impossible de charger les données. Connexion vérifiée ?");
   }
   if(!DATA.staff) DATA.staff=[];
@@ -675,18 +660,15 @@ async function loadData(){
   if(!DATA.memoPresentation) DATA.memoPresentation='';
   if(!DATA.memoSections) DATA.memoSections=null;
 
-  // Charger les journaux de l'année scolaire courante
+  // Charger les journaux de l'année scolaire courante depuis Supabase
   try{
-    const annee=anneeScolaireCourante();
-    const fichier=nomFichierJournaux(annee);
-    const {sha:jSha, content:journaux}=await _ghReadFile(fichier);
-    lastKnownJournauxSha=jSha;
+    const annee=String(anneeScolaireCourante());
+    const journaux=await _sbReadJournaux(annee);
     DATA.students.forEach(s=>{
       s.history=journaux[s.id]||[];
     });
   }catch(e){
-    // Fichier pas encore créé ou migration non faite → history déjà dans donnees.json
-    lastKnownJournauxSha=null;
+    // Journaux pas encore créés → history vide
   }
 
   const today=todayISO();
@@ -708,101 +690,47 @@ async function loadData(){
   lastKnownData=JSON.parse(JSON.stringify(DATA));
 }
 
-async function reloadJournauxFrais(){
-  // Recharge les journaux depuis GitHub pour éviter les écrasements multi-utilisateurs
-  try{
-    const annee=anneeScolaireCourante();
-    const fichier=nomFichierJournaux(annee);
-    const {sha:jSha, content:journaux}=await _ghReadFile(fichier);
-    lastKnownJournauxSha=jSha;
-    DATA.students.forEach(s=>{
-      if(journaux[s.id]) s.history=journaux[s.id];
-    });
-  }catch(e){ /* continue si rechargement échoue */ }
-}
+
 
 async function saveData(label){
   const localBefore=lastKnownData;
   const localAfter=JSON.parse(JSON.stringify(DATA));
 
-  // Journaux locaux
-  const journauxLocaux={};
-  DATA.students.forEach(s=>{ journauxLocaux[s.id]=s.history||[]; });
-
-  // Identifier quels élèves ont été modifiés
-  const elevesModifies=new Set();
-  DATA.students.forEach(s=>{
-    const avantH=JSON.stringify(((localBefore.students||[]).find(x=>x.id===s.id)||{}).history||[]);
-    const apresH=JSON.stringify(journauxLocaux[s.id]||[]);
-    if(avantH!==apresH) elevesModifies.add(s.id);
-  });
-
-  // Recharger les journaux serveur à chaque sauvegarde (pas de cache)
-  // pour préserver les actions simultanées des autres utilisateurs
-  if(label!==false && elevesModifies.size<DATA.students.length){
-    try{
-      const annee=anneeScolaireCourante();
-      const fichier=nomFichierJournaux(annee);
-      const {sha:jSha,content:journauxServeur}=await _ghReadFile(fichier);
-      lastKnownJournauxSha=jSha;
-      DATA.students.forEach(s=>{
-        if(!elevesModifies.has(s.id)){
-          const serveurH=journauxServeur[s.id]||[];
-          journauxLocaux[s.id]=serveurH;
-          s.history=serveurH;
-        }
-      });
-    }catch(e){}
-  }
-
-  // donnees.json sans history
+  // 1. Sauvegarder donnees.json (sans history) dans Supabase
   const dataToSave=JSON.parse(JSON.stringify(DATA));
   dataToSave.students=dataToSave.students.map(s=>{const {history,...rest}=s;return rest;});
 
-  const MAX=4;
-  for(let attempt=0;attempt<=MAX;attempt++){
-    try{
-      lastKnownSha=await _ghWriteFile('donnees.json',dataToSave,lastKnownSha,'Mise à jour du carnet');
-      const anneeJ=anneeScolaireCourante();
-      const fichierJ=nomFichierJournaux(anneeJ);
-      try{
-        lastKnownJournauxSha=await _ghWriteFile(fichierJ,journauxLocaux,lastKnownJournauxSha,`Mise à jour journaux ${anneeJ}`);
-      }catch(je){
-        if(je.message==='CONFLICT'){
-          try{
-            const {sha}=await _ghReadFile(fichierJ);
-            lastKnownJournauxSha=sha;
-            lastKnownJournauxSha=await _ghWriteFile(fichierJ,journauxLocaux,lastKnownJournauxSha,`Mise à jour journaux ${anneeJ}`);
-          }catch{}
-        }
-      }
-      lastKnownData=JSON.parse(JSON.stringify(DATA));
-      if(label!==false){
-        undoStack.push({before:localBefore,after:localAfter,label:label||'Action',date:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})});
-        if(undoStack.length>20) undoStack.shift();
-      }
-      return;
-    }catch(e){
-      if(e.message==='CONFLICT'&&attempt<MAX){
-        try{
-          const {sha,content:serverData}=await _ghReadFile('donnees.json');
-          lastKnownSha=sha;
-          serverData.students=(serverData.students||[]).map(s=>({...s,history:journauxLocaux[s.id]||[]}));
-          DATA=_mergeIntoServer(serverData,localBefore,localAfter);
-          render(); continue;
-        }catch{ toast("⚠️ Enregistrement impossible. Réessaie."); return; }
-      } else {
-        toast("⚠️ Enregistrement impossible. Réessaie.");
-        return;
-      }
+  // 2. Sauvegarder les journaux modifiés dans Supabase (par élève, atomique)
+  const anneeJ=String(anneeScolaireCourante());
+  const elevesModifies=new Set();
+  DATA.students.forEach(s=>{
+    const avantH=JSON.stringify(((localBefore.students||[]).find(x=>x.id===s.id)||{}).history||[]);
+    const apresH=JSON.stringify(s.history||[]);
+    if(avantH!==apresH) elevesModifies.add(s.id);
+  });
+
+  try{
+    // Écriture atomique dans Supabase — pas de conflit possible
+    await _sbWriteDonnees(dataToSave);
+    // Écrire uniquement les journaux des élèves modifiés
+    await Promise.all([...elevesModifies].map(id=>{
+      const s=DATA.students.find(x=>x.id===id);
+      if(s) return _sbWriteJournal(anneeJ,id,s.history||[]);
+    }));
+    lastKnownData=localAfter;
+    if(label!==false){
+      undoStack.push({before:localBefore,after:localAfter,label:label||'Action',date:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})});
+      if(undoStack.length>20) undoStack.shift();
     }
+  }catch(e){
+    toast("⚠️ Enregistrement impossible. Vérifie ta connexion.");
   }
 }
+
 
 async function undoLastAction(){
   if(!undoStack.length){ toast("Rien à annuler."); return; }
   const last=undoStack[undoStack.length-1];
-  // Confirmation avant annulation
   openModal(`
     <h3>Confirmer l'annulation</h3>
     <p style="margin:12px 0;">Voulez-vous vraiment annuler cette action ?</p>
@@ -814,20 +742,18 @@ async function undoLastAction(){
       <button class="btn" id="modal-cancel">Non, garder</button>
       <button class="btn danger" id="modal-confirm-undo">Oui, annuler</button>
     </div>`);
-  document.getElementById('modal-cancel').addEventListener('click',closeModal);
-  document.getElementById('modal-confirm-undo').addEventListener('click',async()=>{
-    closeModal();
-    undoStack.pop();
-    try{
-      const {sha,content:serverData}=await _ghReadFile('donnees.json');
-      lastKnownSha=sha;
-      DATA=_mergeIntoServer(serverData,last.after,last.before);
+  setTimeout(()=>{
+    document.getElementById('modal-cancel')?.addEventListener('click',closeModal);
+    document.getElementById('modal-confirm-undo')?.addEventListener('click',async()=>{
+      closeModal();
+      undoStack.pop();
+      DATA=JSON.parse(JSON.stringify(last.before));
       lastKnownData=JSON.parse(JSON.stringify(DATA));
-      await _ghWriteFile('donnees.json',DATA,lastKnownSha,'Annulation : '+last.label).then(s=>lastKnownSha=s);
+      await saveData(false);
       toast(`Annulé : ${last.label}`);
       render();
-    }catch{ undoStack.push(last); toast("⚠️ Impossible d'annuler."); }
-  });
+    });
+  },50);
 }
 
 /* ============================================================
@@ -1782,13 +1708,15 @@ function attachClasseDetailEvents(){
 }
 
 async function saveBackup(label){
-  // Lit le SHA existant du fichier de sauvegarde s'il existe, puis écrit
-  let sha=null;
+  // Sauvegarde dans une table séparée Supabase
   try{
-    const res=await fetch(_proxyUrl('donnees-sauvegarde.json'));
-    if(res.ok){ const j=await res.json(); sha=j.sha||null; }
-  }catch{}
-  await _ghWriteFile('donnees-sauvegarde.json', DATA, sha, label);
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/donnees`,{
+      method:'POST',
+      headers:{..._sbHeaders(),'Prefer':'resolution=merge-duplicates'},
+      body:JSON.stringify({id:'sauvegarde',data:DATA,updated_at:new Date().toISOString()})
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+  }catch(e){ throw new Error('Sauvegarde impossible'); }
 }
 function weekBanner(){
   const bloc=currentBloc();
