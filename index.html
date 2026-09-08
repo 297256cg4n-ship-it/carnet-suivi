@@ -1986,11 +1986,15 @@ function attachFicheEvents(){
     b.addEventListener('click',async()=>{
       const key = b.dataset.cat + '|' + b.dataset.motif;
       const now = Date.now();
-      if(_lastClick[key] && now - _lastClick[key] < 300){
-        return;
+      const last = _lastClick[key];
+      if(last && now - last < 30000){
+        // Dans les 30 secondes — demander confirmation
+        const motifLabel = b.textContent.trim();
+        if(!confirm(`Vous venez déjà d'effectuer un retrait de point pour "${motifLabel}". Voulez-vous recommencer ?`)){
+          return;
+        }
       }
       _lastClick[key] = now;
-      // Désactiver TOUS les boutons de motif pendant la sauvegarde
       const allBtns=document.querySelectorAll('[data-cat][data-motif]');
       allBtns.forEach(btn=>{ btn.disabled=true; });
       b.textContent='✓ Validé';
@@ -3381,6 +3385,11 @@ function exportFichePDF(studentId,period){
 function openStudentModal(id,classeId){
   const editing=id?DATA.students.find(s=>s.id===id):null;
   const currentClasseIds=editing?getClasseIds(editing):(classeId?[classeId]:[]);
+  let editFamille='', editPrenom='';
+  if(editing){
+    const {famille,prenom}=splitNom(editing.nom);
+    editFamille=famille; editPrenom=prenom;
+  }
   const classesCheckboxes=DATA.classes.map(c=>`
     <label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;">
       <input type="checkbox" value="${c.id}" ${currentClasseIds.includes(c.id)?'checked':''} style="width:16px;height:16px;">
@@ -3388,7 +3397,16 @@ function openStudentModal(id,classeId){
     </label>`).join('');
   openModal(`
     <h3>${editing?'Modifier l\'élève':'Ajouter un élève'}</h3>
-    <div class="field"><label>Nom complet</label><input type="text" id="modal-eleve-nom" value="${editing?esc(editing.nom):''}" placeholder="Nom Prénom"></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <div class="field" style="flex:1;margin-bottom:0;">
+        <label>Nom de famille</label>
+        <input type="text" id="modal-eleve-famille" value="${esc(editFamille)}" placeholder="DUPONT" style="text-transform:uppercase;font-weight:700;">
+      </div>
+      <div class="field" style="flex:1;margin-bottom:0;">
+        <label>Prénom</label>
+        <input type="text" id="modal-eleve-prenom" value="${esc(editPrenom)}" placeholder="Lucas">
+      </div>
+    </div>
     <div class="field">
       <label>Classes</label>
       <div style="max-height:180px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:8px 12px;">
@@ -3400,17 +3418,25 @@ function openStudentModal(id,classeId){
       <button class="btn primary" id="modal-save">${editing?'Enregistrer':'Ajouter'}</button>
     </div>`);
   document.getElementById('modal-cancel').addEventListener('click',closeModal);
+  // Forcer majuscules sur le champ nom de famille
+  setTimeout(()=>{
+    const famEl=document.getElementById('modal-eleve-famille');
+    if(famEl) famEl.addEventListener('input',e=>{
+      const pos=e.target.selectionStart;
+      e.target.value=e.target.value.toUpperCase();
+      e.target.setSelectionRange(pos,pos);
+    });
+  },50);
   document.getElementById('modal-save').addEventListener('click',async()=>{
-    const nom=document.getElementById('modal-eleve-nom').value.trim();
-    const classeIds=[...document.querySelectorAll('#modal-save')].length>0
-      ?[...document.querySelectorAll('input[type=checkbox]:checked')].map(cb=>cb.value)
-      :[];
+    const famille=document.getElementById('modal-eleve-famille').value.trim().toUpperCase();
+    const prenom=document.getElementById('modal-eleve-prenom').value.trim();
     const selectedIds=[...document.querySelectorAll('input[type=checkbox]:checked')].map(cb=>cb.value);
-    if(!nom){toast("Saisis un nom.");return;}
+    if(!famille||!prenom){toast("Remplis le nom ET le prénom.");return;}
+    const nom=`${famille} ${prenom}`;
     if(editing){
       editing.nom=nom;
       editing.classeIds=selectedIds;
-      editing.classeId=selectedIds[0]||null; // compat
+      editing.classeId=selectedIds[0]||null;
     } else {
       const s=newStudent(nom,selectedIds[0]||null);
       s.classeIds=selectedIds;
@@ -3420,6 +3446,7 @@ function openStudentModal(id,classeId){
     closeModal(); toast(editing?"Modifié.":"Ajouté."); render();
   });
 }
+
 
 function openAddExistingStudentModal(classeId){
   // Élèves qui ne sont pas encore dans cette classe
