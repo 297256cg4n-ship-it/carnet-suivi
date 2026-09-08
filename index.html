@@ -1986,7 +1986,7 @@ function attachFicheEvents(){
     b.addEventListener('click',async()=>{
       const key = b.dataset.cat + '|' + b.dataset.motif;
       const now = Date.now();
-      if(_lastClick[key] && now - _lastClick[key] < 1000){
+      if(_lastClick[key] && now - _lastClick[key] < 300){
         return;
       }
       _lastClick[key] = now;
