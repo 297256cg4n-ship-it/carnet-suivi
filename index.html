@@ -459,6 +459,7 @@ let currentStudentId = null;
 let currentClasseId  = null;
 let currentSearchQuery = "";
 let currentSort = "nom"; // nom | marche | points
+let currentClasseSort = "nom"; // tri dans la vue classe
 let currentClassFilter = "";
 // Supabase — pas de SHA nécessaire (transactions atomiques)
 let lastKnownData = null;
@@ -1561,7 +1562,13 @@ function renderAccueil(){
     students=students.filter(s=>s.nom.toLowerCase().includes(q));
   }
   // Tri
-  if(currentSort==='marche'){
+  if(currentSort==='classe-points'){
+    students.sort((a,b)=>{
+      const ca=DATA.classes.find(c=>getClasseIds(a).includes(c.id));
+      const cb=DATA.classes.find(c=>getClasseIds(b).includes(c.id));
+      return (ca?ca.nom:'').localeCompare(cb?cb.nom:'')||a.points-b.points;
+    });
+  } else if(currentSort==='marche'){
     students.sort((a,b)=>MARCHES.indexOf(a.status)-MARCHES.indexOf(b.status)||a.nom.localeCompare(b.nom));
   } else if(currentSort==='points'){
     students.sort((a,b)=>b.points-a.points||a.nom.localeCompare(b.nom));
@@ -1601,6 +1608,7 @@ function renderAccueil(){
       <select id="filter-classe"><option value="">Toutes les classes</option>${classesOptions}</select>
       <select id="sort-eleve" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;">
         <option value="nom" ${currentSort==='nom'?'selected':''}>Trier : Nom A→Z</option>
+        <option value="classe-points" ${currentSort==='classe-points'?'selected':''}>Trier : Points par classe</option>
         <option value="marche" ${currentSort==='marche'?'selected':''}>Trier : Marche ↑</option>
         <option value="points" ${currentSort==='points'?'selected':''}>Trier : Points ↓</option>
         <option value="points-asc" ${currentSort==='points-asc'?'selected':''}>Trier : Points ↑</option>
@@ -1687,11 +1695,21 @@ function attachClassesEvents(){
 function renderClasseDetail(classeId){
   const classe=DATA.classes.find(c=>c.id===classeId);
   if(!classe) return `<a class="back-link" href="#" id="back-to-classes">← Retour</a><div class="empty">Classe introuvable.</div>`;
-  const students=DATA.students.filter(s=>getClasseIds(s).includes(classeId)).sort((a,b)=>a.nom.localeCompare(b.nom));
+  let students=DATA.students.filter(s=>getClasseIds(s).includes(classeId));
+  if(currentClasseSort==='points') students.sort((a,b)=>a.points-b.points);
+  else if(currentClasseSort==='points-desc') students.sort((a,b)=>b.points-a.points);
+  else if(currentClasseSort==='marche') students.sort((a,b)=>MARCHES.indexOf(a.status)-MARCHES.indexOf(b.status)||a.nom.localeCompare(b.nom));
+  else students.sort((a,b)=>a.nom.localeCompare(b.nom));
   const rows=students.map(s=>`
     <tr class="row-link" data-id="${s.id}">
       <td>${esc(displayNom(s))}</td><td>${statusBadge(s)}</td>
-      <td>${s.points} / 20</td>
+      <td>${(()=>{
+        const [mn,mx]=MARCHE_INTERVALLE[s.status]||[0,20];
+        const ok=s.points>=mn&&s.points<=mx;
+        const above=s.points>mx;
+        const color=estEnPastille(s)?'#c0392b':above?'#0f5d4f':ok?'#e67e22':'#c0392b';
+        return `<span style="font-weight:700;color:${color};">${s.points}/20</span> <span class="muted" style="font-size:11px;">${mn}-${mx}</span>`;
+      })()}</td>
       <td style="white-space:nowrap;">
         ${isAdmin()?`<button class="btn" data-remove-from-classe="${s.id}" style="font-size:12px;padding:4px 8px;">Retirer</button>
         <button class="btn warn" data-del-student="${s.id}" style="font-size:12px;padding:4px 8px;">Supprimer</button>`:''}
@@ -1700,9 +1718,15 @@ function renderClasseDetail(classeId){
   return `
   ${weekBanner()}
   <a class="back-link" href="#" id="back-to-classes">← Retour aux classes</a>
-  <div class="row" style="justify-content:space-between;margin-bottom:14px;">
+  <div class="row" style="justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
     <h2>${esc(classe.nom)}</h2>
-    <div class="row">
+    <div class="row" style="flex-wrap:wrap;gap:6px;">
+      <select id="sort-classe" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;">
+        <option value="nom" ${currentClasseSort==='nom'?'selected':''}>Nom A→Z</option>
+        <option value="marche" ${currentClasseSort==='marche'?'selected':''}>Marche ↑</option>
+        <option value="points" ${currentClasseSort==='points'?'selected':''}>Points ↑</option>
+        <option value="points-desc" ${currentClasseSort==='points-desc'?'selected':''}>Points ↓</option>
+      </select>
       <button class="btn primary" id="btn-add-student-here">+ Nouvel élève</button>
       <button class="btn" id="btn-add-existing-student">+ Élève existant</button>
       <button class="btn" id="btn-pdf-classe">📄 Bilan PDF</button>
@@ -1718,6 +1742,8 @@ function renderClasseDetail(classeId){
 }
 function attachClasseDetailEvents(){
   document.getElementById('back-to-classes').addEventListener('click',e=>{e.preventDefault();currentClasseId=null;currentTab='classes';render();});
+  const so=document.getElementById('sort-classe');
+  if(so) so.addEventListener('change',e=>{currentClasseSort=e.target.value;render();});
   // Retirer un élève de cette classe (sans le supprimer)
   document.querySelectorAll('[data-remove-from-classe]').forEach(b=>{
     b.addEventListener('click',async e=>{
@@ -2004,15 +2030,16 @@ function attachFicheEvents(){
     b.addEventListener('click',async()=>{
       const key = b.dataset.cat + '|' + b.dataset.motif;
       const now = Date.now();
-      const last = _lastClick[key];
+      const ficheKey = currentStudentId + '|' + key;
+      const last = _lastClick[ficheKey];
       if(last && now - last < 30000){
-        // Dans les 30 secondes — demander confirmation
+        // Dans les 30 secondes sur la même fiche — demander confirmation
         const motifLabel = b.textContent.trim();
         if(!confirm(`Vous venez déjà d'effectuer un retrait de point pour "${motifLabel}". Voulez-vous recommencer ?`)){
           return;
         }
       }
-      _lastClick[key] = now;
+      _lastClick[ficheKey] = now;
       const allBtns=document.querySelectorAll('[data-cat][data-motif]');
       allBtns.forEach(btn=>{ btn.disabled=true; });
       b.textContent='✓ Validé';
@@ -3310,12 +3337,17 @@ function renderQrCodes(){
   }).join('');
 }
 function attachQrCodesEvents(){
-  DATA.students.forEach(s=>{
-    const host=document.getElementById('qr-'+s.id);
-    if(!host) return;
-    const url=appUrl('#eleve='+s.id);
-    if(url&&window.QRCode) new QRCode(host,{text:url,width:100,height:100,colorDark:"#23262b",colorLight:"#ffffff"});
-  });
+  // Attendre que la librairie QRCode soit chargée
+  const generateQR=()=>{
+    DATA.students.forEach(s=>{
+      const host=document.getElementById('qr-'+s.id);
+      if(!host||host.children.length>0) return; // déjà généré
+      const url=appUrl('#eleve='+s.id);
+      if(url&&window.QRCode) new QRCode(host,{text:url,width:100,height:100,colorDark:"#23262b",colorLight:"#ffffff"});
+    });
+  };
+  if(window.QRCode) generateQR();
+  else { const t=setInterval(()=>{ if(window.QRCode){ clearInterval(t); generateQR(); }},100); }
   // Impression PDF par classe
   document.querySelectorAll('[data-print-qr]').forEach(b=>{
     b.addEventListener('click',()=>{
