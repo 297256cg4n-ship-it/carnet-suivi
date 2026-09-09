@@ -3319,7 +3319,7 @@ function renderQrCodes(){
   const classes=DATA.classes;
   if(!classes.length) return `<div class="empty">Créez des classes pour générer les QR codes.</div>`;
   return classes.map(c=>{
-    const students=DATA.students.filter(s=>s.classeId===c.id).sort((a,b)=>a.nom.localeCompare(b.nom));
+    const students=DATA.students.filter(s=>getClasseIds(s).includes(c.id)).sort((a,b)=>a.nom.localeCompare(b.nom));
     const url=appUrl();
     if(!url) return `<div class="card"><h3>${esc(c.nom)}</h3><p class="small muted">QR codes disponibles uniquement en HTTPS (déployé sur GitHub Pages).</p></div>`;
     return `<div class="card">
