@@ -1472,14 +1472,11 @@ function checkPastillesExpirees(){
       indicator.textContent='⟳ Actualisation...';
       indicator.style.transform='translateX(-50%) translateY(0)';
       try{
-        const fresh=await _sbReadDonnees();
-        if(fresh){
-          const annee=String(anneeScolaireCourante());
-          const journaux=await _sbReadJournaux(annee);
-          fresh.students=(fresh.students||[]).map(s=>({...s,history:journaux[s.id]||[]}));
-          DATA=fresh; lastKnownData=JSON.parse(JSON.stringify(DATA));
-          render(); toast("✓ Données actualisées.");
-        }
+        const annee=String(anneeScolaireCourante());
+        const journaux=await _sbReadJournaux(annee);
+        DATA.students.forEach(s=>{ s.history=journaux[s.id]||[]; });
+        lastKnownData=JSON.parse(JSON.stringify(DATA));
+        render(); toast("✓ Données actualisées.");
       }catch(e){ toast("⚠️ Actualisation impossible."); }
       indicator.textContent='↓ Relâcher pour actualiser';
       indicator.style.transform='translateX(-50%) translateY(-60px)';
@@ -1537,23 +1534,11 @@ function closeModal(){ const bg=document.getElementById('modal-bg'); if(bg) bg.r
 /* ============================================================
    NAV & RENDER
    ============================================================ */
-document.getElementById('tabs').addEventListener('click',async e=>{
+document.getElementById('tabs').addEventListener('click',e=>{
   const btn=e.target.closest('button[data-tab]');
   if(!btn) return;
   previousTab=currentTab;
   currentTab=btn.dataset.tab;
-  // Recharger les données fraîches au changement d'onglet
-  if(DATA.students&&DATA.students.length){
-    try{
-      const fresh=await _sbReadDonnees();
-      if(fresh){
-        const annee=String(anneeScolaireCourante());
-        const journaux=await _sbReadJournaux(annee);
-        fresh.students=(fresh.students||[]).map(s=>({...s,history:journaux[s.id]||[]}));
-        DATA=fresh; lastKnownData=JSON.parse(JSON.stringify(DATA));
-      }
-    }catch(e){}
-  }
   render();
 });
 document.getElementById('undo-btn').addEventListener('click',undoLastAction);
@@ -1576,7 +1561,6 @@ function render(){
   setActiveTab();
   const main=document.getElementById('main-content');
   if(currentTab==='fiche'&&currentStudentId){
-    // Recharger le journal frais de cet élève depuis Supabase avant affichage
     (async()=>{
       try{
         const annee=String(anneeScolaireCourante());
