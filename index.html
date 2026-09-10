@@ -3064,6 +3064,13 @@ function renderAdmin(){
           </select>
           <button class="btn danger" id="btn-reset-all-marches">Réinitialiser</button>
       </div>
+      <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px;margin-top:10px;">
+        <div>
+          <div style="font-weight:700;font-size:14px;">🔧 Recalculer les points depuis le journal</div>
+          <div class="small muted">Recalcule les points de tous les élèves en relisant leur journal (corrige les incohérences).</div>
+        </div>
+        <button class="btn" id="btn-recalcul-points">Recalculer</button>
+      </div>
       <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px;">
         <div>
           <div style="font-weight:700;font-size:14px;">Réinitialiser les points à 20/20</div>
@@ -3333,7 +3340,29 @@ function attachAdminEvents(){
     }
   };
   document.body.addEventListener('click', window._motifDelegate);
-  // Reset bloc
+  // Recalculer les points depuis le journal
+  const rbtn=document.getElementById('btn-recalcul-points');
+  if(rbtn) rbtn.addEventListener('click',async()=>{
+    if(!confirm("Recalculer les points de tous les élèves depuis leur journal ?\n\nCela corrigera les incohérences entre points affichés et journal.")) return;
+    let corriges=0;
+    for(const s of DATA.students){
+      // Recalculer : partir de 20 et soustraire tous les retraits du journal
+      const pointsInitiaux=20;
+      const totalRetrait=s.history
+        .filter(h=>h.type==='retrait'&&h.points)
+        .reduce((sum,h)=>sum+h.points,0);
+      const pointsCalcules=Math.max(0,pointsInitiaux-totalRetrait);
+      if(pointsCalcules!==s.points){
+        corriges++;
+        s.points=pointsCalcules;
+        // Mettre à jour dans la table points atomique
+        try{ await _sbDefinirPoints(s.id,pointsCalcules); }catch(e){}
+      }
+    }
+    await saveData('Recalcul points depuis journal');
+    toast(`✓ ${corriges} élève(s) corrigé(s).`);
+    render();
+  });
   const rb=document.getElementById('btn-add-bloc-reset');
   if(rb) rb.addEventListener('click',async()=>{
     const date=document.getElementById('bloc-reset-date').value;
