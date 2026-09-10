@@ -1444,7 +1444,48 @@ function checkPastillesExpirees(){
   return changed;
 }
 
-// Vérification automatique toutes les heures — si la date a changé, on recheck et sauvegarde
+// Pull-to-refresh : swipe vers le bas depuis le haut de la page
+(()=>{
+  let startY=0, pulling=false;
+  const indicator=document.createElement('div');
+  indicator.style.cssText='position:fixed;top:0;left:50%;transform:translateX(-50%) translateY(-60px);background:#0f5d4f;color:#fff;padding:8px 20px;border-radius:0 0 12px 12px;font-size:13px;font-weight:700;z-index:500;transition:transform .2s;pointer-events:none;';
+  indicator.textContent='↓ Relâcher pour actualiser';
+  document.body.appendChild(indicator);
+
+  document.addEventListener('touchstart',e=>{
+    if(window.scrollY===0) { startY=e.touches[0].clientY; pulling=true; }
+  },{passive:true});
+
+  document.addEventListener('touchmove',e=>{
+    if(!pulling) return;
+    const dy=e.touches[0].clientY-startY;
+    if(dy>60) indicator.style.transform='translateX(-50%) translateY(0)';
+    else indicator.style.transform='translateX(-50%) translateY(-60px)';
+  },{passive:true});
+
+  document.addEventListener('touchend',async e=>{
+    if(!pulling) return;
+    pulling=false;
+    const dy=e.changedTouches[0].clientY-startY;
+    indicator.style.transform='translateX(-50%) translateY(-60px)';
+    if(dy>60){
+      indicator.textContent='⟳ Actualisation...';
+      indicator.style.transform='translateX(-50%) translateY(0)';
+      try{
+        const fresh=await _sbReadDonnees();
+        if(fresh){
+          const annee=String(anneeScolaireCourante());
+          const journaux=await _sbReadJournaux(annee);
+          fresh.students=(fresh.students||[]).map(s=>({...s,history:journaux[s.id]||[]}));
+          DATA=fresh; lastKnownData=JSON.parse(JSON.stringify(DATA));
+          render(); toast("✓ Données actualisées.");
+        }
+      }catch(e){ toast("⚠️ Actualisation impossible."); }
+      indicator.textContent='↓ Relâcher pour actualiser';
+      indicator.style.transform='translateX(-50%) translateY(-60px)';
+    }
+  });
+})();
 let _lastDailyCheckDate=todayISO();
 setInterval(async()=>{
   const today=todayISO();
@@ -1496,11 +1537,23 @@ function closeModal(){ const bg=document.getElementById('modal-bg'); if(bg) bg.r
 /* ============================================================
    NAV & RENDER
    ============================================================ */
-document.getElementById('tabs').addEventListener('click',e=>{
+document.getElementById('tabs').addEventListener('click',async e=>{
   const btn=e.target.closest('button[data-tab]');
   if(!btn) return;
-  previousTab=currentTab; // mémoriser l'onglet précédent
+  previousTab=currentTab;
   currentTab=btn.dataset.tab;
+  // Recharger les données fraîches au changement d'onglet
+  if(DATA.students&&DATA.students.length){
+    try{
+      const fresh=await _sbReadDonnees();
+      if(fresh){
+        const annee=String(anneeScolaireCourante());
+        const journaux=await _sbReadJournaux(annee);
+        fresh.students=(fresh.students||[]).map(s=>({...s,history:journaux[s.id]||[]}));
+        DATA=fresh; lastKnownData=JSON.parse(JSON.stringify(DATA));
+      }
+    }catch(e){}
+  }
   render();
 });
 document.getElementById('undo-btn').addEventListener('click',undoLastAction);
@@ -3879,7 +3932,6 @@ function downloadStudentQR(studentId){
   if(!s){ toast("Élève introuvable."); return; }
   const url=appUrl('#eleve='+studentId);
   if(!url){ toast("QR code disponible uniquement en HTTPS."); return; }
-  // Créer un conteneur temporaire pour générer le QR
   const tmp=document.createElement('div');
   tmp.style.cssText='position:fixed;left:-9999px;top:0;width:200px;height:200px;';
   document.body.appendChild(tmp);
@@ -3888,27 +3940,45 @@ function downloadStudentQR(studentId){
     setTimeout(()=>{
       const canvas=tmp.querySelector('canvas');
       if(!canvas){ toast("Génération QR échouée."); document.body.removeChild(tmp); return; }
-      // Créer une canvas avec nom + code en dessous
       const final=document.createElement('canvas');
-      final.width=200; final.height=240;
+      final.width=220; final.height=260;
       const ctx=final.getContext('2d');
       ctx.fillStyle='#ffffff';
-      ctx.fillRect(0,0,200,240);
-      ctx.drawImage(canvas,0,0,200,200);
+      ctx.fillRect(0,0,220,260);
+      ctx.drawImage(canvas,10,10,200,200);
       ctx.fillStyle='#23262b';
-      ctx.font='bold 13px Arial';
+      ctx.font='bold 14px Arial';
       ctx.textAlign='center';
-      ctx.fillText(displayNom(s),100,220);
-      ctx.font='12px Arial';
+      ctx.fillText(displayNom(s),110,228);
+      ctx.font='13px Arial';
       ctx.fillStyle='#0f5d4f';
-      ctx.fillText(s.codeEleve||'',100,236);
-      // Télécharger
-      const a=document.createElement('a');
-      a.download=`QR_${s.nom.replace(/\s+/g,'_')}.png`;
-      a.href=final.toDataURL('image/png');
-      a.click();
+      ctx.fillText(s.codeEleve||'',110,248);
+      const dataUrl=final.toDataURL('image/png');
       document.body.removeChild(tmp);
-      toast("QR code téléchargé.");
+      // Ouvrir dans une nouvelle page — fonctionne sur mobile
+      const win=window.open('','_blank');
+      if(win){
+        win.document.write(`<!DOCTYPE html><html><head><title>QR ${esc(displayNom(s))}</title>
+          <meta name="viewport" content="width=device-width,initial-scale=1">
+          <style>body{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#f5f3ee;font-family:Georgia,serif;}
+          img{max-width:90vw;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.15);}
+          p{color:#23262b;font-size:16px;margin:12px 0 4px;font-weight:700;}
+          small{color:#6b6457;font-size:13px;}
+          a{margin-top:20px;padding:12px 24px;background:#0f5d4f;color:#fff;border-radius:8px;text-decoration:none;font-size:15px;}</style>
+        </head><body>
+          <p>${esc(displayNom(s))}</p>
+          <small>${s.codeEleve||''}</small>
+          <img src="${dataUrl}" alt="QR code">
+          <a href="${dataUrl}" download="QR_${s.nom.replace(/\s+/g,'_')}.png">⬇ Télécharger</a>
+        </body></html>`);
+        win.document.close();
+      } else {
+        // Fallback si popup bloqué : téléchargement direct
+        const a=document.createElement('a');
+        a.download=`QR_${s.nom.replace(/\s+/g,'_')}.png`;
+        a.href=dataUrl; a.click();
+        toast("QR code téléchargé.");
+      }
     },300);
   }catch(e){ document.body.removeChild(tmp); toast("Erreur : "+e.message); }
 }
