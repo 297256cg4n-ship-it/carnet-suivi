@@ -611,6 +611,46 @@ async function _sbReadJournaux(annee){
   return journaux;
 }
 
+
+async function _sbGetPoints(studentId){
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/points?student_id=eq.${studentId}&select=valeur`,{headers:_sbHeaders()});
+  if(!res.ok) return null;
+  const rows=await res.json();
+  return rows.length?rows[0].valeur:null;
+}
+
+async function _sbDecrementerPoints(studentId, delta){
+  // Décrémentation atomique — impossible d'écraser la décision d'un autre
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/decrementer_points`,{
+    method:'POST',
+    headers:_sbHeaders(),
+    body:JSON.stringify({p_student_id:studentId, p_delta:delta})
+  });
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  return await res.json(); // retourne la nouvelle valeur
+}
+
+async function _sbDefinirPoints(studentId, valeur){
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/definir_points`,{
+    method:'POST',
+    headers:_sbHeaders(),
+    body:JSON.stringify({p_student_id:studentId, p_valeur:valeur})
+  });
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  return await res.json();
+}
+
+async function _sbSyncAllPoints(){
+  // Synchronise tous les points depuis Supabase vers DATA
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/points?select=student_id,valeur`,{headers:_sbHeaders()});
+  if(!res.ok) return;
+  const rows=await res.json();
+  rows.forEach(r=>{
+    const s=DATA.students.find(x=>x.id===r.student_id);
+    if(s) s.points=r.valeur;
+  });
+}
+
 async function _sbWriteJournal(annee,studentId,entries){
   const res=await fetch(`${SUPABASE_URL}/rest/v1/journaux`,{
     method:'POST',
@@ -700,6 +740,11 @@ async function loadData(){
   if(passedResets.length && DATA.currentWeekStart > today){
     DATA.currentWeekStart=passedResets[passedResets.length-1];
   }
+  // Synchroniser les points depuis la table points (atomique)
+  try{
+    await _sbSyncAllPoints();
+  }catch(e){}
+
   migrateOldPastilleData();
   checkPastillesExpirees();
   initMemoSections();
@@ -1564,13 +1609,20 @@ function render(){
     (async()=>{
       try{
         const annee=String(anneeScolaireCourante());
+        // Recharger journal frais
         const res=await fetch(`${SUPABASE_URL}/rest/v1/journaux?annee=eq.${annee}&student_id=eq.${currentStudentId}&select=entries`,{headers:_sbHeaders()});
         if(res.ok){
           const rows=await res.json();
           const s=DATA.students.find(x=>x.id===currentStudentId);
           if(s&&rows.length) s.history=rows[0].entries||[];
-          lastKnownData=JSON.parse(JSON.stringify(DATA));
         }
+        // Synchroniser les points réels depuis la table points
+        const pointsReels=await _sbGetPoints(currentStudentId);
+        if(pointsReels!==null){
+          const s=DATA.students.find(x=>x.id===currentStudentId);
+          if(s) s.points=pointsReels;
+        }
+        lastKnownData=JSON.parse(JSON.stringify(DATA));
       }catch(e){}
       main.innerHTML=renderFiche(currentStudentId); attachFicheEvents();
     })();
@@ -2188,29 +2240,43 @@ function attachFicheEvents(){
 /* ============================================================
    RETIRER DES POINTS
    ============================================================ */
-async function retirerPoints(studentId,categorie,pts,motif,skipApply){
+async function retirerPoints(studentId,categorie,pts,motif){
   const s=DATA.students.find(x=>x.id===studentId);
   if(!s) return;
-  if(!skipApply){
-    // Application normale (si pas déjà fait par le listener)
-    const cat=CATEGORIES.find(c=>c.key===categorie);
-    const newPts=Math.max(0,s.points-pts);
+  const cat=CATEGORIES.find(c=>c.key===categorie);
+
+  // 1. Décrémentation atomique sur Supabase — impossible d'écraser un autre collègue
+  let newPts;
+  try{
+    newPts=await _sbDecrementerPoints(studentId, pts);
+    s.points=newPts; // synchroniser la valeur réelle retournée par Supabase
+  }catch(e){
+    // Fallback local si erreur réseau
+    newPts=Math.max(0,s.points-pts);
     s.points=newPts;
-    logEvent(s,`-${pts} pt(s) — ${cat?cat.label:categorie}${motif?' : '+motif:''} (reste ${newPts}/20)`,{
-      motif:(cat?cat.label:categorie)+(motif?' : '+motif:''),
-      points:pts,type:'retrait',categorie
-    });
-    if(newPts===0&&!estEnPastille(s)){
-      const d=new Date(todayISO()+'T00:00:00');
-      const dayOfWeek=d.getDay();
-      const daysUntilSunday=dayOfWeek===0?0:7-dayOfWeek;
-      const finAuto=addDays(todayISO(),daysUntilSunday);
-      s.pastille={type:'auto',debut:todayISO(),fin:finAuto};
-      logEvent(s,`0 point — pastille automatique jusqu'au dimanche ${formatDateFr(finAuto,true)}.`,true);
-      toast(`${s.nom} passe en pastille automatique (0 point).`);
-    }
-    if(categorie==='retard') checkRetardsSeuil(s);
   }
+
+  // 2. Enregistrer dans le journal
+  logEvent(s,`-${pts} pt(s) — ${cat?cat.label:categorie}${motif?' : '+motif:''} (reste ${newPts}/20)`,{
+    motif:(cat?cat.label:categorie)+(motif?' : '+motif:''),
+    points:pts,type:'retrait',categorie
+  });
+
+  // 3. Pastille automatique si 0 point
+  if(newPts===0&&!estEnPastille(s)){
+    const d=new Date(todayISO()+'T00:00:00');
+    const dayOfWeek=d.getDay();
+    const daysUntilSunday=dayOfWeek===0?0:7-dayOfWeek;
+    const finAuto=addDays(todayISO(),daysUntilSunday);
+    s.pastille={type:'auto',debut:todayISO(),fin:finAuto};
+    logEvent(s,`0 point — pastille automatique jusqu'au dimanche ${formatDateFr(finAuto,true)}`,{},true);
+    toast(`${s.nom} passe en pastille automatique (0 point).`);
+  }
+
+  // 4. Vérifier retards
+  if(categorie==='retard') checkRetardsSeuil(s);
+
+  // 5. Sauvegarder (journal + donnees sans les points — les points sont dans la table points)
   await saveData(`Retrait ${pts}pt(s) — ${s.nom}`);
 }
 
