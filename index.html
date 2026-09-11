@@ -2384,16 +2384,30 @@ async function deleteHistoryEntry(studentId,entryId){
   const isCarnet=(entry.label||'').toLowerCase().includes('carnet');
   if(!confirm(isRetrait?`Supprimer cette ligne ? Les ${entry.points} pt(s) seront recrédités.`:`Supprimer cette ligne du journal ?`)) return;
   s.history=s.history.filter(h=>h.id!==entryId);
-  if(isRetrait) s.points=Math.min(20,s.points+entry.points);
-  // Si on supprime l'entrée carnet du jour, on lève aussi l'état carnet
+  if(isRetrait){
+    const newPts=Math.min(20,s.points+entry.points);
+    s.points=newPts;
+    // Mettre à jour la table points atomique
+    try{ await _sbDefinirPoints(studentId, newPts); }catch(e){}
+  }
   if(isCarnet && estEnCarnet(s)){
     const autreCarnetAujourdhui=s.history.some(h=>
       (h.label||'').toLowerCase().includes('carnet') && h.date===new Date().toLocaleDateString('fr-FR')
     );
     if(!autreCarnetAujourdhui) s.carnet=null;
   }
-  await saveData(`Suppression ligne journal ${s.nom}`);
-  toast("Ligne supprimée."); render();
+  // Écrire directement le journal sans fusion (la suppression doit être préservée)
+  const anneeJ=String(anneeScolaireCourante());
+  const dataToSave=JSON.parse(JSON.stringify(DATA));
+  dataToSave.students=dataToSave.students.map(s=>{const {history,...rest}=s;return rest;});
+  try{
+    await _sbWriteDonnees(dataToSave);
+    await _sbWriteJournal(anneeJ,studentId,s.history);
+    lastKnownData=JSON.parse(JSON.stringify(DATA));
+    toast("Ligne supprimée."); render();
+  }catch(e){
+    toast("⚠️ Impossible de supprimer.");
+  }
 }
 
 /* ============================================================
