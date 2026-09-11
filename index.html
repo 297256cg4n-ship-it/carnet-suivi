@@ -756,6 +756,39 @@ async function loadData(){
     // Migration classeId → classeIds
     if(!s.classeIds){ s.classeIds=s.classeId?[s.classeId]:[]; }
   });
+
+  // Migration automatique : noms complets → noms abrégés (RGPD)
+  // Trier alphabétiquement pour avoir un résultat cohérent
+  const aAbreger=DATA.students.filter(s=>{
+    const {famille}=splitNom(s.nom);
+    return famille && !famille.includes('.') && famille===famille.toUpperCase() && famille.length>1;
+  }).sort((a,b)=>a.nom.localeCompare(b.nom));
+  
+  let nomsMigres=false;
+  // D'abord réinitialiser tous les noms à migrer pour recalculer proprement
+  const initialesParPrenom={};
+  aAbreger.forEach(s=>{
+    const {famille,prenom}=splitNom(s.nom);
+    const key=prenom.toLowerCase();
+    if(!initialesParPrenom[key]) initialesParPrenom[key]=new Set();
+    // Trouver le préfixe disponible
+    let len=1;
+    while(len<=famille.length){
+      const candidat=famille.slice(0,len).toUpperCase()+'.';
+      if(!initialesParPrenom[key].has(candidat)){
+        initialesParPrenom[key].add(candidat);
+        s.nom=`${candidat} ${prenom}`;
+        nomsMigres=true;
+        break;
+      }
+      len++;
+    }
+  });
+  if(nomsMigres){
+    _prefixCache=null;
+    saveData(false);
+  }
+
   lastKnownData=JSON.parse(JSON.stringify(DATA));
 }
 
@@ -1394,7 +1427,8 @@ function buildPrefixLengths(students){
     );
     if(!mêmePrenom.length){ result[s.id]=1; return; }
 
-    // Parmi ceux qui ont le même prénom, trouver le préfixe minimal qui différencie
+    // Parmi ceux qui ont le même prénom, trouver le préfixe minimal
+    // Note : avec noms abrégés (D.), famille = "D." donc len max = 1 caractère utile
     let len=1;
     while(len<=famille.length){
       const prefixe=famille.slice(0,len).toUpperCase();
@@ -1405,6 +1439,7 @@ function buildPrefixLengths(students){
       if(!collision) break;
       len++;
     }
+    // Si on ne peut pas différencier (même initiale stockée), utiliser l'index
     result[s.id]=Math.min(len,famille.length);
   });
 
@@ -1420,6 +1455,27 @@ function displayNom(student, allStudents){
   const lengths = buildPrefixLengths(pool);
   const len = lengths[student.id] || 1;
   return `${famille.slice(0,len).toUpperCase()}. ${prenom}`;
+}
+
+
+// Calcule le nom abrégé à stocker : "D. Lucas"
+// Si "D. Lucas" existe déjà, utilise les lettres suivantes du nouveau nom : "DU. Lucas", "DUP. Lucas"...
+function calculerNomAbrege(famille, prenom, excludeId){
+  if(!famille||!prenom) return prenom||'';
+  const memePrenom=DATA.students.filter(s=>
+    s.id!==excludeId &&
+    splitNom(s.nom).prenom.toLowerCase()===prenom.toLowerCase()
+  );
+  // Initiales déjà utilisées pour ce prénom
+  const initialesExistantes=new Set(memePrenom.map(s=>splitNom(s.nom).famille.toUpperCase()));
+  let len=1;
+  while(len<=famille.length){
+    const candidat=famille.slice(0,len).toUpperCase()+'.';
+    if(!initialesExistantes.has(candidat)) return `${candidat} ${prenom}`;
+    len++;
+  }
+  // Fallback : utiliser le nom complet (ne devrait pas arriver)
+  return `${famille}. ${prenom}`;
 }
 
 function statusBadge(s){
@@ -3728,17 +3784,18 @@ function openStudentModal(id,classeId){
     const prenom=document.getElementById('modal-eleve-prenom').value.trim();
     const selectedIds=[...document.querySelectorAll('input[type=checkbox]:checked')].map(cb=>cb.value);
     if(!famille||!prenom){toast("Remplis le nom ET le prénom.");return;}
-    const nom=`${famille} ${prenom}`;
+    // Stocker uniquement le nom abrégé (RGPD) : "D. Lucas" au lieu de "DUPONT Lucas"
+    const nomAbrege=calculerNomAbrege(famille, prenom, editing?.id);
     if(editing){
-      editing.nom=nom;
+      editing.nom=nomAbrege;
       editing.classeIds=selectedIds;
       editing.classeId=selectedIds[0]||null;
     } else {
-      const s=newStudent(nom,selectedIds[0]||null);
+      const s=newStudent(nomAbrege,selectedIds[0]||null);
       s.classeIds=selectedIds;
       DATA.students.push(s);
     }
-    await saveData(editing?`Modification ${nom}`:`Ajout ${nom}`);
+    await saveData(editing?`Modification ${nomAbrege}`:`Ajout ${nomAbrege}`);
     closeModal(); toast(editing?"Modifié.":"Ajouté."); render();
   });
 }
