@@ -1562,6 +1562,23 @@ setInterval(async()=>{
   }
 }, 60*60*1000); // toutes les heures
 
+// Rechargement complet toutes les 10 minutes (points + données générales)
+setInterval(async()=>{
+  if(!DATA.students||!DATA.students.length||!currentUser) return;
+  if(currentTab==='fiche') return; // ne pas interrompre une saisie
+  try{
+    const fresh=await _sbReadDonnees();
+    if(!fresh) return;
+    const annee=String(anneeScolaireCourante());
+    const journaux=await _sbReadJournaux(annee);
+    fresh.students=(fresh.students||[]).map(s=>({...s,history:journaux[s.id]||[]}));
+    await _sbSyncAllPoints();
+    DATA=fresh;
+    lastKnownData=JSON.parse(JSON.stringify(DATA));
+    render();
+  }catch(e){}
+}, 10*60*1000);
+
 
 
 /* Migration des anciennes données (status='pastille'|'carnet') vers le nouveau modèle */
@@ -1856,7 +1873,14 @@ function renderClasseDetail(classeId){
 function attachClasseDetailEvents(){
   document.getElementById('back-to-classes').addEventListener('click',e=>{e.preventDefault();currentClasseId=null;currentTab='classes';render();});
   const sc=document.getElementById('search-classe');
-  if(sc) sc.addEventListener('input',e=>{currentClasseSearch=e.target.value;render();});
+  if(sc) sc.addEventListener('input',e=>{
+    currentClasseSearch=e.target.value;
+    const cursorPos=e.target.selectionStart;
+    render();
+    // Restaurer le focus et la position du curseur après render
+    const newSc=document.getElementById('search-classe');
+    if(newSc){ newSc.focus(); newSc.setSelectionRange(cursorPos,cursorPos); }
+  });
   const so=document.getElementById('sort-classe');
   if(so) so.addEventListener('change',e=>{currentClasseSort=e.target.value;render();});
   // Retirer un élève de cette classe (sans le supprimer)
