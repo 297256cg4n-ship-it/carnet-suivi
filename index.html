@@ -460,6 +460,7 @@ let currentClasseId  = null;
 let currentSearchQuery = "";
 let currentSort = "nom"; // nom | marche | points
 let currentClasseSort = "nom"; // tri dans la vue classe
+let currentClasseSearch = ""; // recherche dans la vue classe
 let currentClassFilter = "";
 // Supabase — pas de SHA nécessaire (transactions atomiques)
 let lastKnownData = null;
@@ -764,11 +765,7 @@ async function saveData(label){
   const localBefore=lastKnownData;
   const localAfter=JSON.parse(JSON.stringify(DATA));
 
-  // 1. Sauvegarder donnees.json (sans history) dans Supabase
-  const dataToSave=JSON.parse(JSON.stringify(DATA));
-  dataToSave.students=dataToSave.students.map(s=>{const {history,...rest}=s;return rest;});
-
-  // 2. Sauvegarder les journaux modifiés dans Supabase (par élève, atomique)
+  // 1. Identifier les élèves dont le journal a été modifié
   const anneeJ=String(anneeScolaireCourante());
   const elevesModifies=new Set();
   DATA.students.forEach(s=>{
@@ -777,6 +774,30 @@ async function saveData(label){
     if(avantH!==apresH) elevesModifies.add(s.id);
   });
 
+  // 2. Pour chaque élève modifié, recharger son journal frais depuis Supabase
+  // et fusionner pour préserver les entrées des autres collègues
+  for(const id of elevesModifies){
+    try{
+      const res=await fetch(`${SUPABASE_URL}/rest/v1/journaux?annee=eq.${anneeJ}&student_id=eq.${id}&select=entries`,{headers:_sbHeaders()});
+      if(res.ok){
+        const rows=await res.json();
+        const journalServeur=rows.length?rows[0].entries||[]:[];
+        const s=DATA.students.find(x=>x.id===id);
+        if(s&&journalServeur.length>0){
+          // Trouver les nouvelles entrées ajoutées localement
+          const idsServeur=new Set(journalServeur.map(e=>e.id));
+          const nouvellesEntrees=s.history.filter(e=>!idsServeur.has(e.id));
+          // Fusionner : journal serveur + nouvelles entrées locales
+          s.history=[...journalServeur,...nouvellesEntrees];
+        }
+      }
+    }catch(e){}
+  }
+
+  // 3. Sauvegarder donnees.json (sans history) dans Supabase
+  const dataToSave=JSON.parse(JSON.stringify(DATA));
+  dataToSave.students=dataToSave.students.map(s=>{const {history,...rest}=s;return rest;});
+
   // Indicateur visuel de sauvegarde
   const saveIndicator=document.createElement('div');
   saveIndicator.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#23262b;color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;z-index:300;opacity:.9;';
@@ -784,15 +805,14 @@ async function saveData(label){
   document.body.appendChild(saveIndicator);
 
   try{
-    // Écriture atomique dans Supabase — pas de conflit possible
     await _sbWriteDonnees(dataToSave);
-    // Écrire uniquement les journaux des élèves modifiés
+    // Écrire les journaux fusionnés
     await Promise.all([...elevesModifies].map(id=>{
       const s=DATA.students.find(x=>x.id===id);
       if(s) return _sbWriteJournal(anneeJ,id,s.history||[]);
     }));
     saveIndicator.remove();
-    lastKnownData=localAfter;
+    lastKnownData=JSON.parse(JSON.stringify(DATA));
     if(label!==false){
       undoStack.push({before:localBefore,after:localAfter,label:label||'Action',date:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})});
       if(undoStack.length>20) undoStack.shift();
@@ -1648,7 +1668,8 @@ function renderAccueil(){
   if(currentClassFilter) students=students.filter(s=>s.classeId===currentClassFilter);
   if(currentSearchQuery.trim()){
     const q=currentSearchQuery.trim().toLowerCase();
-    students=students.filter(s=>s.nom.toLowerCase().includes(q));
+    const norm=str=>str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    students=students.filter(s=>norm(s.nom).includes(norm(q)));
   }
   // Tri
   if(currentSort==='classe-points'){
@@ -1784,7 +1805,9 @@ function attachClassesEvents(){
 function renderClasseDetail(classeId){
   const classe=DATA.classes.find(c=>c.id===classeId);
   if(!classe) return `<a class="back-link" href="#" id="back-to-classes">← Retour</a><div class="empty">Classe introuvable.</div>`;
+  const norm=str=>str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   let students=DATA.students.filter(s=>getClasseIds(s).includes(classeId));
+  if(currentClasseSearch.trim()) students=students.filter(s=>norm(s.nom).includes(norm(currentClasseSearch.trim())));
   if(currentClasseSort==='points') students.sort((a,b)=>a.points-b.points);
   else if(currentClasseSort==='points-desc') students.sort((a,b)=>b.points-a.points);
   else if(currentClasseSort==='marche') students.sort((a,b)=>MARCHES.indexOf(a.status)-MARCHES.indexOf(b.status)||a.nom.localeCompare(b.nom));
@@ -1810,6 +1833,7 @@ function renderClasseDetail(classeId){
   <div class="row" style="justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
     <h2>${esc(classe.nom)}</h2>
     <div class="row" style="flex-wrap:wrap;gap:6px;">
+      <input type="search" id="search-classe" placeholder="Rechercher un élève..." value="${esc(currentClasseSearch)}" style="padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;min-width:160px;">
       <select id="sort-classe" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;">
         <option value="nom" ${currentClasseSort==='nom'?'selected':''}>Nom A→Z</option>
         <option value="marche" ${currentClasseSort==='marche'?'selected':''}>Marche ↑</option>
@@ -1831,6 +1855,8 @@ function renderClasseDetail(classeId){
 }
 function attachClasseDetailEvents(){
   document.getElementById('back-to-classes').addEventListener('click',e=>{e.preventDefault();currentClasseId=null;currentTab='classes';render();});
+  const sc=document.getElementById('search-classe');
+  if(sc) sc.addEventListener('input',e=>{currentClasseSearch=e.target.value;render();});
   const so=document.getElementById('sort-classe');
   if(so) so.addEventListener('change',e=>{currentClasseSort=e.target.value;render();});
   // Retirer un élève de cette classe (sans le supprimer)
