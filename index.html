@@ -1618,18 +1618,15 @@ setInterval(async()=>{
   }
 }, 60*60*1000); // toutes les heures
 
-// Rechargement complet toutes les 10 minutes (points + données générales)
+// Rechargement des journaux toutes les 10 minutes (pas donnees.json pour éviter écrasements)
 setInterval(async()=>{
   if(!DATA.students||!DATA.students.length||!currentUser) return;
-  if(currentTab==='fiche') return; // ne pas interrompre une saisie
+  if(currentTab==='fiche') return;
   try{
-    const fresh=await _sbReadDonnees();
-    if(!fresh) return;
     const annee=String(anneeScolaireCourante());
     const journaux=await _sbReadJournaux(annee);
-    fresh.students=(fresh.students||[]).map(s=>({...s,history:journaux[s.id]||[]}));
+    DATA.students.forEach(s=>{ if(journaux[s.id]) s.history=journaux[s.id]; });
     await _sbSyncAllPoints();
-    DATA=fresh;
     lastKnownData=JSON.parse(JSON.stringify(DATA));
     render();
   }catch(e){}
