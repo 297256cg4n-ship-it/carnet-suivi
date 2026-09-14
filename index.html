@@ -744,13 +744,16 @@ async function loadData(){
   migrateOldPastilleData();
   checkPastillesExpirees();
   initMemoSections();
-  // Générer les codes élèves manquants en mémoire uniquement
-  // (pas de saveData automatique ici pour éviter d'écraser les données)
+  // Générer les codes élèves manquants et sauvegarder (sinon régénéré à chaque chargement)
+  let structureMigree=false;
   DATA.students.forEach(s=>{
-    if(!s.codeEleve) s.codeEleve=genStudentCode();
+    if(!s.codeEleve){ s.codeEleve=genStudentCode(); structureMigree=true; }
     // Migration classeId → classeIds
-    if(!s.classeIds){ s.classeIds=s.classeId?[s.classeId]:[]; }
+    if(!s.classeIds){ s.classeIds=s.classeId?[s.classeId]:[]; structureMigree=true; }
   });
+  if(structureMigree){
+    await saveData(false);
+  }
 
   // Migration automatique : noms complets → noms abrégés (RGPD)
   // Trier alphabétiquement pour avoir un résultat cohérent
@@ -781,7 +784,7 @@ async function loadData(){
   });
   if(nomsMigres){
     _prefixCache=null;
-    saveData(false);
+    await saveData(false);
   }
 
   lastKnownData=JSON.parse(JSON.stringify(DATA));
@@ -803,26 +806,62 @@ async function saveData(label){
   });
 
   // 2. Pour chaque élève modifié, recharger son journal frais depuis Supabase
-  // et fusionner pour préserver les entrées des autres collègues
-  for(const id of elevesModifies){
+  // et fusionner pour préserver les entrées des autres collègues,
+  // SANS annuler les suppressions intentionnelles faites localement
+  await Promise.all([...elevesModifies].map(async id=>{
     try{
+      const s=DATA.students.find(x=>x.id===id);
+      if(!s) return;
+      const avant=(localBefore.students||[]).find(x=>x.id===id);
+      const avantIds=new Set((avant?avant.history:[]||[]).map(e=>e.id));
+      const apresIds=new Set(s.history.map(e=>e.id));
+      // IDs qu'on a explicitement supprimés localement (présents avant, absents après)
+      const removedIds=new Set([...avantIds].filter(rid=>!apresIds.has(rid)));
+
       const res=await fetch(`${SUPABASE_URL}/rest/v1/journaux?annee=eq.${anneeJ}&student_id=eq.${id}&select=entries`,{headers:_sbHeaders()});
       if(res.ok){
         const rows=await res.json();
         const journalServeur=rows.length?rows[0].entries||[]:[];
-        const s=DATA.students.find(x=>x.id===id);
-        if(s&&journalServeur.length>0){
-          // Trouver les nouvelles entrées ajoutées localement
-          const idsServeur=new Set(journalServeur.map(e=>e.id));
-          const nouvellesEntrees=s.history.filter(e=>!idsServeur.has(e.id));
-          // Fusionner : journal serveur + nouvelles entrées locales
-          s.history=[...journalServeur,...nouvellesEntrees];
-        }
+        // Retirer du serveur les entrées qu'on a intentionnellement supprimées
+        const journalServeurFiltre=journalServeur.filter(e=>!removedIds.has(e.id));
+        const idsServeurFiltre=new Set(journalServeurFiltre.map(e=>e.id));
+        // Ajouter les nouvelles entrées locales absentes du serveur
+        const nouvellesEntrees=s.history.filter(e=>!idsServeurFiltre.has(e.id));
+        s.history=[...journalServeurFiltre,...nouvellesEntrees];
+      }
+    }catch(e){}
+  }));
+
+  // 3. Fusionner avec le serveur pour préserver les créations simultanées
+  // (nouvel élève, nouvelle classe, nouveau personnel ajoutés par un autre utilisateur)
+  // Fusion par ID : ajouts/modifications/suppressions précis, jamais un écrasement complet
+  // (ignoré si localBefore est vide — premier chargement, rien à fusionner)
+  if(localBefore){
+    try{
+      const serverDonnees=await _sbReadDonnees();
+      if(serverDonnees){
+        // Le journal (history) n'est jamais stocké dans donnees.json — on le rattache
+        // après coup à partir de la mémoire locale (fusionnée à l'étape 2 pour les élèves touchés)
+        const historyParId={};
+        DATA.students.forEach(s=>{ historyParId[s.id]=s.history||[]; });
+
+        // _diffById compare l'objet élève complet (points, pastille, marche, history...) :
+        // un élève qu'on a modifié (journal et/ou points et/ou pastille) diffère de "before"
+        // et sa version locale (fraîche) est conservée. Un élève non touché reste identique
+        // avant/après et c'est la version serveur (donc potentiellement mise à jour par un
+        // autre utilisateur) qui est conservée. Ne PAS forcer les points ici — le diff s'en
+        // charge déjà correctement dans les deux cas.
+        const merged=_mergeIntoServer(serverDonnees, localBefore, DATA);
+        merged.students=(merged.students||[]).map(ms=>({
+          ...ms,
+          history: historyParId[ms.id] || []
+        }));
+        DATA=merged;
       }
     }catch(e){}
   }
 
-  // 3. Sauvegarder donnees.json (sans history) dans Supabase
+  // 4. Sauvegarder donnees.json (sans history) dans Supabase
   const dataToSave=JSON.parse(JSON.stringify(DATA));
   dataToSave.students=dataToSave.students.map(s=>{const {history,...rest}=s;return rest;});
 
@@ -872,21 +911,13 @@ async function undoLastAction(){
       closeModal();
       undoStack.pop();
       DATA=JSON.parse(JSON.stringify(last.before));
-      lastKnownData=JSON.parse(JSON.stringify(DATA));
+      // Ne pas toucher lastKnownData ici : saveData a besoin de l'état AVANT
+      // l'annulation (encore dans lastKnownData) pour calculer le bon diff à appliquer
       await saveData(false);
       toast(`Annulé : ${last.label}`);
       render();
     });
   },50);
-}
-
-/* ============================================================
-   AUTH
-   ============================================================ */
-async function sha256Hex(text){
-  if(!window.crypto||!window.crypto.subtle) throw new Error("HTTPS requis pour la connexion sécurisée.");
-  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
 /* ============================================================
@@ -1030,6 +1061,7 @@ async function doDirectStudentLogin(){
     if(s){
       resetStudentAttempts();
       _currentStudentViewId=s.id;
+      await refreshStudentFresh(s.id);
       document.getElementById('login-screen').style.display='none';
       showStudentReadOnlyView(s.id);
     } else {
@@ -1198,17 +1230,39 @@ async function doStudentLogin(){
       if(!s){ errEl.textContent="Fiche introuvable."; return; }
       if(s.codeEleve&&val.toUpperCase().trim()===s.codeEleve){
         resetStudentAttempts();
+        await refreshStudentFresh(s.id);
         showStudentReadOnlyView(s.id);
       } else {
         recordFailedStudentAttempt(errEl);
       }
     } else {
       s=DATA.students.find(x=>x.codeEleve===val.toUpperCase().trim());
-      if(s){ resetStudentAttempts(); showStudentReadOnlyView(s.id); }
+      if(s){
+        resetStudentAttempts();
+        await refreshStudentFresh(s.id);
+        showStudentReadOnlyView(s.id);
+      }
       else { recordFailedStudentAttempt(errEl); }
     }
   }catch{ errEl.textContent="Connexion impossible."; }
   finally{ btn.disabled=false; }
+}
+
+// Recharge les points et le journal d'un élève juste avant affichage
+// (protège contre une page ouverte depuis longtemps avec données périmées)
+async function refreshStudentFresh(studentId){
+  const s=DATA.students.find(x=>x.id===studentId);
+  if(!s) return;
+  try{
+    const annee=String(anneeScolaireCourante());
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/journaux?annee=eq.${annee}&student_id=eq.${studentId}&select=entries`,{headers:_sbHeaders()});
+    if(res.ok){
+      const rows=await res.json();
+      if(rows.length) s.history=rows[0].entries||[];
+    }
+    const pts=await _sbGetPoints(studentId);
+    if(pts!==null) s.points=pts;
+  }catch(e){}
 }
 
 /* ============================================================
@@ -1216,12 +1270,20 @@ async function doStudentLogin(){
    ============================================================ */
 async function checkAutoNewWeek(){
   const thisMonday=currentMondayISO();
-  let safety=0, closedCount=0;
+  let safety=0, closedCount=0, skippedCount=0;
   while(DATA.currentWeekStart<thisMonday&&safety<52){
     const nextMonday=mondayOf(addDays(DATA.currentWeekStart,7));
-    await closeWeek(nextMonday);
-    closedCount++; safety++;
+    if(isVacances(DATA.currentWeekStart)){
+      // Semaine de vacances : avancer sans clôturer ni générer d'entrées
+      DATA.currentWeekStart=nextMonday;
+      skippedCount++;
+    } else {
+      await closeWeek(nextMonday);
+      closedCount++;
+    }
+    safety++;
   }
+  if(skippedCount>0) await saveData(false); // sauvegarder l'avancement silencieux
   if(closedCount>0) toast(closedCount===1?"Nouvelle semaine démarrée.":`${closedCount} semaines clôturées automatiquement.`);
 }
 
@@ -1549,7 +1611,7 @@ function checkPastillesExpirees(){
   DATA.students.forEach(s=>{
     // Pastille 7 jours : expire 7 jours après le début
     if(s.pastille&&s.pastille.fin&&today>s.pastille.fin){
-      logEvent(s,`Pastille levée automatiquement (7 jours écoulés — fin le ${formatDateFr(s.pastille.fin,true)},true).`,true);
+      logEvent(s,`Pastille levée automatiquement (7 jours écoulés — fin le ${formatDateFr(s.pastille.fin)}).`,{},true);
       s.pastille=null;
       changed=true;
     }
@@ -1615,7 +1677,7 @@ setInterval(async()=>{
   }
 }, 60*60*1000); // toutes les heures
 
-// Rechargement des journaux toutes les 10 minutes (pas donnees.json pour éviter écrasements)
+// Rechargement des journaux toutes les 10 minutes (journaux uniquement, pas les points)
 setInterval(async()=>{
   if(!DATA.students||!DATA.students.length||!currentUser) return;
   if(currentTab==='fiche') return;
@@ -1623,7 +1685,6 @@ setInterval(async()=>{
     const annee=String(anneeScolaireCourante());
     const journaux=await _sbReadJournaux(annee);
     DATA.students.forEach(s=>{ if(journaux[s.id]) s.history=journaux[s.id]; });
-    await _sbSyncAllPoints();
     lastKnownData=JSON.parse(JSON.stringify(DATA));
     render();
   }catch(e){}
@@ -1959,7 +2020,14 @@ function attachClasseDetailEvents(){
     try{
       const names=await extractNamesFromFile(file);
       if(!names.length){statusEl.textContent="Aucun nom détecté.";return;}
-      for(const nom of names) DATA.students.push(newStudent(nom,currentClasseId));
+      // Trier alphabétiquement pour une attribution d'initiales cohérente
+      const namesSorted=names.slice().sort((a,b)=>a.localeCompare(b));
+      for(const nomComplet of namesSorted){
+        const {famille,prenom}=splitNom(nomComplet);
+        const nomAbrege=(famille&&prenom)?calculerNomAbrege(famille,prenom,null):nomComplet;
+        const s=newStudent(nomAbrege,currentClasseId);
+        DATA.students.push(s);
+      }
       await saveData(`Import ${names.length} élève(s)`);
       statusEl.textContent=`${names.length} élève(s) importé(s).`;
       toast(`${names.length} élève(s) ajouté(s).`); render();
@@ -2312,6 +2380,7 @@ function attachFicheEvents(){
     if(!s||!confirm(`Réinitialiser les points de ${s.nom} à 20/20 ?`)) return;
     s.points=20;
     logEvent(s,"Points réinitialisés manuellement à 20/20.");
+    try{ await _sbDefinirPoints(s.id,20); }catch(e){}
     await saveData(`Reset points ${s.nom}`); render();
   });
 
@@ -2369,7 +2438,7 @@ async function retirerPoints(studentId,categorie,pts,motif){
     const daysUntilSunday=dayOfWeek===0?0:7-dayOfWeek;
     const finAuto=addDays(todayISO(),daysUntilSunday);
     s.pastille={type:'auto',debut:todayISO(),fin:finAuto};
-    logEvent(s,`0 point — pastille automatique jusqu'au dimanche ${formatDateFr(finAuto,true)}`,{},true);
+    logEvent(s,`0 point — pastille automatique jusqu'au dimanche ${formatDateFr(finAuto)}`,{},true);
     toast(`${s.nom} passe en pastille automatique (0 point).`);
   }
 
@@ -2446,14 +2515,10 @@ async function deleteHistoryEntry(studentId,entryId){
     );
     if(!autreCarnetAujourdhui) s.carnet=null;
   }
-  // Écrire directement le journal sans fusion (la suppression doit être préservée)
-  const anneeJ=String(anneeScolaireCourante());
-  const dataToSave=JSON.parse(JSON.stringify(DATA));
-  dataToSave.students=dataToSave.students.map(s=>{const {history,...rest}=s;return rest;});
+  // saveData gère désormais correctement les suppressions (removedIds) ET
+  // protège contre l'écrasement de créations simultanées par d'autres utilisateurs
   try{
-    await _sbWriteDonnees(dataToSave);
-    await _sbWriteJournal(anneeJ,studentId,s.history);
-    lastKnownData=JSON.parse(JSON.stringify(DATA));
+    await saveData(`Suppression ligne journal ${s.nom}`);
     toast("Ligne supprimée."); render();
   }catch(e){
     toast("⚠️ Impossible de supprimer.");
@@ -3522,6 +3587,7 @@ function attachAdminEvents(){
       s.status=marche; s.pastille=null; s.carnet=null; s.points=20;
       logEvent(s,`Réinitialisation à la ${label} par l'administrateur.`,{},true);
     });
+    try{ await Promise.all(DATA.students.map(s=>_sbDefinirPoints(s.id,20))); }catch(e){}
     await saveData(`Réinitialisation toutes les marches → ${label}`);
     toast(`Tous les élèves placés en ${label}.`); render();
   });
@@ -3533,6 +3599,7 @@ function attachAdminEvents(){
     const s=DATA.students.find(x=>x.id===id);
     if(!s||!confirm(`Réinitialiser les points de ${displayNom(s)} à 20/20 ?`)) return;
     s.points=20; logEvent(s,"Points réinitialisés à 20/20 par l'administrateur.");
+    try{ await _sbDefinirPoints(s.id,20); }catch(e){}
     await saveData(`Reset points admin ${s.nom}`); toast("Points réinitialisés."); render();
   });
   // Reset journal un élève
@@ -3548,6 +3615,7 @@ function attachAdminEvents(){
       toast("✓ Sauvegarde effectuée dans donnees-sauvegarde.json");
     }catch(e){ toast("⚠ Sauvegarde impossible, annulation."); return; }
     s.history=[]; s.pastille=null; s.carnet=null; s.retenuePendante=null; s.retenuesSeuils=[]; s.retardEmailsSent=[]; s.notifBlocFin=null; s.points=20;
+    try{ await _sbDefinirPoints(s.id,20); }catch(e){}
     await saveData(`Reset journal ${s.nom}`); toast("Journal et suspensions effacés."); render();
   });
   // Reset journal tous
@@ -3560,6 +3628,7 @@ function attachAdminEvents(){
       toast("✓ Sauvegarde effectuée dans donnees-sauvegarde.json");
     }catch(e){ toast("⚠ Sauvegarde impossible, annulation."); return; }
     DATA.students.forEach(s=>{ s.history=[]; s.pastille=null; s.carnet=null; s.retenuePendante=null; s.retenuesSeuils=[]; s.retardEmailsSent=[]; s.notifBlocFin=null; s.points=20; });
+    try{ await Promise.all(DATA.students.map(s=>_sbDefinirPoints(s.id,20))); }catch(e){}
     await saveData('Reset tous journaux'); toast("Tous les journaux et suspensions effacés."); render();
   });
 }
