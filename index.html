@@ -741,11 +741,6 @@ async function loadData(){
   if(passedResets.length && DATA.currentWeekStart > today){
     DATA.currentWeekStart=passedResets[passedResets.length-1];
   }
-  // Synchroniser les points depuis la table points (atomique)
-  try{
-    await _sbSyncAllPoints();
-  }catch(e){}
-
   migrateOldPastilleData();
   checkPastillesExpirees();
   initMemoSections();
@@ -3186,8 +3181,16 @@ function renderAdmin(){
 
       <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px;margin-top:10px;">
         <div>
+          <div style="font-weight:700;font-size:14px;">🔄 Remettre tous les élèves à 20 pts</div>
+          <div class="small muted">Sans clôturer la semaine ni déclencher les changements de marche. À utiliser si la remise à 20 automatique du lundi n'a pas fonctionné.</div>
+        </div>
+        <button class="btn" id="btn-reset-points-only">Remettre à 20</button>
+      </div>
+
+      <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px;margin-top:10px;">
+        <div>
           <div style="font-weight:700;font-size:14px;">🔄 Forcer le début de nouvelle semaine</div>
-          <div class="small muted">Remet tous les élèves à 20 pts et clôture la semaine en cours. À utiliser si la remise à 20 automatique n'a pas fonctionné.</div>
+          <div class="small muted">Clôture la semaine en cours, calcule les changements de marche et remet à 20. À utiliser uniquement en dehors de la semaine 3/3.</div>
         </div>
         <button class="btn" id="btn-force-new-week">Nouvelle semaine</button>
       </div>
@@ -3461,6 +3464,18 @@ function attachAdminEvents(){
     }
   };
   document.body.addEventListener('click', window._motifDelegate);
+
+  // Remettre à 20 sans clôturer la semaine
+  const rpo=document.getElementById('btn-reset-points-only');
+  if(rpo) rpo.addEventListener('click',async()=>{
+    if(!confirm("Remettre tous les élèves à 20 pts sans clôturer la semaine ?")) return;
+    for(const s of DATA.students){
+      s.points=20;
+      try{ await _sbDefinirPoints(s.id,20); }catch(e){}
+    }
+    await saveData(false);
+    toast("✓ Tous les élèves remis à 20 pts."); render();
+  });
 
   // Forcer nouvelle semaine manuellement
   const fnw=document.getElementById('btn-force-new-week');
