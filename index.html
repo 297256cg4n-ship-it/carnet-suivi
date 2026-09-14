@@ -1261,6 +1261,8 @@ async function closeWeek(newWeekStart, silent){
     await checkBlocEnd(s);
     // Remettre à 20 points
     s.points=20;
+    // Mettre à jour la table points atomique
+    try{ await _sbDefinirPoints(s.id, 20); }catch(e){}
     // Le carnet se réinitialise à chaque nouvelle semaine
     s.carnet=null;
     // Note : la pastille n'est PAS levée ici — elle suit son propre calendrier
@@ -3182,6 +3184,14 @@ function renderAdmin(){
           <button class="btn danger" id="btn-reset-all-marches">Réinitialiser</button>
       </div>
 
+      <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px;margin-top:10px;">
+        <div>
+          <div style="font-weight:700;font-size:14px;">🔄 Forcer le début de nouvelle semaine</div>
+          <div class="small muted">Remet tous les élèves à 20 pts et clôture la semaine en cours. À utiliser si la remise à 20 automatique n'a pas fonctionné.</div>
+        </div>
+        <button class="btn" id="btn-force-new-week">Nouvelle semaine</button>
+      </div>
+
       <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px;">
         <div>
           <div style="font-weight:700;font-size:14px;">Réinitialiser les points à 20/20</div>
@@ -3451,6 +3461,14 @@ function attachAdminEvents(){
     }
   };
   document.body.addEventListener('click', window._motifDelegate);
+
+  // Forcer nouvelle semaine manuellement
+  const fnw=document.getElementById('btn-force-new-week');
+  if(fnw) fnw.addEventListener('click',async()=>{
+    if(!confirm(`Forcer le début d'une nouvelle semaine ?\n\nTous les élèves seront remis à 20 pts et la semaine en cours sera clôturée.`)) return;
+    await closeWeek(currentMondayISO(), false);
+    toast("✓ Nouvelle semaine démarrée, tous les élèves remis à 20 pts."); render();
+  });
 
   const rb=document.getElementById('btn-add-bloc-reset');
   if(rb) rb.addEventListener('click',async()=>{
