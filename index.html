@@ -1246,11 +1246,11 @@ async function closeWeek(newWeekStart, silent){
   for(const s of DATA.students){
     const [minPts,maxPts]=MARCHE_INTERVALLE[s.status]||[0,20];
     if(estEnPastille(s)){
-      logEvent(s,`Fin de semaine en pastille — les points ne comptent pas.`,true);
+      logEvent(s,`Fin de semaine en pastille — les points ne comptent pas.`,{},true);
     } else {
       const dansBorne=s.points>=minPts&&s.points<=maxPts;
       const auDessus=s.points>maxPts;
-      logEvent(s,`Fin de semaine : ${s.points}/20 pts — intervalle cible ${minPts}-${maxPts}pts ${auDessus?'✓ au-dessus':dansBorne?'✓ atteint':'✗ sous l\'intervalle'}.`,true);
+      logEvent(s,`Fin de semaine : ${s.points}/20 pts — intervalle cible ${minPts}-${maxPts}pts ${auDessus?'✓ au-dessus':dansBorne?'✓ atteint':'✗ sous l\'intervalle'}.`,{},true);
     }
     // Vérifier changement de marche en fin de bloc
     await checkBlocEnd(s);
@@ -1326,7 +1326,7 @@ async function checkBlocEnd(s){
     raison=`${semainesSousOuPastille}/3 semaine(s) sous l'intervalle mais déjà en Marche 1 → reste`;
   }
 
-  logEvent(s,`Fin de bloc : ${raison}.`,true);
+  logEvent(s,`Fin de bloc : ${raison}.`,{},true);
   s.status=newMarche;
 }
 
@@ -3520,7 +3520,7 @@ function attachAdminEvents(){
     if(!confirm(`Remettre TOUS les élèves à la ${label} ? Leurs points seront remis à 20/20.`)) return;
     DATA.students.forEach(s=>{
       s.status=marche; s.pastille=null; s.carnet=null; s.points=20;
-      logEvent(s,`Réinitialisation à la ${label} par l'administrateur.`,true);
+      logEvent(s,`Réinitialisation à la ${label} par l'administrateur.`,{},true);
     });
     await saveData(`Réinitialisation toutes les marches → ${label}`);
     toast(`Tous les élèves placés en ${label}.`); render();
