@@ -800,7 +800,7 @@ async function saveData(label){
   const anneeJ=String(anneeScolaireCourante());
   const elevesModifies=new Set();
   DATA.students.forEach(s=>{
-    const avantH=JSON.stringify(((localBefore.students||[]).find(x=>x.id===s.id)||{}).history||[]);
+    const avantH=JSON.stringify(((localBefore?.students||[]).find(x=>x.id===s.id)||{}).history||[]);
     const apresH=JSON.stringify(s.history||[]);
     if(avantH!==apresH) elevesModifies.add(s.id);
   });
@@ -812,9 +812,9 @@ async function saveData(label){
     try{
       const s=DATA.students.find(x=>x.id===id);
       if(!s) return;
-      const avant=(localBefore.students||[]).find(x=>x.id===id);
+      const avant=(localBefore?.students||[]).find(x=>x.id===id);
       const avantIds=new Set((avant?avant.history:[]||[]).map(e=>e.id));
-      const apresIds=new Set(s.history.map(e=>e.id));
+      const apresIds=new Set((s.history||[]).map(e=>e.id));
       // IDs qu'on a explicitement supprimés localement (présents avant, absents après)
       const removedIds=new Set([...avantIds].filter(rid=>!apresIds.has(rid)));
 
@@ -826,7 +826,7 @@ async function saveData(label){
         const journalServeurFiltre=journalServeur.filter(e=>!removedIds.has(e.id));
         const idsServeurFiltre=new Set(journalServeurFiltre.map(e=>e.id));
         // Ajouter les nouvelles entrées locales absentes du serveur
-        const nouvellesEntrees=s.history.filter(e=>!idsServeurFiltre.has(e.id));
+        const nouvellesEntrees=(s.history||[]).filter(e=>!idsServeurFiltre.has(e.id));
         s.history=[...journalServeurFiltre,...nouvellesEntrees];
       }
     }catch(e){}
@@ -910,6 +910,16 @@ async function undoLastAction(){
     document.getElementById('modal-confirm-undo')?.addEventListener('click',async()=>{
       closeModal();
       undoStack.pop();
+      // Synchroniser la table atomique des points AVANT de changer DATA,
+      // pour chaque élève dont les points diffèrent entre avant/après l'action annulée
+      try{
+        await Promise.all((last.after.students||[]).map(async sAfter=>{
+          const sBefore=(last.before.students||[]).find(x=>x.id===sAfter.id);
+          if(sBefore && sBefore.points!==sAfter.points){
+            await _sbDefinirPoints(sAfter.id, sBefore.points);
+          }
+        }));
+      }catch(e){}
       DATA=JSON.parse(JSON.stringify(last.before));
       // Ne pas toucher lastKnownData ici : saveData a besoin de l'état AVANT
       // l'annulation (encore dans lastKnownData) pour calculer le bon diff à appliquer
@@ -2463,13 +2473,13 @@ function checkRetardsSeuil(s){
   if(bloc&&bloc.semaines.length){
     blocDebut=bloc.semaines[0].start;
     const blocFin=bloc.semaines[bloc.semaines.length-1].end;
-    retardsDansBloc=s.history.filter(h=>{
+    retardsDansBloc=(s.history||[]).filter(h=>{
       if(h.categorie!=='retard') return false;
       const iso=dateJournalToISO(h.date);
       return iso>=blocDebut&&iso<=blocFin;
     });
   } else {
-    retardsDansBloc=s.history.filter(h=>h.categorie==='retard');
+    retardsDansBloc=(s.history||[]).filter(h=>h.categorie==='retard');
     blocDebut='hors-bloc';
   }
   const count=retardsDansBloc.length;
@@ -2497,12 +2507,12 @@ function checkRetardsSeuil(s){
 async function deleteHistoryEntry(studentId,entryId){
   const s=DATA.students.find(x=>x.id===studentId);
   if(!s) return;
-  const entry=s.history.find(h=>h.id===entryId);
+  const entry=(s.history||[]).find(h=>h.id===entryId);
   if(!entry) return;
   const isRetrait=entry.type==='retrait'&&entry.points;
   const isCarnet=(entry.label||'').toLowerCase().includes('carnet');
   if(!confirm(isRetrait?`Supprimer cette ligne ? Les ${entry.points} pt(s) seront recrédités.`:`Supprimer cette ligne du journal ?`)) return;
-  s.history=s.history.filter(h=>h.id!==entryId);
+  s.history=(s.history||[]).filter(h=>h.id!==entryId);
   if(isRetrait){
     const newPts=Math.min(20,s.points+entry.points);
     s.points=newPts;
@@ -2510,7 +2520,7 @@ async function deleteHistoryEntry(studentId,entryId){
     try{ await _sbDefinirPoints(studentId, newPts); }catch(e){}
   }
   if(isCarnet && estEnCarnet(s)){
-    const autreCarnetAujourdhui=s.history.some(h=>
+    const autreCarnetAujourdhui=(s.history||[]).some(h=>
       (h.label||'').toLowerCase().includes('carnet') && h.date===new Date().toLocaleDateString('fr-FR')
     );
     if(!autreCarnetAujourdhui) s.carnet=null;
@@ -2591,7 +2601,7 @@ function renderStudentReadOnlyView(studentId){
     </div>`;
 
   // Journal
-  const histRows=s.history.slice().reverse().slice(0,30).map(h=>`
+  const histRows=(s.history||[]).slice().reverse().slice(0,30).map(h=>`
     <tr class="${rowClass(h)}">
       <td style="white-space:nowrap;">${esc(h.date)}${h.heure?`<br><span style="font-size:11px;color:var(--muted);">${esc(h.heure)}</span>`:''}</td>
       <td>${esc(h.motif||h.label)}${h.points?`<br><span style="font-weight:700;color:var(--m1);">−${h.points} pt${h.points>1?'s':''}</span>`:''}${h.auteur?`<br><span style="font-size:11px;color:var(--muted);">Par : ${esc(h.auteur)}</span>`:''}</td>
@@ -2816,10 +2826,10 @@ function attachPastillesEvents(){
    RETENUES
    ============================================================ */
 function countRetardsDansBloc(s, bloc){
-  if(!bloc||!bloc.semaines.length) return s.history.filter(h=>h.categorie==='retard').length;
+  if(!bloc||!bloc.semaines.length) return (s.history||[]).filter(h=>h.categorie==='retard').length;
   const debut=bloc.semaines[0].start;
   const fin=bloc.semaines[bloc.semaines.length-1].end;
-  return s.history.filter(h=>{
+  return (s.history||[]).filter(h=>{
     if(h.categorie!=='retard') return false;
     const parts=(h.date||'').split('/');
     const iso=parts.length===3?`${parts[2]}-${parts[1]}-${parts[0]}`:h.date||'';
@@ -3765,7 +3775,7 @@ function exportFichePDF(studentId,period){
     })
   ).join('');
 
-  const histItems=s.history.filter(h=>{
+  const histItems=(s.history||[]).filter(h=>{
     if(period==='annual') return true;
     const b=period==='current'?targetBlocs[0]:targetBlocs[0];
     if(!b||!b.semaines.length) return true;
