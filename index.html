@@ -652,6 +652,57 @@ async function _sbSyncAllPoints(){
   });
 }
 
+// ── Carnet / pastille / marche : mêmes garanties atomiques que les points ──
+async function _sbDefinirCarnet(studentId, carnet){
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/definir_carnet`,{
+    method:'POST', headers:_sbHeaders(),
+    body:JSON.stringify({p_student_id:studentId, p_carnet:carnet})
+  });
+  if(!res.ok) throw new Error('HTTP '+res.status);
+}
+async function _sbDefinirPastille(studentId, pastille){
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/definir_pastille`,{
+    method:'POST', headers:_sbHeaders(),
+    body:JSON.stringify({p_student_id:studentId, p_pastille:pastille})
+  });
+  if(!res.ok) throw new Error('HTTP '+res.status);
+}
+async function _sbDefinirMarche(studentId, marche){
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/definir_marche`,{
+    method:'POST', headers:_sbHeaders(),
+    body:JSON.stringify({p_student_id:studentId, p_marche:marche})
+  });
+  if(!res.ok) throw new Error('HTTP '+res.status);
+}
+async function _sbSyncEtatsEleves(){
+  // Synchronise carnet/pastille/marche depuis Supabase vers DATA (source de vérité)
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/etats_eleves?select=student_id,carnet,pastille,status`,{headers:_sbHeaders()});
+  if(!res.ok) return;
+  const rows=await res.json();
+  rows.forEach(r=>{
+    const s=DATA.students.find(x=>x.id===r.student_id);
+    if(s){
+      if(r.carnet!==undefined) s.carnet=r.carnet;
+      if(r.pastille!==undefined) s.pastille=r.pastille;
+      if(r.status) s.status=r.status;
+    }
+  });
+}
+
+async function _sbSyncEtatEleve(studentId){
+  // Version ciblée : ne synchronise qu'un seul élève (pour l'ouverture de fiche)
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/etats_eleves?student_id=eq.${studentId}&select=carnet,pastille,status`,{headers:_sbHeaders()});
+  if(!res.ok) return;
+  const rows=await res.json();
+  if(!rows.length) return;
+  const s=DATA.students.find(x=>x.id===studentId);
+  if(s){
+    if(rows[0].carnet!==undefined) s.carnet=rows[0].carnet;
+    if(rows[0].pastille!==undefined) s.pastille=rows[0].pastille;
+    if(rows[0].status) s.status=rows[0].status;
+  }
+}
+
 async function _sbWriteJournal(annee,studentId,entries){
   const res=await fetch(`${SUPABASE_URL}/rest/v1/journaux`,{
     method:'POST',
@@ -769,6 +820,10 @@ async function loadData(){
   }catch(e){
     // Journaux pas encore créés → history vide
   }
+
+  // Carnet/pastille/marche : la table dédiée est la source de vérité,
+  // elle prime sur ce qui est embarqué dans donnees.json (peut être périmé)
+  try{ await _sbSyncEtatsEleves(); }catch(e){}
 
   const today=todayISO();
   const resets=(DATA.blocResets||[]).slice().sort();
@@ -1319,6 +1374,7 @@ async function closeWeek(newWeekStart, silent){
     s.points=20;
     try{ await _sbDefinirPoints(s.id, 20); }catch(e){}
     s.carnet=null;
+    try{ await _sbDefinirCarnet(s.id,null); }catch(e){}
   }));
   if(!silent) await saveData('Nouvelle semaine');
 }
@@ -1385,6 +1441,7 @@ async function checkBlocEnd(s){
 
   await logEvent(s,`Fin de bloc : ${raison}.`,{},true);
   s.status=newMarche;
+  try{ await _sbDefinirMarche(s.id,newMarche); }catch(e){}
 }
 
 /* Vérifie à la semaine 3 si l'élève a dépassé son intervalle les 2 premières
@@ -1613,11 +1670,13 @@ async function checkPastillesExpirees(){
     if(s.pastille&&s.pastille.fin&&today>s.pastille.fin){
       await logEvent(s,`Pastille levée automatiquement (7 jours écoulés — fin le ${formatDateFr(s.pastille.fin)}).`,{},true);
       s.pastille=null;
+      try{ await _sbDefinirPastille(s.id,null); }catch(e){}
       changed=true;
     }
     // Carnet : expire à la fin de la journée où il a été posé
     if(s.carnet&&s.carnet.date&&today>s.carnet.date){
       s.carnet=null;
+      try{ await _sbDefinirCarnet(s.id,null); }catch(e){}
       changed=true;
     }
   }
@@ -1745,8 +1804,8 @@ document.getElementById('tabs').addEventListener('click',async e=>{
         DATA.students.forEach(s=>{
           const fs=freshById[s.id];
           if(fs){
-            s.points=fs.points; s.status=fs.status; s.pastille=fs.pastille;
-            s.carnet=fs.carnet; s.classeIds=fs.classeIds; s.classeId=fs.classeId;
+            s.points=fs.points;
+            s.classeIds=fs.classeIds; s.classeId=fs.classeId;
             s.codeEleve=fs.codeEleve; s.retenuePendante=fs.retenuePendante;
           }
         });
@@ -1756,6 +1815,8 @@ document.getElementById('tabs').addEventListener('click',async e=>{
         });
         if(fresh.classes) DATA.classes=fresh.classes;
         if(fresh.staff) DATA.staff=fresh.staff;
+        // Carnet/pastille/marche : toujours depuis la table dédiée (source de vérité)
+        try{ await _sbSyncEtatsEleves(); }catch(e){}
         lastKnownData=JSON.parse(JSON.stringify(DATA));
         // Ne réafficher que si l'utilisateur est toujours sur l'onglet qu'il a cliqué
         if(currentTab===tabAuMomentDuClic) render();
@@ -1799,6 +1860,8 @@ function render(){
           const s=DATA.students.find(x=>x.id===currentStudentId);
           if(s) s.points=pointsReels;
         }
+        // Synchroniser carnet/pastille/marche depuis la table dédiée
+        try{ await _sbSyncEtatEleve(currentStudentId); }catch(e){}
         lastKnownData=JSON.parse(JSON.stringify(DATA));
       }catch(e){}
       main.innerHTML=renderFiche(currentStudentId); attachFicheEvents();
@@ -1964,14 +2027,15 @@ function attachClassesEvents(){
           DATA.students.forEach(s=>{
             const fs=freshById[s.id];
             if(fs){
-              s.points=fs.points; s.status=fs.status; s.pastille=fs.pastille;
-              s.carnet=fs.carnet; s.classeIds=fs.classeIds; s.classeId=fs.classeId;
+              s.points=fs.points;
+              s.classeIds=fs.classeIds; s.classeId=fs.classeId;
               s.codeEleve=fs.codeEleve; s.retenuePendante=fs.retenuePendante;
             }
           });
           fresh.students.forEach(fs=>{
             if(!DATA.students.some(s=>s.id===fs.id)) DATA.students.push({...fs,history:[]});
           });
+          try{ await _sbSyncEtatsEleves(); }catch(e){}
           lastKnownData=JSON.parse(JSON.stringify(DATA));
           if(currentClasseId===classeAuMoment) render();
         }
@@ -2373,6 +2437,7 @@ function attachFicheEvents(){
       const m=b.dataset.setMarche;
       await logEvent(s,`Marche modifiée manuellement → ${marcheLabelNum(m)}.`);
       s.status=m;
+      try{ await _sbDefinirMarche(s.id,m); }catch(e){}
       await saveData(`Changement marche ${s.nom}`); render();
     });
   });
@@ -2392,12 +2457,14 @@ function attachFicheEvents(){
       if(!confirm(`Lever la pastille ${t==='auto'?'automatique':'manuelle'} de ${s.nom} ?`)) return;
       await logEvent(s,`Pastille ${t==='auto'?'automatique':'manuelle'} levée manuellement — reprend ${marcheLabelNum(s.status)}.`);
       s.pastille=null;
+      try{ await _sbDefinirPastille(s.id,null); }catch(e){}
       await saveData(`Levée pastille ${s.nom}`); render();
     } else {
       // Mettre en pastille 7 jours (7 jours glissants)
       if(!confirm("⚠️ Avant de prendre cette décision, merci de vous concerter avec 2 autres personnels du collège.\n\nConfirmer la mise en pastille 7 jours (7 jours glissants) ?")) return;
       const fin=addDays(todayISO(),7);
       s.pastille={type:'manuelle', debut:todayISO(), fin};
+      try{ await _sbDefinirPastille(s.id,s.pastille); }catch(e){}
       await logEvent(s,`Pastille 7 jours (concertation requise) — jusqu'au ${formatDateFr(fin)}.`);
       await saveData(`Pastille 7 jours ${s.nom}`); render();
     }
@@ -2412,12 +2479,14 @@ function attachFicheEvents(){
       // Retirer le carnet
       if(!confirm(`Retirer la suspension carnet de ${displayNom(s)} ?`)) return;
       s.carnet=null;
+      try{ await _sbDefinirCarnet(s.id,null); }catch(e){}
       await logEvent(s,"Suspension carnet retirée manuellement.");
       await saveData(`Carnet retiré ${s.nom}`); render();
     } else {
       // Poser le carnet
       if(!confirm(`Mettre ${displayNom(s)} en suspension pour carnet oublié (aujourd'hui uniquement, sans impact sur la marche) ?`)) return;
       s.carnet={date:todayISO()};
+      try{ await _sbDefinirCarnet(s.id,s.carnet); }catch(e){}
       await logEvent(s,"Carnet de correspondance oublié — suspendu pour la journée.");
       await saveData(`Carnet oublié ${s.nom}`); render();
     }
@@ -2488,6 +2557,7 @@ async function retirerPoints(studentId,categorie,pts,motif){
     const daysUntilSunday=dayOfWeek===0?0:7-dayOfWeek;
     const finAuto=addDays(todayISO(),daysUntilSunday);
     s.pastille={type:'auto',debut:todayISO(),fin:finAuto};
+    try{ await _sbDefinirPastille(s.id,s.pastille); }catch(e){}
     await logEvent(s,`0 point — pastille automatique jusqu'au dimanche ${formatDateFr(finAuto)}`,{},true);
     toast(`${s.nom} passe en pastille automatique (0 point).`);
   }
@@ -2562,7 +2632,10 @@ async function deleteHistoryEntry(studentId,entryId){
     const autreCarnetAujourdhui=(s.history||[]).some(h=>
       (h.label||'').toLowerCase().includes('carnet') && h.date===new Date().toLocaleDateString('fr-FR')
     );
-    if(!autreCarnetAujourdhui) s.carnet=null;
+    if(!autreCarnetAujourdhui){
+      s.carnet=null;
+      try{ await _sbDefinirCarnet(studentId,null); }catch(e){}
+    }
   }
   try{
     // Suppression atomique en base — ne touche que cette entrée, aucun risque d'écrasement
@@ -2837,6 +2910,7 @@ function attachPastillesEvents(){
       if(!confirm(`Lever la pastille de ${displayNom(s)} ?`)) return;
       await logEvent(s,`Pastille ${t==='auto'?'automatique':'manuelle'} levée manuellement depuis l'onglet Pastilles.`);
       s.pastille=null;
+      try{ await _sbDefinirPastille(s.id,null); }catch(e){}
       await saveData(`Levée pastille ${s.nom}`); toast("Pastille levée."); render();
     });
   });
@@ -2848,6 +2922,7 @@ function attachPastillesEvents(){
       if(!s) return;
       if(!confirm(`Retirer la suspension carnet de ${displayNom(s)} ?`)) return;
       s.carnet=null;
+      try{ await _sbDefinirCarnet(s.id,null); }catch(e){}
       await logEvent(s,"Suspension carnet retirée depuis l'onglet Pastilles.");
       await saveData(`Carnet retiré ${s.nom}`); toast("Suspension carnet retirée."); render();
     });
@@ -3636,7 +3711,14 @@ function attachAdminEvents(){
       s.status=marche; s.pastille=null; s.carnet=null; s.points=20;
       await logEvent(s,`Réinitialisation à la ${label} par l'administrateur.`,{},true);
     }));
-    try{ await Promise.all(DATA.students.map(s=>_sbDefinirPoints(s.id,20))); }catch(e){}
+    try{
+      await Promise.all(DATA.students.map(s=>Promise.all([
+        _sbDefinirPoints(s.id,20),
+        _sbDefinirMarche(s.id,marche),
+        _sbDefinirPastille(s.id,null),
+        _sbDefinirCarnet(s.id,null)
+      ])));
+    }catch(e){}
     await saveData(`Réinitialisation toutes les marches → ${label}`);
     toast(`Tous les élèves placés en ${label}.`); render();
   });
@@ -3664,6 +3746,8 @@ function attachAdminEvents(){
     }catch(e){ toast("⚠ Sauvegarde impossible, annulation."); return; }
     s.history=[]; s.pastille=null; s.carnet=null; s.retenuePendante=null; s.retenuesSeuils=[]; s.retardEmailsSent=[]; s.notifBlocFin=null; s.points=20;
     try{ await _sbDefinirPoints(s.id,20); }catch(e){}
+    try{ await _sbDefinirPastille(s.id,null); }catch(e){}
+    try{ await _sbDefinirCarnet(s.id,null); }catch(e){}
     try{ await _sbViderJournal(String(anneeScolaireCourante()), s.id); }catch(e){}
     await saveData(`Reset journal ${s.nom}`); toast("Journal et suspensions effacés."); render();
   });
@@ -3676,8 +3760,14 @@ function attachAdminEvents(){
       toast("✓ Sauvegarde effectuée dans donnees-sauvegarde.json");
     }catch(e){ toast("⚠ Sauvegarde impossible, annulation."); return; }
     DATA.students.forEach(s=>{ s.history=[]; s.pastille=null; s.carnet=null; s.retenuePendante=null; s.retenuesSeuils=[]; s.retardEmailsSent=[]; s.notifBlocFin=null; s.points=20; });
-    try{ await Promise.all(DATA.students.map(s=>_sbDefinirPoints(s.id,20))); }catch(e){}
-    try{ await Promise.all(DATA.students.map(s=>_sbViderJournal(String(anneeScolaireCourante()), s.id))); }catch(e){}
+    try{
+      await Promise.all(DATA.students.map(s=>Promise.all([
+        _sbDefinirPoints(s.id,20),
+        _sbDefinirPastille(s.id,null),
+        _sbDefinirCarnet(s.id,null),
+        _sbViderJournal(String(anneeScolaireCourante()), s.id)
+      ])));
+    }catch(e){}
     await saveData('Reset tous journaux'); toast("Tous les journaux et suspensions effacés."); render();
   });
 }
