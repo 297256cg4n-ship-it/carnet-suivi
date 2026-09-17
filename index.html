@@ -1727,12 +1727,41 @@ function closeModal(){ const bg=document.getElementById('modal-bg'); if(bg) bg.r
 /* ============================================================
    NAV & RENDER
    ============================================================ */
-document.getElementById('tabs').addEventListener('click',e=>{
+document.getElementById('tabs').addEventListener('click',async e=>{
   const btn=e.target.closest('button[data-tab]');
   if(!btn) return;
   previousTab=currentTab;
   currentTab=btn.dataset.tab;
-  render();
+  const tabAuMomentDuClic=currentTab;
+  render(); // affichage immédiat avec les données actuelles, sans attendre le réseau
+  // Rafraîchir en arrière-plan les points/marches/pastilles pour les vues liste
+  // (la fiche se rafraîchit déjà toute seule à l'ouverture — ceci couvre les listes)
+  if(tabAuMomentDuClic==='accueil'||tabAuMomentDuClic==='classes'){
+    try{
+      const fresh=await _sbReadDonnees();
+      if(fresh&&fresh.students){
+        const freshById={};
+        fresh.students.forEach(fs=>{ freshById[fs.id]=fs; });
+        DATA.students.forEach(s=>{
+          const fs=freshById[s.id];
+          if(fs){
+            s.points=fs.points; s.status=fs.status; s.pastille=fs.pastille;
+            s.carnet=fs.carnet; s.classeIds=fs.classeIds; s.classeId=fs.classeId;
+            s.codeEleve=fs.codeEleve; s.retenuePendante=fs.retenuePendante;
+          }
+        });
+        // Ajouter les élèves créés entre-temps par un autre utilisateur
+        fresh.students.forEach(fs=>{
+          if(!DATA.students.some(s=>s.id===fs.id)) DATA.students.push({...fs,history:[]});
+        });
+        if(fresh.classes) DATA.classes=fresh.classes;
+        if(fresh.staff) DATA.staff=fresh.staff;
+        lastKnownData=JSON.parse(JSON.stringify(DATA));
+        // Ne réafficher que si l'utilisateur est toujours sur l'onglet qu'il a cliqué
+        if(currentTab===tabAuMomentDuClic) render();
+      }
+    }catch(e){}
+  }
 });
 document.getElementById('undo-btn').addEventListener('click',undoLastAction);
 document.getElementById('export-btn').addEventListener('click',exportData);
@@ -1923,9 +1952,30 @@ function attachClassesEvents(){
     });
   });
   document.querySelectorAll('tr.row-link[data-classe]').forEach(tr=>{
-    tr.addEventListener('click',e=>{
+    tr.addEventListener('click',async e=>{
       if(e.target.closest('[data-del]')) return;
       currentClasseId=tr.dataset.classe; currentTab='classe-detail'; render();
+      const classeAuMoment=currentClasseId;
+      try{
+        const fresh=await _sbReadDonnees();
+        if(fresh&&fresh.students){
+          const freshById={};
+          fresh.students.forEach(fs=>{ freshById[fs.id]=fs; });
+          DATA.students.forEach(s=>{
+            const fs=freshById[s.id];
+            if(fs){
+              s.points=fs.points; s.status=fs.status; s.pastille=fs.pastille;
+              s.carnet=fs.carnet; s.classeIds=fs.classeIds; s.classeId=fs.classeId;
+              s.codeEleve=fs.codeEleve; s.retenuePendante=fs.retenuePendante;
+            }
+          });
+          fresh.students.forEach(fs=>{
+            if(!DATA.students.some(s=>s.id===fs.id)) DATA.students.push({...fs,history:[]});
+          });
+          lastKnownData=JSON.parse(JSON.stringify(DATA));
+          if(currentClasseId===classeAuMoment) render();
+        }
+      }catch(e){}
     });
   });
 }
