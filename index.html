@@ -3018,19 +3018,20 @@ function countRetardsDansBloc(s, bloc){
 }
 
 function renderRetenues(){
-  const bloc=currentBloc();
   // Élèves ayant une retenue en attente
   const enAttente=DATA.students.filter(s=>s.retenuePendante).sort((a,b)=>a.nom.localeCompare(b.nom));
-  // Recalculer pour s'assurer que les données sont à jour
   const rows=enAttente.map(s=>{
     const classe=DATA.classes.find(c=>getClasseIds(s).includes(c.id));
     const r=s.retenuePendante;
-    const nbRetards=countRetardsDansBloc(s,bloc);
+    // Utiliser le compte déjà stocké au moment où le seuil a été atteint —
+    // ne JAMAIS le recalculer avec le bloc actuel : si un nouveau bloc a démarré
+    // entre-temps (ce qui arrive plus vite avec des blocs courts), le recalcul
+    // porterait sur la mauvaise période et afficherait un nombre erroné.
     return `<tr>
       <td><strong>${esc(displayNom(s))}</strong></td>
       <td>${classe?esc(classe.nom):'—'}</td>
       <td style="text-align:center;font-weight:700;font-size:16px;">${r.nbHeures}h</td>
-      <td>${nbRetards} retard(s) dans ce bloc</td>
+      <td>${r.count} retard(s) dans ce bloc</td>
       <td><button class="btn primary" data-retenue-done="${s.id}">✓ Retenue effectuée</button></td>
     </tr>`;
   }).join('');
