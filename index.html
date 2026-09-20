@@ -824,6 +824,8 @@ async function loadData(){
   // Carnet/pastille/marche : la table dédiée est la source de vérité,
   // elle prime sur ce qui est embarqué dans donnees.json (peut être périmé)
   try{ await _sbSyncEtatsEleves(); }catch(e){}
+  // Points : idem, la table dédiée prime sur donnees.json
+  try{ await _sbSyncAllPoints(); }catch(e){}
 
   const today=todayISO();
   const resets=(DATA.blocResets||[]).slice().sort();
@@ -1370,7 +1372,7 @@ async function closeWeek(newWeekStart, silent){
       const auDessus=s.points>maxPts;
       await logEvent(s,`Fin de semaine : ${s.points}/20 pts — intervalle cible ${minPts}-${maxPts}pts ${auDessus?'✓ au-dessus':dansBorne?'✓ atteint':'✗ sous l\'intervalle'}.`,{},true);
     }
-    await checkBlocEnd(s);
+    await checkBlocEnd(s, anciensWeekStart);
     s.points=20;
     try{ await _sbDefinirPoints(s.id, 20); }catch(e){}
     s.carnet=null;
@@ -1379,13 +1381,18 @@ async function closeWeek(newWeekStart, silent){
   if(!silent) await saveData('Nouvelle semaine');
 }
 
-async function checkBlocEnd(s){
-  const bloc=currentBloc();
+async function checkBlocEnd(s, semaineQuiSeTermine){
+  // On identifie le bloc via la semaine qui vient réellement de se terminer
+  // (passée explicitement par closeWeek), jamais via "aujourd'hui" : au moment
+  // où cette fonction s'exécute, on a déjà basculé sur le lundi suivant, donc
+  // comparer à la date du jour désignerait le mauvais bloc (un bloc futur).
+  const blocs=buildBlocs();
+  const bloc=blocs.find(b=>b.semaines.some(sem=>sem.start===semaineQuiSeTermine));
   if(!bloc) return;
   const lastSemaine=bloc.semaines[bloc.semaines.length-1];
   if(!lastSemaine) return;
-  const today=todayISO();
-  if(today<lastSemaine.start||today>lastSemaine.end) return;
+  // Rien à faire si la semaine qui se termine n'est pas la dernière du bloc
+  if(lastSemaine.start!==semaineQuiSeTermine) return;
 
   const weekResults=bloc.semaines.map(sem=>{
     const w=DATA.weeks.find(x=>x.dateDebut===sem.start);
@@ -1804,7 +1811,6 @@ document.getElementById('tabs').addEventListener('click',async e=>{
         DATA.students.forEach(s=>{
           const fs=freshById[s.id];
           if(fs){
-            s.points=fs.points;
             s.classeIds=fs.classeIds; s.classeId=fs.classeId;
             s.codeEleve=fs.codeEleve; s.retenuePendante=fs.retenuePendante;
           }
@@ -1815,8 +1821,9 @@ document.getElementById('tabs').addEventListener('click',async e=>{
         });
         if(fresh.classes) DATA.classes=fresh.classes;
         if(fresh.staff) DATA.staff=fresh.staff;
-        // Carnet/pastille/marche : toujours depuis la table dédiée (source de vérité)
+        // Carnet/pastille/marche/points : toujours depuis les tables dédiées (source de vérité)
         try{ await _sbSyncEtatsEleves(); }catch(e){}
+        try{ await _sbSyncAllPoints(); }catch(e){}
         lastKnownData=JSON.parse(JSON.stringify(DATA));
         // Ne réafficher que si l'utilisateur est toujours sur l'onglet qu'il a cliqué
         if(currentTab===tabAuMomentDuClic) render();
@@ -2027,7 +2034,6 @@ function attachClassesEvents(){
           DATA.students.forEach(s=>{
             const fs=freshById[s.id];
             if(fs){
-              s.points=fs.points;
               s.classeIds=fs.classeIds; s.classeId=fs.classeId;
               s.codeEleve=fs.codeEleve; s.retenuePendante=fs.retenuePendante;
             }
@@ -2036,6 +2042,7 @@ function attachClassesEvents(){
             if(!DATA.students.some(s=>s.id===fs.id)) DATA.students.push({...fs,history:[]});
           });
           try{ await _sbSyncEtatsEleves(); }catch(e){}
+          try{ await _sbSyncAllPoints(); }catch(e){}
           lastKnownData=JSON.parse(JSON.stringify(DATA));
           if(currentClasseId===classeAuMoment) render();
         }
