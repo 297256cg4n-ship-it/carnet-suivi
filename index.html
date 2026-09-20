@@ -518,26 +518,35 @@ function isVacances(iso){
    Un bloc = 3 semaines de SUIVI EFFECTIF (hors vacances).
    Les vacances suspendent le bloc; il reprend après.
    ============================================================ */
+// Un reset de bloc peut être une simple date (ancien format, compatible)
+// ou un objet {date, semaines} pour changer aussi la taille à partir de là.
+function _resetDate(r){ return typeof r==='string'?r:r.date; }
+function _resetSemaines(r){ return typeof r==='string'?null:(r.semaines||null); }
+
 function buildBlocs(){
   // Reconstruit la liste de tous les blocs en tenant compte des resets manuels.
   // Le point de départ est le plus tôt entre FIRST_BLOC_START et le premier
   // reset manuel — ce qui permet de faire démarrer le suivi avant le 31 août
   // si l'admin a forcé un début de bloc antérieur.
-  const manualResets = (DATA.blocResets||[]).slice().sort();
-  const earliest = manualResets.length && manualResets[0] < FIRST_BLOC_START
-    ? manualResets[0]
+  const manualResets = (DATA.blocResets||[]).slice().sort((a,b)=>_resetDate(a)<_resetDate(b)?-1:1);
+  const earliest = manualResets.length && _resetDate(manualResets[0]) < FIRST_BLOC_START
+    ? _resetDate(manualResets[0])
     : FIRST_BLOC_START;
 
   let blocs = [];
   let cursor = earliest;
   const today = todayISO();
+  // Taille de bloc courante : change uniquement quand on franchit un reset qui
+  // en spécifie une nouvelle — les blocs déjà passés gardent leur taille d'origine.
+  let semainesActuelles = DATA.semainesParBlocDefaut || 3;
 
   while(cursor <= addDays(today, 200)){
     const bloc = {id:genId(), dateDebut:cursor, semaines:[]};
-    const nextReset = manualResets.find(r => r > cursor);
+    const nextReset = manualResets.find(r => _resetDate(r) > cursor);
+    const tailleBloc = semainesActuelles;
 
-    while(bloc.semaines.length < 3){
-      if(nextReset && cursor >= nextReset){ break; }
+    while(bloc.semaines.length < tailleBloc){
+      if(nextReset && cursor >= _resetDate(nextReset)){ break; }
       const lundi = mondayOf(cursor);
       if(isVacances(lundi)){
         cursor = addDays(lundi, 7);
@@ -548,7 +557,14 @@ function buildBlocs(){
       cursor = addDays(lundi, 7);
     }
     if(bloc.semaines.length > 0) blocs.push(bloc);
-    if(nextReset && cursor <= nextReset) cursor = nextReset;
+    // Ne sauter au reset QUE si on l'a effectivement atteint/dépassé naturellement —
+    // jamais pour "anticiper" un reset lointain qui n'a pas encore été atteint,
+    // sinon les blocs normaux entre resets espacés dans le temps disparaissent.
+    if(nextReset && cursor >= _resetDate(nextReset)){
+      cursor = _resetDate(nextReset);
+      const nouvelleTaille=_resetSemaines(nextReset);
+      if(nouvelleTaille) semainesActuelles=nouvelleTaille;
+    }
   }
   return blocs;
 }
@@ -828,11 +844,12 @@ async function loadData(){
   try{ await _sbSyncAllPoints(); }catch(e){}
 
   const today=todayISO();
-  const resets=(DATA.blocResets||[]).slice().sort();
-  const passedResets=resets.filter(r=>r<=today);
+  const resets=(DATA.blocResets||[]).slice().sort((a,b)=>_resetDate(a)<_resetDate(b)?-1:1);
+  const passedResets=resets.filter(r=>_resetDate(r)<=today);
   if(passedResets.length && DATA.currentWeekStart > today){
-    DATA.currentWeekStart=passedResets[passedResets.length-1];
+    DATA.currentWeekStart=_resetDate(passedResets[passedResets.length-1]);
   }
+  if(!DATA.semainesParBlocDefaut) DATA.semainesParBlocDefaut=3;
   migrateOldPastilleData();
   await checkPastillesExpirees();
   initMemoSections();
@@ -895,19 +912,19 @@ async function saveData(label){
   dataToSave.students=dataToSave.students.map(s=>{const {history,...rest}=s;return rest;});
 
   // Protection légère contre les sessions ouvertes depuis plusieurs jours :
-  // classes/personnel/historique des semaines changent rarement et une session
-  // jamais rafraîchie pourrait sinon écraser silencieusement un ajout fait par
-  // quelqu'un d'autre entre-temps. On reprend la version fraîche du serveur pour
-  // ces 3 champs, SAUF si c'est justement CETTE action qui vient de les modifier.
+  // ces champs changent rarement et une session jamais rafraîchie pourrait
+  // sinon écraser silencieusement un changement fait par quelqu'un d'autre
+  // entre-temps (nouvelle classe, nouveau bloc programmé, clôture de semaine
+  // faite par un collègue...). On reprend la version fraîche du serveur pour
+  // chacun, SAUF si c'est justement CETTE action qui vient de le modifier.
   try{
     const fresh=await _sbReadDonnees();
     if(fresh){
-      const classesChangeesIci=JSON.stringify(localBefore?.classes||[])!==JSON.stringify(DATA.classes);
-      const staffChangeIci=JSON.stringify(localBefore?.staff||[])!==JSON.stringify(DATA.staff);
-      const weeksChangeesIci=JSON.stringify(localBefore?.weeks||[])!==JSON.stringify(DATA.weeks);
-      if(!classesChangeesIci&&fresh.classes) dataToSave.classes=fresh.classes;
-      if(!staffChangeIci&&fresh.staff) dataToSave.staff=fresh.staff;
-      if(!weeksChangeesIci&&fresh.weeks) dataToSave.weeks=fresh.weeks;
+      const champsProteges=['classes','staff','weeks','vacances','blocResets','semainesParBlocDefaut','currentWeekStart','customMotifs','suppressedMotifs','editedMotifs'];
+      for(const champ of champsProteges){
+        const changeIci=JSON.stringify(localBefore?.[champ]??null)!==JSON.stringify(DATA[champ]??null);
+        if(!changeIci&&fresh[champ]!==undefined) dataToSave[champ]=fresh[champ];
+      }
     }
   }catch(e){}
 
@@ -1452,10 +1469,10 @@ async function checkBlocEnd(s, semaineQuiSeTermine){
   let newMarche=s.status;
   let raison='';
 
-  // Monte si TOUTES les 3 semaines AU-DESSUS de l'intervalle
-  if(semainesAuDessus===3 && marcheIdx<MARCHES.length-1){
+  // Monte si TOUTES les semaines du bloc sont AU-DESSUS de l'intervalle
+  if(semainesAuDessus===bloc.semaines.length && marcheIdx<MARCHES.length-1){
     newMarche=MARCHES[marcheIdx+1];
-    raison=`3/3 semaines au-dessus de l'intervalle (>${maxPts}pts) → monte à ${MARCHE_LABEL[newMarche]}`;
+    raison=`${bloc.semaines.length}/${bloc.semaines.length} semaines au-dessus de l'intervalle (>${maxPts}pts) → monte à ${MARCHE_LABEL[newMarche]}`;
     // Notification pour la vue élève
     s.notifBlocFin={type:'monte', marche:newMarche};
   }
@@ -1466,11 +1483,11 @@ async function checkBlocEnd(s, semaineQuiSeTermine){
   // Descend si AU MOINS UNE semaine sous l'intervalle ou en pastille
   else if(semainesSousOuPastille>0 && marcheIdx>0){
     newMarche=MARCHES[marcheIdx-1];
-    raison=`${semainesSousOuPastille}/3 semaine(s) sous l'intervalle ou en pastille → descend à ${MARCHE_LABEL[newMarche]}`;
+    raison=`${semainesSousOuPastille}/${bloc.semaines.length} semaine(s) sous l'intervalle ou en pastille → descend à ${MARCHE_LABEL[newMarche]}`;
   }
   // M1 : ne descend pas
   else if(semainesSousOuPastille>0 && marcheIdx===0){
-    raison=`${semainesSousOuPastille}/3 semaine(s) sous l'intervalle mais déjà en Marche 1 → reste`;
+    raison=`${semainesSousOuPastille}/${bloc.semaines.length} semaine(s) sous l'intervalle mais déjà en Marche 1 → reste`;
   }
 
   await logEvent(s,`Fin de bloc : ${raison}.`,{},true);
@@ -1478,23 +1495,23 @@ async function checkBlocEnd(s, semaineQuiSeTermine){
   try{ await _sbDefinirMarche(s.id,newMarche); }catch(e){}
 }
 
-/* Vérifie à la semaine 3 si l'élève a dépassé son intervalle les 2 premières
-   semaines → message d'encouragement pour la vue élève */
+/* Vérifie à la dernière semaine du bloc si l'élève a dépassé son intervalle
+   toutes les semaines précédentes → message d'encouragement pour la vue élève */
 function checkEncouragementSemaine3(s){
   const bloc=currentBloc();
-  if(!bloc||bloc.semaines.length<3) return null;
+  if(!bloc||bloc.semaines.length<2) return null; // pas de sens avec un bloc d'1 semaine
   const idx=bloc.semaines.findIndex(sem=>sem.start===DATA.currentWeekStart);
-  if(idx!==2) return null; // pas la 3e semaine
-  // Vérifier les 2 premières semaines
+  if(idx!==bloc.semaines.length-1) return null; // pas la dernière semaine du bloc
+  // Vérifier toutes les semaines précédentes du bloc
   const [maxPts]=MARCHE_INTERVALLE[s.status]||[0,20];
   let auDessus=0;
-  for(let i=0;i<2;i++){
+  for(let i=0;i<bloc.semaines.length-1;i++){
     const w=DATA.weeks.find(x=>x.dateDebut===bloc.semaines[i].start);
     if(!w) continue;
     const snap=w.snapshot.find(x=>x.id===s.id);
     if(snap&&!snap.enPastille&&snap.points>maxPts) auDessus++;
   }
-  if(auDessus===2&&MARCHES.indexOf(s.status)<MARCHES.length-1){
+  if(auDessus===bloc.semaines.length-1&&MARCHES.indexOf(s.status)<MARCHES.length-1){
     return `⭐ Encore une semaine comme ça et tu montes à la marche supérieure !`;
   }
   return null;
@@ -3008,7 +3025,7 @@ function renderRetenues(){
     <h2>⏱ Élèves en retenue pour retards</h2>
     <span class="small muted">${enAttente.length} élève(s) concerné(s)</span>
   </div>
-  <p class="small muted" style="margin-bottom:16px;">Un élève apparaît ici dès qu'il cumule 4 retards sur un même bloc de 3 semaines. Le nombre d'heures augmente avec les seuils suivants (8 retards = 2h, 12 retards = 3h…).</p>
+  <p class="small muted" style="margin-bottom:16px;">Un élève apparaît ici dès qu'il cumule 4 retards sur un même bloc de ${DATA.semainesParBlocDefaut||3} semaine(s). Le nombre d'heures augmente avec les seuils suivants (8 retards = 2h, 12 retards = 3h…).</p>
   <div class="card">
     ${enAttente.length
       ?`<table><thead><tr><th>Élève</th><th>Classe</th><th>Durée</th><th>Motif</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table>`
@@ -3366,13 +3383,15 @@ function renderAdmin(){
 
   <!-- RESET BLOC -->
   <div class="card">
-    <div class="section-title">Forcer un début de bloc</div>
-    <p class="small muted" style="margin-bottom:12px;">Force un nouveau bloc à partir d'un lundi spécifié.</p>
-    <div class="row">
-      <input type="date" id="bloc-reset-date" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;">
+    <div class="section-title">Forcer un début de bloc / changer le nombre de semaines</div>
+    <p class="small muted" style="margin-bottom:4px;">Taille de bloc actuelle : <strong>${(currentBloc()?.semaines.length)||DATA.semainesParBlocDefaut||3} semaine(s)</strong>.</p>
+    <p class="small muted" style="margin-bottom:12px;">Force un nouveau bloc à partir d'un lundi spécifié, et permet de changer le nombre de semaines par bloc à partir de cette date (les blocs déjà passés ne sont jamais recalculés). Laisser le champ semaines vide pour garder la taille actuelle.</p>
+    <div class="row" style="flex-wrap:wrap;gap:10px;align-items:flex-end;">
+      <div class="field" style="margin-bottom:0;"><label>À partir du</label><input type="date" id="bloc-reset-date" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;"></div>
+      <div class="field" style="margin-bottom:0;"><label>Semaines par bloc (optionnel)</label><input type="number" id="bloc-reset-semaines" min="1" max="10" placeholder="ex : 2" style="width:90px;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;"></div>
       <button class="btn primary" id="btn-add-bloc-reset">Appliquer</button>
     </div>
-    ${(DATA.blocResets||[]).length?`<p class="small muted" style="margin-top:10px;">Resets : ${DATA.blocResets.map(d=>formatDateFr(d)).join(', ')}</p>`:''}
+    ${(DATA.blocResets||[]).length?`<p class="small muted" style="margin-top:10px;">Resets : ${DATA.blocResets.map(r=>formatDateFr(_resetDate(r))+(_resetSemaines(r)?` (${_resetSemaines(r)} sem.)`:'')).join(', ')}</p>`:''}
   </div>
 
   <!-- CHANGER MDP -->
@@ -3413,7 +3432,7 @@ function renderAdmin(){
       <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px;margin-top:10px;">
         <div>
           <div style="font-weight:700;font-size:14px;">🔄 Forcer le début de nouvelle semaine</div>
-          <div class="small muted">Clôture la semaine en cours, calcule les changements de marche et remet à 20. À utiliser uniquement en dehors de la semaine 3/3.</div>
+          <div class="small muted">Clôture la semaine en cours, calcule les changements de marche et remet à 20. À utiliser uniquement en dehors de la dernière semaine du bloc.</div>
         </div>
         <button class="btn" id="btn-force-new-week">Nouvelle semaine</button>
       </div>
@@ -3711,16 +3730,36 @@ function attachAdminEvents(){
   const rb=document.getElementById('btn-add-bloc-reset');
   if(rb) rb.addEventListener('click',async()=>{
     const date=document.getElementById('bloc-reset-date').value;
+    const semainesInput=document.getElementById('bloc-reset-semaines').value;
+    const semaines=semainesInput?parseInt(semainesInput):null;
     if(!date){toast("Choisis une date.");return;}
+    if(semaines!==null&&(semaines<1||semaines>10)){toast("Le nombre de semaines doit être entre 1 et 10.");return;}
     const lundi=mondayOf(date);
-    if(!confirm(`Forcer un nouveau début de bloc le ${formatDateFr(lundi)} ?`)) return;
+    const msgTaille=semaines?` avec des blocs de ${semaines} semaine(s) à partir de cette date`:'';
+    // Avertir si on change la taille en plein milieu d'un bloc en cours (pas à son tout début) :
+    // la/les semaine(s) déjà passées du bloc en cours ne compteront alors plus jamais
+    // dans aucun calcul de marche (elles restent figées telles qu'elles ont déjà été évaluées).
+    if(semaines){
+      const blocsAvant=buildBlocs();
+      const blocEnCours=blocsAvant.find(b=>b.semaines.some(sem=>sem.start===lundi));
+      const estDebutDeBloc=blocEnCours&&blocEnCours.semaines[0].start===lundi;
+      if(blocEnCours&&!estDebutDeBloc){
+        if(!confirm(`⚠️ Cette date tombe en plein milieu d'un bloc en cours (pas à son tout début).\n\nLes semaines déjà passées de ce bloc ne compteront plus jamais dans aucun calcul de marche — seules les semaines à partir de maintenant seront prises en compte avec la nouvelle taille.\n\nContinuer quand même ?`)) return;
+      }
+    }
+    if(!confirm(`Forcer un nouveau début de bloc le ${formatDateFr(lundi)}${msgTaille} ?`)) return;
     if(!DATA.blocResets) DATA.blocResets=[];
-    DATA.blocResets.push(lundi);
-    DATA.blocResets=[...new Set(DATA.blocResets)].sort();
-    // Si la date forcée est dans le passé ou aujourd'hui, mettre à jour
-    // currentWeekStart pour que le bandeau "Semaine en cours" soit correct
-    if(lundi <= todayISO()) DATA.currentWeekStart=lundi;
-    await saveData('Forçage début de bloc'); toast("Bloc forcé."); render();
+    // Retirer un éventuel reset existant à la même date avant d'ajouter le nouveau
+    DATA.blocResets=DATA.blocResets.filter(r=>_resetDate(r)!==lundi);
+    DATA.blocResets.push(semaines?{date:lundi,semaines}:lundi);
+    DATA.blocResets.sort((a,b)=>_resetDate(a)<_resetDate(b)?-1:1);
+    await saveData('Forçage début de bloc');
+    // Si la date choisie est aujourd'hui ou déjà passée, déclencher immédiatement le
+    // rattrapage normal (Fin de semaine + Fin de bloc si besoin) plutôt que de sauter
+    // brutalement le pointeur — sinon l'évaluation des marches serait silencieusement
+    // sautée pour la semaine qui vient de se terminer.
+    if(lundi <= todayISO()) await checkAutoNewWeek();
+    toast("Bloc forcé."); render();
   });
   // Changer mdp admin
   const cp=document.getElementById('btn-change-admin-pwd');
@@ -3893,8 +3932,8 @@ function openPDFModal(studentId){
     <div class="field">
       <label>Période</label>
       <select id="pdf-period">
-        <option value="current">Bloc de 3 semaines en cours</option>
-        <option value="previous">Bloc de 3 semaines précédent</option>
+        <option value="current">Bloc en cours (${currentBloc()?.semaines.length||3} semaines)</option>
+        <option value="previous">Bloc précédent</option>
         <option value="annual">Bilan annuel (tous les blocs)</option>
       </select>
     </div>
