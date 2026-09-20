@@ -1356,7 +1356,22 @@ async function checkAutoNewWeek(){
   while(DATA.currentWeekStart<thisMonday&&safety<52){
     const nextMonday=mondayOf(addDays(DATA.currentWeekStart,7));
     if(isVacances(DATA.currentWeekStart)){
-      // Semaine de vacances : avancer sans clôturer ni générer d'entrées
+      // Semaine de vacances : avancer sans clôturer ni générer d'entrées,
+      // mais TOUJOURS via le même verrou atomique que les vraies clôtures —
+      // sinon le serveur ne sait pas que le pointeur a avancé, et le verrou
+      // de la clôture suivante échouerait à tort en pensant qu'un autre
+      // collègue a déjà agi entre-temps.
+      try{
+        const gagne=await _sbTenterClotureSemaine(DATA.currentWeekStart, nextMonday);
+        if(!gagne){
+          // Quelqu'un d'autre a déjà avancé plus loin — se resynchroniser et arrêter
+          try{
+            const fresh=await _sbReadDonnees();
+            if(fresh&&fresh.currentWeekStart) DATA.currentWeekStart=fresh.currentWeekStart;
+          }catch(e){}
+          break;
+        }
+      }catch(e){ break; }
       DATA.currentWeekStart=nextMonday;
       skippedCount++;
     } else {
@@ -1365,7 +1380,7 @@ async function checkAutoNewWeek(){
     }
     safety++;
   }
-  if(skippedCount>0) await saveData(false); // sauvegarder l'avancement silencieux
+  if(skippedCount>0) await saveData(false); // sauvegarder l'avancement silencieux en mémoire locale
   if(closedCount>0) toast(closedCount===1?"Nouvelle semaine démarrée.":`${closedCount} semaines clôturées automatiquement.`);
 }
 
@@ -1936,7 +1951,7 @@ function render(){
 function renderAccueil(){
   const classesOptions=DATA.classes.map(c=>`<option value="${c.id}" ${currentClassFilter===c.id?'selected':''}>${esc(c.nom)}</option>`).join('');
   let students=DATA.students.slice();
-  if(currentClassFilter) students=students.filter(s=>s.classeId===currentClassFilter);
+  if(currentClassFilter) students=students.filter(s=>getClasseIds(s).includes(currentClassFilter));
   if(currentSearchQuery.trim()){
     const q=currentSearchQuery.trim().toLowerCase();
     const norm=str=>str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
