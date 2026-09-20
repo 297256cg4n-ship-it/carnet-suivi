@@ -894,6 +894,23 @@ async function saveData(label){
   const dataToSave=JSON.parse(JSON.stringify(DATA));
   dataToSave.students=dataToSave.students.map(s=>{const {history,...rest}=s;return rest;});
 
+  // Protection légère contre les sessions ouvertes depuis plusieurs jours :
+  // classes/personnel/historique des semaines changent rarement et une session
+  // jamais rafraîchie pourrait sinon écraser silencieusement un ajout fait par
+  // quelqu'un d'autre entre-temps. On reprend la version fraîche du serveur pour
+  // ces 3 champs, SAUF si c'est justement CETTE action qui vient de les modifier.
+  try{
+    const fresh=await _sbReadDonnees();
+    if(fresh){
+      const classesChangeesIci=JSON.stringify(localBefore?.classes||[])!==JSON.stringify(DATA.classes);
+      const staffChangeIci=JSON.stringify(localBefore?.staff||[])!==JSON.stringify(DATA.staff);
+      const weeksChangeesIci=JSON.stringify(localBefore?.weeks||[])!==JSON.stringify(DATA.weeks);
+      if(!classesChangeesIci&&fresh.classes) dataToSave.classes=fresh.classes;
+      if(!staffChangeIci&&fresh.staff) dataToSave.staff=fresh.staff;
+      if(!weeksChangeesIci&&fresh.weeks) dataToSave.weeks=fresh.weeks;
+    }
+  }catch(e){}
+
   const saveIndicator=document.createElement('div');
   saveIndicator.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#23262b;color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;z-index:300;opacity:.9;';
   saveIndicator.textContent='💾 Enregistrement...';
@@ -937,12 +954,22 @@ async function undoLastAction(){
       // Pour chaque élève, annuler atomiquement ce qui a changé pendant l'action :
       // - recaler les points sur la valeur d'avant
       // - supprimer les entrées de journal ajoutées par cette action
+      // - restaurer carnet/pastille/marche s'ils ont changé
       try{
         await Promise.all((last.after.students||[]).map(async sAfter=>{
           const sBefore=(last.before.students||[]).find(x=>x.id===sAfter.id);
           if(!sBefore) return;
           if(sBefore.points!==sAfter.points){
             await _sbDefinirPoints(sAfter.id, sBefore.points);
+          }
+          if(JSON.stringify(sBefore.carnet)!==JSON.stringify(sAfter.carnet)){
+            await _sbDefinirCarnet(sAfter.id, sBefore.carnet);
+          }
+          if(JSON.stringify(sBefore.pastille)!==JSON.stringify(sAfter.pastille)){
+            await _sbDefinirPastille(sAfter.id, sBefore.pastille);
+          }
+          if(sBefore.status!==sAfter.status){
+            await _sbDefinirMarche(sAfter.id, sBefore.status);
           }
           const idsAvant=new Set((sBefore.history||[]).map(h=>h.id));
           const idsApres=new Set((sAfter.history||[]).map(h=>h.id));
