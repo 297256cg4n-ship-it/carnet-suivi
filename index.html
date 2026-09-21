@@ -2401,6 +2401,9 @@ function renderFiche(id){
 
   <div class="card">
     <div class="section-title">Marche actuelle</div>
+    <div style="font-size:22px;font-weight:800;color:${MARCHE_COLOR[s.status]||'#23262b'};margin-bottom:10px;font-family:Georgia,serif;">
+      ${esc(marcheLabelNum(s.status))}
+    </div>
     ${ladderSteps}
     <div style="margin-top:14px;">
       <div class="row" style="justify-content:space-between;margin-bottom:6px;">
@@ -2844,6 +2847,9 @@ function renderStudentReadOnlyView(studentId){
       <div id="student-tab-fiche">
         <div class="card">
           <div class="section-title" style="margin-bottom:8px;">Ma marche actuelle</div>
+          <div style="font-size:22px;font-weight:800;color:${MARCHE_COLOR[s.status]||'#23262b'};margin-bottom:10px;font-family:Georgia,serif;">
+            ${esc(marcheLabelNum(s.status))}
+          </div>
           ${ladder}
           ${estEnPastille(s)?`<div style="margin-top:14px;"><span class="badge m-pastille">Pastille jusqu'au ${formatDateFr(finPastille(s))}</span></div>`:''}
           ${estEnCarnet(s)?`<div style="margin-top:8px;"><span class="badge m-carnet">Carnet oublié</span></div>`:''}
