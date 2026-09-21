@@ -2,6 +2,9 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Carnet de suivi — Marches</title>
 <link rel="manifest" href="data:application/json,{%22name%22:%22Carnet%20de%20suivi%22,%22short_name%22:%22Marches%22,%22display%22:%22standalone%22,%22background_color%22:%22%23f6f3ec%22,%22theme_color%22:%220f5d4f%22}">
@@ -920,7 +923,7 @@ async function saveData(label){
   try{
     const fresh=await _sbReadDonnees();
     if(fresh){
-      const champsProteges=['classes','staff','weeks','vacances','blocResets','semainesParBlocDefaut','currentWeekStart','customMotifs','suppressedMotifs','editedMotifs'];
+      const champsProteges=['classes','staff','weeks','vacances','blocResets','semainesParBlocDefaut','currentWeekStart','customMotifs','suppressedMotifs','editedMotifs','adminPasswordHash','memoSections','memoPresentation','memoAttachments'];
       for(const champ of champsProteges){
         const changeIci=JSON.stringify(localBefore?.[champ]??null)!==JSON.stringify(DATA[champ]??null);
         if(!changeIci&&fresh[champ]!==undefined) dataToSave[champ]=fresh[champ];
@@ -3765,9 +3768,15 @@ function attachAdminEvents(){
     }
     if(!confirm(`Forcer un nouveau début de bloc le ${formatDateFr(lundi)}${msgTaille} ?`)) return;
     if(!DATA.blocResets) DATA.blocResets=[];
+    // Si le champ semaines est laissé vide mais qu'un reset existe déjà à cette
+    // exacte date AVEC une taille programmée, la conserver plutôt que l'effacer —
+    // "champ vide" doit toujours signifier "ne rien changer à la taille", jamais
+    // "annuler la taille déjà programmée" (piège si on reclique sans avoir resaisi 2).
+    const ancienResetMemeDate=DATA.blocResets.find(r=>_resetDate(r)===lundi);
+    const tailleAConserver=semaines ?? (ancienResetMemeDate?_resetSemaines(ancienResetMemeDate):null);
     // Retirer un éventuel reset existant à la même date avant d'ajouter le nouveau
     DATA.blocResets=DATA.blocResets.filter(r=>_resetDate(r)!==lundi);
-    DATA.blocResets.push(semaines?{date:lundi,semaines}:lundi);
+    DATA.blocResets.push(tailleAConserver?{date:lundi,semaines:tailleAConserver}:lundi);
     DATA.blocResets.sort((a,b)=>_resetDate(a)<_resetDate(b)?-1:1);
     await saveData('Forçage début de bloc');
     // Si la date choisie est aujourd'hui ou déjà passée, déclencher immédiatement le
