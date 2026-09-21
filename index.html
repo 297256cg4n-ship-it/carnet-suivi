@@ -2384,7 +2384,7 @@ function renderFiche(id){
       <button class="btn" id="btn-edit-student">Modifier</button>
       ${isAdmin()?`<button class="btn warn" id="btn-del-student">Supprimer</button>`:''}
       <button class="btn" id="btn-export-pdf">📄 PDF</button>
-      <button class="btn" id="btn-dl-qr">⬇ QR Code</button>
+      <button class="btn" id="btn-dl-qr">🖨 QR Code</button>
     </div>
   </div>
 
@@ -4441,52 +4441,40 @@ function downloadStudentQR(studentId){
   const url=appUrl('#eleve='+studentId);
   if(!url){ toast("QR code disponible uniquement en HTTPS."); return; }
   const tmp=document.createElement('div');
-  tmp.style.cssText='position:fixed;left:-9999px;top:0;width:200px;height:200px;';
+  tmp.style.cssText='position:fixed;left:-9999px;top:0;width:100px;height:100px;';
   document.body.appendChild(tmp);
   try{
-    new QRCode(tmp,{text:url,width:200,height:200,colorDark:"#23262b",colorLight:"#ffffff"});
+    // Même taille (100x100) et même style que l'impression par classe, pour un rendu identique
+    new QRCode(tmp,{text:url,width:100,height:100,colorDark:"#23262b",colorLight:"#ffffff"});
     setTimeout(()=>{
       const canvas=tmp.querySelector('canvas');
-      if(!canvas){ toast("Génération QR échouée."); document.body.removeChild(tmp); return; }
-      const final=document.createElement('canvas');
-      final.width=220; final.height=260;
-      const ctx=final.getContext('2d');
-      ctx.fillStyle='#ffffff';
-      ctx.fillRect(0,0,220,260);
-      ctx.drawImage(canvas,10,10,200,200);
-      ctx.fillStyle='#23262b';
-      ctx.font='bold 14px Arial';
-      ctx.textAlign='center';
-      ctx.fillText(displayNom(s),110,228);
-      ctx.font='13px Arial';
-      ctx.fillStyle='#0f5d4f';
-      ctx.fillText(s.codeEleve||'',110,248);
-      const dataUrl=final.toDataURL('image/png');
+      const img=tmp.querySelector('img');
+      const dataUrl=canvas?canvas.toDataURL():img?img.src:'';
       document.body.removeChild(tmp);
-      // Ouvrir dans une nouvelle page — fonctionne sur mobile
+      if(!dataUrl){ toast("Génération QR échouée."); return; }
       const win=window.open('','_blank');
-      if(win){
-        win.document.write(`<!DOCTYPE html><html><head><title>QR ${esc(displayNom(s))}</title>
-          <meta name="viewport" content="width=device-width,initial-scale=1">
-          <style>body{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#f5f3ee;font-family:Georgia,serif;}
-          img{max-width:90vw;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.15);}
-          p{color:#23262b;font-size:16px;margin:12px 0 4px;font-weight:700;}
-          small{color:#6b6457;font-size:13px;}
-          a{margin-top:20px;padding:12px 24px;background:#0f5d4f;color:#fff;border-radius:8px;text-decoration:none;font-size:15px;}</style>
-        </head><body>
-          <p>${esc(displayNom(s))}</p>
-          <small>${s.codeEleve||''}</small>
-          <img src="${dataUrl}" alt="QR code">
-          <a href="${dataUrl}" download="QR_${s.nom.replace(/\s+/g,'_')}.png">⬇ Télécharger</a>
-        </body></html>`);
-        win.document.close();
-      } else {
-        // Fallback si popup bloqué : téléchargement direct
-        const a=document.createElement('a');
-        a.download=`QR_${s.nom.replace(/\s+/g,'_')}.png`;
-        a.href=dataUrl; a.click();
-        toast("QR code téléchargé.");
-      }
+      if(!win){ toast("Pop-up bloquée."); return; }
+      // Même gabarit A4 imprimable que "Imprimer cette classe" — juste avec un seul élève
+      win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+        <title>QR code — ${esc(displayNom(s))}</title>
+        <style>
+          body{font-family:sans-serif;margin:20px;}
+          h1{font-size:18px;margin-bottom:20px;}
+          .grid{display:flex;flex-wrap:wrap;gap:20px;}
+          .item{text-align:center;border:1px solid #ddd;border-radius:8px;padding:12px;width:130px;}
+          .item img{width:100px;height:100px;}
+          .item .name{font-size:12px;margin-top:6px;font-weight:700;}
+          .item .code{font-size:14px;font-weight:800;color:#0f5d4f;margin-top:2px;letter-spacing:.1em;}
+          @media print{body{margin:10px;}}
+        </style></head><body>
+        <h1>QR code — ${esc(s.nom)}</h1>
+        <div class="grid"><div class="item">
+          <img src="${dataUrl}">
+          <div class="name">${esc(displayNom(s))}</div>
+          <div class="code">${esc(s.codeEleve||'')}</div>
+        </div></div>
+        <scri`+`pt>window.onload=()=>{window.print();};</scri`+`pt></body></html>`);
+      win.document.close();
     },300);
   }catch(e){ document.body.removeChild(tmp); toast("Erreur : "+e.message); }
 }
