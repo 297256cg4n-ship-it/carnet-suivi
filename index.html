@@ -2726,7 +2726,7 @@ async function deleteHistoryEntry(studentId,entryId){
     await saveData(`Suppression ligne journal ${s.nom}`);
     toast("Ligne supprimée."); render();
   }catch(e){
-    toast("⚠️ Impossible de supprimer.");
+    toast(`⚠️ Impossible de supprimer (${e.message||'erreur inconnue'}).`);
   }
 }
 
