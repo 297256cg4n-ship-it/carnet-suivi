@@ -476,6 +476,7 @@ let currentClasseSearch = ""; // recherche dans la vue classe
 let currentClassFilter = "";
 // Supabase — pas de SHA nécessaire (transactions atomiques)
 let lastKnownData = null;
+let _dernierChargement=0; // horodatage du dernier chargement complet des données
 let undoStack = [];
 
 /* Retourne l'année de début de l'année scolaire courante
@@ -765,11 +766,21 @@ async function _sbViderJournal(annee,studentId){
   if(!res.ok) throw new Error('HTTP '+res.status);
   return await res.json();
 }
+// Version de l'application, transmise au verrou de clôture de semaine. Une fois le script
+// « securiser_cloture.sql » exécuté dans Supabase, seules les versions qui envoient ce
+// paramètre peuvent clôturer une semaine : une ancienne version restée en cache (qui ne sait
+// pas calculer correctement les blocs) ne peut plus le faire à la place des versions à jour.
+const APP_VERSION='2026-10-05';
 async function _sbTenterClotureSemaine(ancienneSemaine,nouvelleSemaine){
-  const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/tenter_cloture_semaine`,{
-    method:'POST', headers:_sbHeaders(),
-    body:JSON.stringify({p_ancienne_semaine:ancienneSemaine,p_nouvelle_semaine:nouvelleSemaine})
+  const appeler=corps=>fetch(`${SUPABASE_URL}/rest/v1/rpc/tenter_cloture_semaine`,{
+    method:'POST', headers:_sbHeaders(), body:JSON.stringify(corps)
   });
+  let res=await appeler({p_ancienne_semaine:ancienneSemaine,p_nouvelle_semaine:nouvelleSemaine,p_version:APP_VERSION});
+  if(res.status===404){
+    // La fonction à 3 paramètres n'est pas (encore) installée en base : on utilise l'ancienne,
+    // qui fonctionne tant que le script de sécurisation n'a pas été exécuté.
+    res=await appeler({p_ancienne_semaine:ancienneSemaine,p_nouvelle_semaine:nouvelleSemaine});
+  }
   if(!res.ok) throw new Error('HTTP '+res.status);
   return await res.json(); // true = on a le verrou, false = déjà fait par quelqu'un d'autre
 }
@@ -843,7 +854,7 @@ async function loadData(){
     const annee=String(anneeScolaireCourante());
     const journaux=await _sbReadJournaux(annee);
     DATA.students.forEach(s=>{
-      s.history=journaux[s.id]||[];
+      s.history=_dedupId(journaux[s.id]||[]);
     });
   }catch(e){
     // Journaux pas encore créés → history vide
@@ -855,6 +866,7 @@ async function loadData(){
   // Points : idem, la table dédiée prime sur donnees.json
   try{ await _sbSyncAllPoints(); }catch(e){}
 
+  await synchroniserConfigBlocs();
   const today=todayISO();
   const resets=(DATA.blocResets||[]).slice().sort((a,b)=>_resetDate(a)<_resetDate(b)?-1:1);
   const passedResets=resets.filter(r=>_resetDate(r)<=today);
@@ -909,6 +921,7 @@ async function loadData(){
   }
 
   lastKnownData=JSON.parse(JSON.stringify(DATA));
+  _dernierChargement=Date.now();
 }
 
 
@@ -932,7 +945,7 @@ async function saveData(label){
   try{
     const fresh=await _sbReadDonnees();
     if(fresh){
-      const champsProteges=['classes','staff','weeks','vacances','blocResets','semainesParBlocDefaut','currentWeekStart','customMotifs','suppressedMotifs','editedMotifs','adminPasswordHash','memoSections','memoPresentation','memoAttachments'];
+      const champsProteges=['classes','staff','weeks','vacances','currentWeekStart','customMotifs','suppressedMotifs','editedMotifs','adminPasswordHash','memoSections','memoPresentation','memoAttachments'];
       for(const champ of champsProteges){
         const changeIci=JSON.stringify(localBefore?.[champ]??null)!==JSON.stringify(DATA[champ]??null);
         if(!changeIci&&fresh[champ]!==undefined) dataToSave[champ]=fresh[champ];
@@ -1234,7 +1247,10 @@ document.getElementById('logout-btn').addEventListener('click',()=>{
 async function enterApp(alreadyLoaded){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').classList.remove('hidden');
-  if(!alreadyLoaded) await loadData();
+  // Toujours partir de données fraîches avant une éventuelle clôture de semaine : si la page de
+  // connexion est restée ouverte des heures (ou des jours), les données chargées à l'ouverture
+  // sont périmées (points, relevés de semaine, réglage des blocs...).
+  if(!alreadyLoaded || Date.now()-_dernierChargement>60000) await loadData();
   const isAdm=currentUser&&currentUser.role==='admin';
   const isVieSco=currentUser&&currentUser.role==='vie-scolaire';
   document.body.classList.toggle('is-admin',isAdm);
@@ -1362,7 +1378,295 @@ async function refreshStudentFresh(studentId){
 /* ============================================================
    AUTO NOUVELLE SEMAINE
    ============================================================ */
+/* ============================================================
+   FIABILITÉ DES ÉCRITURES (clôture de semaine)
+   ============================================================ */
+// Retente une opération réseau (3 essais, pauses croissantes) : une erreur passagère
+// (surcharge, coupure brève) ne doit pas faire perdre une mise à jour de fin de semaine.
+async function _retry(fn, essais){
+  essais=essais||3; let derniere;
+  for(let i=0;i<essais;i++){
+    try{ return await fn(); }
+    catch(e){ derniere=e; if(i<essais-1) await new Promise(r=>setTimeout(r,250*Math.pow(3,i))); }
+  }
+  throw derniere;
+}
+// Traite une liste par lots (au lieu de lancer des centaines de requêtes d'un coup).
+async function _enLots(items, taille, fn){
+  for(let i=0;i<items.length;i+=taille){
+    await Promise.all(items.slice(i,i+taille).map(fn));
+  }
+}
+// Supprime les doublons d'un journal (même identifiant), au cas où une écriture retentée
+// aurait été enregistrée deux fois.
+function _dedupId(entries){
+  const vus=new Set();
+  return (entries||[]).filter(e=>{ if(!e||!e.id) return true; if(vus.has(e.id)) return false; vus.add(e.id); return true; });
+}
+
+/* ============================================================
+   COPIE DE SÉCURITÉ DU RÉGLAGE DES BLOCS
+   Le réglage (dates et taille des blocs) est aussi enregistré dans sa propre ligne
+   de la base. Une session qui tournerait encore avec une ancienne version de
+   l'application réécrit la ligne principale avec des données périmées et pouvait
+   ainsi effacer ce réglage ; cette ligne-ci, elle, n'est jamais touchée par elle.
+   ============================================================ */
+const CONFIG_BLOCS_ID='config-blocs';
+async function _ecrireConfigBlocs(){
+  const maj=new Date().toISOString();
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/donnees`,{
+    method:'POST', headers:{..._sbHeaders(),'Prefer':'resolution=merge-duplicates'},
+    body:JSON.stringify({id:CONFIG_BLOCS_ID,updated_at:maj,data:{
+      blocResets:DATA.blocResets||[], semainesParBlocDefaut:DATA.semainesParBlocDefaut||3, maj
+    }})
+  });
+  if(!res.ok) throw new Error('HTTP '+res.status);
+}
+async function synchroniserConfigBlocs(){
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/donnees?id=eq.${CONFIG_BLOCS_ID}&select=data`,{headers:_sbHeaders()});
+    if(!res.ok) return false;
+    const rows=await res.json();
+    const cfg=rows[0]&&rows[0].data;
+    if(cfg&&Array.isArray(cfg.blocResets)){
+      const different=JSON.stringify(cfg.blocResets)!==JSON.stringify(DATA.blocResets||[])
+        ||(cfg.semainesParBlocDefaut&&cfg.semainesParBlocDefaut!==DATA.semainesParBlocDefaut);
+      if(different){
+        DATA.blocResets=cfg.blocResets;
+        if(cfg.semainesParBlocDefaut) DATA.semainesParBlocDefaut=cfg.semainesParBlocDefaut;
+        return true;
+      }
+      return false;
+    }
+    // Première utilisation : amorcer la copie avec le réglage actuel, s'il y en a un
+    if((DATA.blocResets||[]).length){ try{ await _ecrireConfigBlocs(); }catch(e){} }
+  }catch(e){}
+  return false;
+}
+
+/* ============================================================
+   BILAN DE FIN DE BLOC : règle d'évaluation, contrôle et rattrapage
+   ============================================================ */
+// Règle unique (utilisée par la clôture automatique ET par le rattrapage manuel).
+function _evaluerResultatsBloc(status, weekResults, nbSemaines){
+  const marcheIdx=MARCHES.indexOf(status);
+  const [minPts,maxPts]=MARCHE_INTERVALLE[status]||[0,20];
+  // Une semaine en pastille compte comme "sous l'intervalle" ; une semaine carnet est neutre.
+  const dessus=weekResults.filter(r=>!r.enPastille&&r.points>maxPts).length;
+  const sous=weekResults.filter(r=>r.enPastille||r.points<minPts).length;
+  let newMarche=status, raison='', monte=false;
+  if(dessus===nbSemaines && marcheIdx<MARCHES.length-1){
+    newMarche=MARCHES[marcheIdx+1]; monte=true;
+    raison=`${nbSemaines}/${nbSemaines} semaines au-dessus de l'intervalle (>${maxPts}pts) → monte à ${MARCHE_LABEL[newMarche]}`;
+  }
+  else if(sous===0){
+    raison=`Intervalle maintenu → reste à ${MARCHE_LABEL[status]}`;
+  }
+  else if(sous>0 && marcheIdx>0){
+    newMarche=MARCHES[marcheIdx-1];
+    raison=`${sous}/${nbSemaines} semaine(s) sous l'intervalle ou en pastille → descend à ${MARCHE_LABEL[newMarche]}`;
+  }
+  else if(sous>0 && marcheIdx===0){
+    raison=`${sous}/${nbSemaines} semaine(s) sous l'intervalle mais déjà en Marche 1 → reste`;
+  }
+  return {newMarche, raison, monte};
+}
+
+function _isoDepuisFr(d){ const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(d||''); return m?`${m[3]}-${m[2]}-${m[1]}`:null; }
+
+// Résultats de chaque semaine d'un bloc pour un élève : d'abord le relevé enregistré à la
+// clôture ; à défaut (relevé perdu), reconstitution à partir des lignes "Fin de semaine"
+// de son journal, qui sont enregistrées une par une et ne se perdent pas.
+function _resultatsSemainesEleve(s, bloc){
+  const fins=(s.history||[]).map((e,idx)=>({e,idx,iso:_isoDepuisFr(e.date)}))
+    .filter(x=>x.iso&&/^Fin de semaine/.test(x.e.label||''));
+  const utilises=new Set(); const out=[]; let reconstitue=false;
+  for(const sem of bloc.semaines){
+    const w=(DATA.weeks||[]).find(x=>x.dateDebut===sem.start);
+    const snap=w&&(w.snapshot||[]).find(x=>x.id===s.id);
+    if(snap){ out.push({points:snap.points,enPastille:!!snap.enPastille,status:snap.status||null,source:'releve'}); continue; }
+    const bmin=addDays(sem.start,7), bmax=addDays(sem.start,28);
+    const cand=fins.find(x=>!utilises.has(x.idx)&&x.iso>=bmin&&x.iso<=bmax);
+    if(!cand){ out.push(null); continue; }
+    utilises.add(cand.idx);
+    const l=cand.e.label||'';
+    if(/en pastille/.test(l)){ out.push({points:0,enPastille:true,status:null,source:'journal'}); reconstitue=true; continue; }
+    const m=/(\d+)\/20 pts.*intervalle cible (\d+)-(\d+)pts/.exec(l);
+    if(!m){ out.push(null); continue; }
+    const st=MARCHES.find(k=>{ const iv=MARCHE_INTERVALLE[k]||[]; return iv[0]===+m[2]&&iv[1]===+m[3]; })||null;
+    out.push({points:+m[1],enPastille:false,status:st,source:'journal'}); reconstitue=true;
+  }
+  return {semaines:out, complet:out.every(Boolean), reconstitue};
+}
+
+// Le bilan de ce bloc figure-t-il déjà dans le journal de l'élève ?
+function _bilanDejaDansJournal(s, bloc){
+  const debut=bloc.semaines[0].start, fin=bloc.semaines[bloc.semaines.length-1].end;
+  return (s.history||[]).some(e=>{
+    if(!/^Fin de bloc/.test(e.label||'')) return false;
+    if(e.blocDebut) return e.blocDebut===debut;
+    const iso=_isoDepuisFr(e.date); return !!iso&&iso>fin;   // anciennes lignes : repérées par leur date
+  });
+}
+
+// État du bilan d'un élève pour un bloc :
+//   incomplet = pas toutes les semaines connues (arrivé en cours de bloc) -> non évalué, normal
+//   fait = bilan présent et marche cohérente
+//   marche_non_appliquee = ligne de bilan présente mais la marche n'a pas changé
+//   maj = marche déjà à jour (changée à la main) ; modifie = marche changée à la main, autre
+//   a_faire = bilan jamais appliqué
+function _analyserBlocEleve(s, bloc){
+  const r=_resultatsSemainesEleve(s,bloc);
+  if(!r.complet) return {etat:'incomplet', r};
+  const derniere=r.semaines[r.semaines.length-1];
+  const ref=derniere.status||(r.semaines.find(x=>x.status)||{}).status||s.status;
+  const ev=_evaluerResultatsBloc(ref, r.semaines, bloc.semaines.length);
+  const dejaLigne=_bilanDejaDansJournal(s,bloc);
+  let etat;
+  if(dejaLigne) etat=(ev.newMarche!==ref&&s.status===ref)?'marche_non_appliquee':'fait';
+  else if(ev.newMarche!==ref&&s.status===ev.newMarche) etat='maj';
+  else if(s.status!==ref&&s.status!==ev.newMarche) etat='modifie';
+  else etat='a_faire';
+  return {etat, ref, ev, r, dejaLigne};
+}
+
+// Dernier bloc dont la dernière semaine a déjà été clôturée (donc dont le bilan est dû).
+function _dernierBlocTermine(){
+  const t=buildBlocs().filter(b=>{ const l=b.semaines[b.semaines.length-1]; return l&&l.start<DATA.currentWeekStart; });
+  return t.length?t[t.length-1]:null;
+}
+function _bilanBloc(bloc){
+  const rows=DATA.students.map(s=>Object.assign({s},_analyserBlocEleve(s,bloc)));
+  const cnt={a_faire:0,fait:0,maj:0,modifie:0,incomplet:0,marche_non_appliquee:0};
+  rows.forEach(r=>{ cnt[r.etat]++; });
+  return {bloc,rows,cnt,anomalies:cnt.a_faire+cnt.marche_non_appliquee};
+}
+function _libelleBlocTermine(b){
+  return `du ${_dateCourte(b.semaines[0].start)} au ${_dateCourte(b.semaines[b.semaines.length-1].end)}`;
+}
+
+function bilansBlocsCardHtml(){
+  const cur=currentBloc();
+  const curTxt=cur?`Bloc en cours : ${_libelleBlocTermine(cur)} (${cur.semaines.length} semaine${cur.semaines.length>1?'s':''}) — prochain bilan le <strong>${_dateCourte(addDays(cur.semaines[cur.semaines.length-1].end,1))}</strong>.`:'';
+  const b=_dernierBlocTermine();
+  let corps='<p class="small muted">Aucun bloc terminé pour le moment.</p>';
+  if(b){
+    const a=_bilanBloc(b), lib=_libelleBlocTermine(b), total=a.cnt.fait+a.cnt.maj+a.cnt.modifie+a.cnt.a_faire+a.cnt.marche_non_appliquee;
+    if(a.anomalies>0){
+      corps=`<div style="background:#fbe1dd;border:1px solid #c0392b;border-radius:8px;padding:12px;margin-top:8px;">
+        <strong style="color:#a3281b;">⚠ Le bilan du dernier bloc (${lib}) n'a pas été appliqué à ${a.anomalies} élève${a.anomalies>1?'s':''} sur ${total}.</strong>
+        <p class="small" style="margin:6px 0 10px;">Les montées et descentes de marche n'ont pas été enregistrées pour ces élèves. Vous pouvez les calculer et les appliquer maintenant.</p>
+        <button class="btn primary" id="btn-bilan-bloc">Examiner et appliquer le bilan</button></div>`;
+    } else {
+      const extra=(a.cnt.maj+a.cnt.modifie)>0?` (${a.cnt.maj+a.cnt.modifie} marche${a.cnt.maj+a.cnt.modifie>1?'s':''} ajustée${a.cnt.maj+a.cnt.modifie>1?'s':''} à la main depuis)`:'';
+      corps=`<p class="small" style="margin-top:8px;color:#1e7a3c;"><strong>✓ Le bilan du dernier bloc (${lib}) a bien été appliqué</strong> à ${total} élève${total>1?'s':''}${extra}.</p>`;
+    }
+  }
+  return `<div class="card" id="card-bilans-blocs">
+    <div class="section-title">Bilans de bloc</div>
+    <p class="small muted" style="margin-bottom:6px;">${curTxt}</p>
+    ${corps}
+  </div>`;
+}
+
+function ouvrirBilanBloc(){
+  const b=_dernierBlocTermine();
+  if(!b){ toast("Aucun bloc terminé."); return; }
+  const a=_bilanBloc(b);
+  const ordre={a_faire:0,marche_non_appliquee:1,modifie:2,maj:3};
+  const lignes=a.rows.filter(r=>r.etat in ordre).sort((x,y)=>
+    (ordre[x.etat]-ordre[y.etat])||String(x.s.nom).localeCompare(String(y.s.nom)));
+  const note={a_faire:'',marche_non_appliquee:'ligne de bilan présente, marche non changée',modifie:'⚠ marche modifiée à la main depuis',maj:'marche déjà à jour'};
+  const rowsHtml=lignes.map(r=>{
+    const cl=DATA.classes.find(c=>c.id===getClassePrincipale(r.s));
+    const fl=r.ev.newMarche===r.ref?'→':(MARCHES.indexOf(r.ev.newMarche)>MARCHES.indexOf(r.ref)?'↑':'↓');
+    const coul=fl==='↑'?'#1e7a3c':(fl==='↓'?'#a3281b':'#4a4536');
+    const sem=r.r.semaines.map(x=>x.enPastille?'pastille':x.points).join(' · ');
+    const coche=(r.etat==='a_faire'||r.etat==='marche_non_appliquee')?'checked':'';
+    return `<tr style="border-bottom:1px solid var(--line);">
+      <td style="padding:8px 6px;"><input type="checkbox" class="bb-ck" data-id="${r.s.id}" ${coche}></td>
+      <td style="padding:8px 6px;"><strong>${esc(displayNom(r.s))}</strong><br><span class="small muted">${cl?esc(cl.nom):'—'}</span></td>
+      <td style="padding:8px 6px;">${esc(MARCHE_LABEL[r.ref])} <span style="color:${coul};font-weight:800;">${fl}</span> <strong style="color:${coul};">${esc(MARCHE_LABEL[r.ev.newMarche])}</strong><br>
+        <span class="small muted">semaines : ${sem}${r.r.reconstitue?' · <em>reconstitué depuis le journal</em>':''}</span></td>
+      <td style="padding:8px 6px;" class="small">${note[r.etat]}${r.etat==='a_faire'?'':`<br><span class="muted">(actuellement ${esc(MARCHE_LABEL[r.s.status]||r.s.status)})</span>`}</td></tr>`;
+  }).join('');
+  openModal(`
+    <h3>Bilan du bloc ${_libelleBlocTermine(b)}</h3>
+    <p class="small muted" style="margin:6px 0 10px;">Pour chaque élève coché, le bilan est calculé avec la règle habituelle à partir des points de chaque semaine du bloc, la marche est modifiée et une ligne « Fin de bloc » est ajoutée à son journal. Les élèves dont la marche a été modifiée à la main ne sont pas cochés : cocher les écraserait.</p>
+    <div class="small" style="margin-bottom:8px;">
+      <button class="btn" id="bb-all" style="padding:4px 10px;">Tout cocher</button>
+      <button class="btn" id="bb-none" style="padding:4px 10px;">Tout décocher</button>
+      <span class="muted" style="margin-left:8px;">${a.cnt.fait} déjà à jour · ${a.cnt.incomplet} non évalué${a.cnt.incomplet>1?'s':''} (arrivés en cours de bloc)</span>
+    </div>
+    <div style="max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:8px;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;"><tbody>${rowsHtml||'<tr><td class="small muted" style="padding:14px;">Rien à appliquer.</td></tr>'}</tbody></table>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:14px;gap:8px;">
+      <button class="btn" id="bb-cancel">Annuler</button>
+      <button class="btn primary" id="bb-apply">Appliquer</button>
+    </div>`);
+  const modal=document.querySelector('#modal-bg .modal'); if(modal) modal.style.maxWidth='840px';
+  const maj=()=>{
+    const n=document.querySelectorAll('.bb-ck:checked').length;
+    const btn=document.getElementById('bb-apply'); btn.textContent=`Appliquer à ${n} élève${n>1?'s':''}`; btn.disabled=n===0;
+  };
+  document.querySelectorAll('.bb-ck').forEach(c=>c.addEventListener('change',maj));
+  document.getElementById('bb-all').addEventListener('click',()=>{ document.querySelectorAll('.bb-ck').forEach(c=>{c.checked=true;}); maj(); });
+  document.getElementById('bb-none').addEventListener('click',()=>{ document.querySelectorAll('.bb-ck').forEach(c=>{c.checked=false;}); maj(); });
+  document.getElementById('bb-cancel').addEventListener('click',closeModal);
+  document.getElementById('bb-apply').addEventListener('click',async()=>{
+    const ids=[...document.querySelectorAll('.bb-ck:checked')].map(c=>c.dataset.id);
+    if(!ids.length) return;
+    if(!confirm(`Appliquer le bilan du bloc à ${ids.length} élève(s) ?`)) return;
+    closeModal();
+    await appliquerBilanBloc(b.semaines[0].start, ids);
+  });
+  maj();
+}
+
+async function appliquerBilanBloc(blocDebut, ids){
+  const bloc=buildBlocs().find(b=>b.semaines[0].start===blocDebut);
+  if(!bloc){ toast("Bloc introuvable."); return; }
+  const sel=new Set(ids), cibles=DATA.students.filter(s=>sel.has(s.id));
+  let monte=0,descend=0,reste=0,echecs=0;
+  toast("Application du bilan en cours…");
+  await _enLots(cibles,25,async s=>{
+    try{
+      const a=_analyserBlocEleve(s,bloc);   // recalculé au moment d'appliquer
+      if(a.etat==='incomplet'||a.etat==='fait') return;
+      if(a.ev.monte) s.notifBlocFin={type:'monte',marche:a.ev.newMarche};
+      s.status=a.ev.newMarche;
+      await _retry(()=>_sbDefinirMarche(s.id,a.ev.newMarche));
+      if(!a.dejaLigne){
+        const ok=await logEvent(s,`Fin de bloc : ${a.ev.raison}.`,{blocDebut,rattrape:true},true);
+        if(!ok) throw new Error('journal');
+      }
+      if(a.ev.newMarche===a.ref) reste++; else if(a.ev.monte) monte++; else descend++;
+    }catch(e){ echecs++; }
+  });
+  await saveData('Bilan de bloc appliqué');
+  toast(echecs?`⚠️ Bilan appliqué avec ${echecs} échec(s) — recommencez pour les élèves restants.`
+              :`✓ Bilan appliqué : ${monte} montée${monte>1?'s':''}, ${descend} descente${descend>1?'s':''}, ${reste} maintien${reste>1?'s':''}.`);
+  render();
+}
+
+// Prévient l'administrateur à la connexion si le dernier bilan de bloc manque (une fois par session).
+let _bilanAlerteMontree=false;
+function avertirBilansManquants(){
+  try{
+    if(_bilanAlerteMontree||typeof isAdmin!=='function'||!isAdmin()) return;
+    const b=_dernierBlocTermine(); if(!b) return;
+    const a=_bilanBloc(b);
+    if(a.anomalies>0){
+      _bilanAlerteMontree=true;
+      toast(`⚠️ Le bilan du bloc ${_libelleBlocTermine(b)} n'a pas été appliqué à ${a.anomalies} élève(s). Voir Admin › Bilans de bloc.`);
+    }
+  }catch(e){}
+}
+
 async function checkAutoNewWeek(){
+  // La configuration des blocs (copie de sécurité) fait foi : on la relit avant toute clôture
+  await synchroniserConfigBlocs();
   const thisMonday=currentMondayISO();
   let safety=0, closedCount=0, skippedCount=0;
   while(DATA.currentWeekStart<thisMonday&&safety<52){
@@ -1394,6 +1698,7 @@ async function checkAutoNewWeek(){
   }
   if(skippedCount>0) await saveData(false); // sauvegarder l'avancement silencieux en mémoire locale
   if(closedCount>0) toast(closedCount===1?"Nouvelle semaine démarrée.":`${closedCount} semaines clôturées automatiquement.`);
+  avertirBilansManquants();
 }
 
 async function closeWeek(newWeekStart, silent){
@@ -1434,22 +1739,34 @@ async function closeWeek(newWeekStart, silent){
   DATA.weeks.push({id:genId(),dateDebut:DATA.currentWeekStart,dateFin:endDate,snapshot:snap});
   DATA.currentWeekStart=nouvelleValeur;
 
-  await Promise.all(DATA.students.map(async s=>{
-    const [minPts,maxPts]=MARCHE_INTERVALLE[s.status]||[0,20];
-    if(estEnPastille(s)){
-      await logEvent(s,`Fin de semaine en pastille — les points ne comptent pas.`,{},true);
-    } else {
-      const dansBorne=s.points>=minPts&&s.points<=maxPts;
-      const auDessus=s.points>maxPts;
-      await logEvent(s,`Fin de semaine : ${s.points}/20 pts — intervalle cible ${minPts}-${maxPts}pts ${auDessus?'✓ au-dessus':dansBorne?'✓ atteint':'✗ sous l\'intervalle'}.`,{},true);
-    }
-    await checkBlocEnd(s, anciensWeekStart);
-    s.points=20;
-    try{ await _sbDefinirPoints(s.id, 20); }catch(e){}
-    s.carnet=null;
-    try{ await _sbDefinirCarnet(s.id,null); }catch(e){}
-  }));
+  // Mettre IMMÉDIATEMENT à l'abri le relevé de la semaine (points de chaque élève) : le verrou
+  // ci-dessus a déjà fait avancer la semaine en base, donc si la suite était interrompue
+  // (onglet fermé, téléphone en veille, coupure), ce relevé serait perdu et le bilan du bloc
+  // ne pourrait plus être calculé.
+  if(!silent) await saveData(false);
+
+  // Traitement par lots de 30 élèves (et non 350 d'un coup), avec nouvelle tentative en cas
+  // d'erreur passagère : une surcharge du serveur ne doit pas faire perdre des mises à jour.
+  let echecs=0;
+  await _enLots(DATA.students, 30, async s=>{
+    try{
+      const [minPts,maxPts]=MARCHE_INTERVALLE[s.status]||[0,20];
+      if(estEnPastille(s)){
+        await logEvent(s,`Fin de semaine en pastille — les points ne comptent pas.`,{},true);
+      } else {
+        const dansBorne=s.points>=minPts&&s.points<=maxPts;
+        const auDessus=s.points>maxPts;
+        await logEvent(s,`Fin de semaine : ${s.points}/20 pts — intervalle cible ${minPts}-${maxPts}pts ${auDessus?'✓ au-dessus':dansBorne?'✓ atteint':'✗ sous l\'intervalle'}.`,{},true);
+      }
+      await checkBlocEnd(s, anciensWeekStart);
+      s.points=20;
+      try{ await _retry(()=>_sbDefinirPoints(s.id, 20)); }catch(e){ echecs++; }
+      s.carnet=null;
+      try{ await _retry(()=>_sbDefinirCarnet(s.id,null)); }catch(e){ echecs++; }
+    }catch(e){ echecs++; console.warn('Clôture de semaine : échec pour un élève',e); }
+  });
   if(!silent) await saveData('Nouvelle semaine');
+  if(echecs) toast("⚠️ Certaines mises à jour de fin de semaine ont échoué. Prévenez l'administrateur (Admin › Bilans de bloc).");
 
   // Sauvegarde complète automatique quand la semaine clôturée est la dernière d'un bloc
   try{
@@ -1482,54 +1799,15 @@ async function checkBlocEnd(s, semaineQuiSeTermine){
     return snap||null;
   }).filter(Boolean);
 
+  // Élève arrivé en cours de bloc (ou relevé manquant) : pas de bilan automatique
   if(weekResults.length<bloc.semaines.length) return;
 
-  const marcheIdx=MARCHES.indexOf(s.status);
-  const [minPts, maxPts]=MARCHE_INTERVALLE[s.status]||[0,20];
-
-  // Analyse chaque semaine du bloc
-  // Une semaine en pastille compte comme "en dessous de l'intervalle" (force la descente)
-  // Une semaine carnet est neutre (on regarde les points normalement)
-  const semainesDansIntervalle=weekResults.filter(r=>{
-    if(r.enPastille) return false; // pastille = sous l'intervalle
-    return r.points>=minPts && r.points<=maxPts;
-  }).length;
-  const semainesAuDessus=weekResults.filter(r=>{
-    if(r.enPastille) return false;
-    return r.points>maxPts;
-  }).length;
-  const semainesSousOuPastille=weekResults.filter(r=>{
-    if(r.enPastille) return true;
-    return r.points<minPts;
-  }).length;
-
-  let newMarche=s.status;
-  let raison='';
-
-  // Monte si TOUTES les semaines du bloc sont AU-DESSUS de l'intervalle
-  if(semainesAuDessus===bloc.semaines.length && marcheIdx<MARCHES.length-1){
-    newMarche=MARCHES[marcheIdx+1];
-    raison=`${bloc.semaines.length}/${bloc.semaines.length} semaines au-dessus de l'intervalle (>${maxPts}pts) → monte à ${MARCHE_LABEL[newMarche]}`;
-    // Notification pour la vue élève
-    s.notifBlocFin={type:'monte', marche:newMarche};
-  }
-  // Reste si toutes dans l'intervalle (ou mélange dessus/intervalle sans sous)
-  else if(semainesSousOuPastille===0){
-    raison=`Intervalle maintenu → reste à ${MARCHE_LABEL[s.status]}`;
-  }
-  // Descend si AU MOINS UNE semaine sous l'intervalle ou en pastille
-  else if(semainesSousOuPastille>0 && marcheIdx>0){
-    newMarche=MARCHES[marcheIdx-1];
-    raison=`${semainesSousOuPastille}/${bloc.semaines.length} semaine(s) sous l'intervalle ou en pastille → descend à ${MARCHE_LABEL[newMarche]}`;
-  }
-  // M1 : ne descend pas
-  else if(semainesSousOuPastille>0 && marcheIdx===0){
-    raison=`${semainesSousOuPastille}/${bloc.semaines.length} semaine(s) sous l'intervalle mais déjà en Marche 1 → reste`;
-  }
-
-  await logEvent(s,`Fin de bloc : ${raison}.`,{},true);
-  s.status=newMarche;
-  try{ await _sbDefinirMarche(s.id,newMarche); }catch(e){}
+  const ev=_evaluerResultatsBloc(s.status, weekResults, bloc.semaines.length);
+  if(ev.monte) s.notifBlocFin={type:'monte', marche:ev.newMarche};
+  // blocDebut permet au contrôle "Bilans de bloc" de retrouver à coup sûr cette ligne
+  await logEvent(s,`Fin de bloc : ${ev.raison}.`,{blocDebut:bloc.semaines[0].start},true);
+  s.status=ev.newMarche;
+  try{ await _retry(()=>_sbDefinirMarche(s.id,ev.newMarche)); }catch(e){}
 }
 
 /* Vérifie à la dernière semaine du bloc si l'élève a dépassé son intervalle
@@ -1711,10 +1989,12 @@ async function logEvent(s,label,details,systeme){
     label
   },details||{});
   s.history.push(entry);
-  // Persister immédiatement et atomiquement en base — aucune fusion nécessaire ensuite
+  // Persister immédiatement et atomiquement en base — aucune fusion nécessaire ensuite.
+  // Nouvelle tentative en cas d'erreur passagère ; retourne true si l'écriture a réussi.
   try{
-    await _sbAjouterEntreeJournal(String(anneeScolaireCourante()), s.id, entry);
-  }catch(e){ /* l'entrée reste visible localement même si la persistance réseau échoue */ }
+    await _retry(()=>_sbAjouterEntreeJournal(String(anneeScolaireCourante()), s.id, entry));
+    return true;
+  }catch(e){ return false; /* l'entrée reste visible localement même si la persistance réseau échoue */ }
 }
 
 function isPastilleEvent(h){ return (h.label||'').toLowerCase().includes('pastille'); }
@@ -1812,7 +2092,7 @@ async function checkPastillesExpirees(){
       try{
         const annee=String(anneeScolaireCourante());
         const journaux=await _sbReadJournaux(annee);
-        DATA.students.forEach(s=>{ s.history=journaux[s.id]||[]; });
+        DATA.students.forEach(s=>{ s.history=_dedupId(journaux[s.id]||[]); });
         lastKnownData=JSON.parse(JSON.stringify(DATA));
         render(); toast("✓ Données actualisées.");
       }catch(e){ toast("⚠️ Actualisation impossible."); }
@@ -3447,6 +3727,8 @@ function renderAdmin(){
     :`<div class="empty">Aucune période enregistrée.</div>`}
   </div>
 
+  ${bilansBlocsCardHtml()}
+
   <!-- SAUVEGARDES -->
   <div class="card">
     <div class="section-title">Sauvegardes</div>
@@ -3546,6 +3828,8 @@ function renderAdmin(){
 
 function attachAdminEvents(){
   chargerListeSauvegardes();
+  const bbBtn=document.getElementById('btn-bilan-bloc');
+  if(bbBtn) bbBtn.addEventListener('click',ouvrirBilanBloc);
   const bkNow=document.getElementById('btn-backup-now');
   if(bkNow) bkNow.addEventListener('click',telechargerSauvegardeComplete);
   // Recherche personnels
@@ -3837,6 +4121,7 @@ function attachAdminEvents(){
     DATA.blocResets.push(tailleAConserver?{date:lundi,semaines:tailleAConserver}:lundi);
     DATA.blocResets.sort((a,b)=>_resetDate(a)<_resetDate(b)?-1:1);
     await saveData('Forçage début de bloc');
+    try{ await _ecrireConfigBlocs(); }catch(e){ toast("⚠️ Réglage enregistré, mais sa copie de sécurité n'a pas pu l'être."); }
     // Si la date choisie est aujourd'hui ou déjà passée, déclencher immédiatement le
     // rattrapage normal (Fin de semaine + Fin de bloc si besoin) plutôt que de sauter
     // brutalement le pointeur — sinon l'évaluation des marches serait silencieusement
