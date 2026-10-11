@@ -1857,6 +1857,41 @@ function detectRole(fonction){
     return 'vie-scolaire';
   return 'teacher';
 }
+
+/* --- Ajout de personnel : fonction choisie dans une liste + code généré automatiquement --- */
+const FONCTIONS_PERSONNEL=['Enseignant','Enseignante','Assistant d\'éducation','Assistante d\'éducation','CPE','Professeur documentaliste','Principal','Principale','Principal adjoint','Principale adjointe','Secrétaire','AESH'];
+function fonctionFieldHtml(prefix,current){
+  const cur=(current||'').trim();
+  const connue=!cur||FONCTIONS_PERSONNEL.includes(cur);
+  const opts=FONCTIONS_PERSONNEL.map(f=>`<option value="${esc(f)}" ${f===cur?'selected':''}>${esc(f)}</option>`).join('');
+  return `<select id="${prefix}-fonction-sel" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;">
+      <option value="" ${!cur?'selected':''}>— Fonction —</option>${opts}
+      <option value="__autre__" ${connue?'':'selected'}>Autre fonction…</option>
+    </select>
+    <input type="text" id="${prefix}-fonction-autre" placeholder="Préciser la fonction" value="${connue?'':esc(cur)}" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:180px;${connue?'display:none;':''}">`;
+}
+function fonctionFieldBind(prefix){
+  const sel=document.getElementById(prefix+'-fonction-sel'), autre=document.getElementById(prefix+'-fonction-autre');
+  if(!sel||!autre) return;
+  sel.addEventListener('change',()=>{
+    autre.style.display=sel.value==='__autre__'?'':'none';
+    if(sel.value==='__autre__') autre.focus();
+  });
+}
+function fonctionFieldValue(prefix){
+  const sel=document.getElementById(prefix+'-fonction-sel'), autre=document.getElementById(prefix+'-fonction-autre');
+  if(!sel) return '';
+  return sel.value==='__autre__'?(autre?autre.value.trim():''):sel.value;
+}
+/* Code à 5 chiffres au hasard (10000–99999), jamais déjà attribué à un autre personnel. */
+function genererCodePersonnel(){
+  const pris=new Set((DATA.staff||[]).map(s=>String(s.code)));
+  for(let i=0;i<500;i++){
+    const c=String(10000+Math.floor(Math.random()*90000));
+    if(!pris.has(c)) return c;
+  }
+  return '';
+}
 function marcheLabelNum(m){ return MARCHE_LABEL[m]||m; }
 
 /* --- Affichage abrégé du nom ---
@@ -3692,8 +3727,9 @@ function renderAdmin(){
     <input type="search" id="staff-search" placeholder="Rechercher un personnel..." style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;margin-bottom:12px;">
     <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px;">
       <input type="text" id="staff-nom" placeholder="Nom (ex: Mme Dupont)" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:180px;">
-      <input type="text" id="staff-fonction" placeholder="Fonction (ex: Enseignante)" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:180px;">
-      <input type="text" id="staff-code" placeholder="Code 5 chiffres" maxlength="5" inputmode="numeric" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:130px;">
+      ${fonctionFieldHtml('staff','')}
+      <input type="text" id="staff-code" placeholder="Code 5 chiffres" maxlength="5" inputmode="numeric" value="${genererCodePersonnel()}" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;width:110px;font-family:monospace;letter-spacing:.1em;">
+      <button class="btn" id="btn-gen-staff-code" type="button" title="Générer un autre code">🎲</button>
       <button class="btn primary" id="btn-add-staff">Ajouter</button>
     </div>
     <div class="row" style="margin-bottom:12px;gap:8px;flex-wrap:wrap;">
@@ -3844,20 +3880,21 @@ function attachAdminEvents(){
     });
   });
   // Ajouter personnel
+  fonctionFieldBind('staff');
+  const genBtn=document.getElementById('btn-gen-staff-code');
+  if(genBtn) genBtn.addEventListener('click',()=>{ document.getElementById('staff-code').value=genererCodePersonnel(); });
   const as=document.getElementById('btn-add-staff');
   if(as) as.addEventListener('click',async()=>{
     const nom=document.getElementById('staff-nom').value.trim();
-    const fonction=document.getElementById('staff-fonction').value.trim();
+    const fonction=fonctionFieldValue('staff');
     const code=document.getElementById('staff-code').value.trim();
     const role=detectRole(fonction);
     if(!nom||!code){toast("Remplis tous les champs.");return;}
+    if(!fonction){toast("Choisis une fonction (ou précise « Autre fonction »).");return;}
     if(!/^\d{5}$/.test(code)){toast("Le code doit être exactement 5 chiffres.");return;}
     if(DATA.staff.some(s=>s.code===code)){toast("Ce code est déjà utilisé.");return;}
     DATA.staff.push({id:genId(),prenom:'',nom,fonction,code,role});
-    document.getElementById('staff-nom').value='';
-    document.getElementById('staff-fonction').value='';
-    document.getElementById('staff-code').value='';
-    await saveData(`Ajout personnel ${nom}`); toast("Personnel ajouté."); render();
+    await saveData(`Ajout personnel ${nom}`); toast(`Personnel ajouté — code d'accès : ${code}`); render();
   });
   // Modifier personnel (nom, fonction)
   document.querySelectorAll('[data-edit-staff]').forEach(b=>{
@@ -3867,15 +3904,16 @@ function attachAdminEvents(){
       openModal(`
         <h3>Modifier le personnel</h3>
         <div class="field"><label>Nom</label><input type="text" id="edit-staff-nom" value="${esc(s.nom)}" style="width:100%;"></div>
-        <div class="field"><label>Fonction</label><input type="text" id="edit-staff-fonction" value="${esc(s.fonction||'')}" style="width:100%;"></div>
+        <div class="field"><label>Fonction</label>${fonctionFieldHtml('edit-staff',s.fonction)}</div>
         <div class="row" style="justify-content:flex-end;margin-top:12px;gap:8px;">
           <button class="btn" id="modal-cancel">Annuler</button>
           <button class="btn primary" id="modal-edit-staff-save">Enregistrer</button>
         </div>`);
       document.getElementById('modal-cancel').addEventListener('click',closeModal);
+      fonctionFieldBind('edit-staff');
       document.getElementById('modal-edit-staff-save').addEventListener('click',async()=>{
         const nom=document.getElementById('edit-staff-nom').value.trim();
-        const fonction=document.getElementById('edit-staff-fonction').value.trim();
+        const fonction=fonctionFieldValue('edit-staff');
         if(!nom){ toast("Le nom est obligatoire."); return; }
         s.nom=nom; s.fonction=fonction; s.role=detectRole(fonction);
         await saveData(`Modification personnel ${nom}`);
