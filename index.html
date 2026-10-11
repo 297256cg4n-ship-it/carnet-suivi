@@ -2464,6 +2464,7 @@ function renderClasseDetail(classeId){
       <button class="btn primary" id="btn-add-student-here">+ Nouvel élève</button>
       <button class="btn" id="btn-add-existing-student">+ Élève existant</button>
       <button class="btn" id="btn-pdf-classe">📄 Bilan PDF</button>
+      <button class="btn" id="btn-fiches-classe">🧾 Bilans individuels</button>
       <label class="btn" for="import-file-classe">Importer CSV/Excel</label>
       <input type="file" id="import-file-classe" accept=".csv,.xlsx,.xls" class="hidden">
     </div>
@@ -2504,6 +2505,8 @@ function attachClasseDetailEvents(){
   // PDF bilan classe
   const pdfClasse=document.getElementById('btn-pdf-classe');
   if(pdfClasse) pdfClasse.addEventListener('click',()=>openPDFClasseModal(currentClasseId));
+  const fichesClasse=document.getElementById('btn-fiches-classe');
+  if(fichesClasse) fichesClasse.addEventListener('click',()=>openFichesClasseModal(currentClasseId));
   const imp=document.getElementById('import-file-classe');
   if(imp) imp.addEventListener('change',async e=>{
     const file=e.target.files[0]; e.target.value='';
@@ -4318,21 +4321,50 @@ function openPDFModal(studentId){
   });
 }
 
-function exportFichePDF(studentId,period){
-  const s=DATA.students.find(x=>x.id===studentId);
-  if(!s) return;
-  const classe=DATA.classes.find(c=>getClasseIds(s).includes(c.id));
-  const blocs=buildBlocs();
-  const today=todayISO();
-  let targetBlocs=[];
-  if(period==='current'){
-    const b=currentBloc(); if(b) targetBlocs=[b];
-  } else if(period==='previous'){
+const FICHE_CSS=`
+    body{font-family:Georgia,serif;color:#23262b;max-width:720px;margin:30px auto;padding:0 20px;}
+    h1{font-size:22px;margin-bottom:2px;}
+    .sub{color:#666;font-size:13px;margin-bottom:24px;}
+    h2{font-size:14px;font-weight:bold;text-transform:uppercase;letter-spacing:.08em;
+       border-bottom:2px solid #23262b;padding-bottom:4px;margin-top:28px;margin-bottom:0;}
+    table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}
+    th{text-align:left;padding:7px 8px;border-bottom:2px solid #ccc;
+       font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#555;background:#f5f4f0;}
+    td{padding:7px 8px;border-bottom:1px solid #e3e3e3;vertical-align:top;}
+    tr:nth-child(even) td{background:#faf9f6;}
+    tr{page-break-inside:avoid;}
+    .legend{margin-top:20px;padding:10px 14px;background:#f5f4f0;border-radius:6px;font-size:11px;color:#555;}
+    .legend span{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:4px;vertical-align:middle;}
+    .footer{margin-top:32px;font-size:11px;color:#999;border-top:1px solid #e3e3e3;padding-top:10px;}
+    .fiche + .fiche{margin-top:48px;border-top:3px dashed #ccc;padding-top:30px;}
+    @media print{body{margin:0;padding:14px;} .fiche + .fiche{page-break-before:always;margin-top:0;border-top:none;padding-top:0;}}
+`;
+
+/* Blocs concernés par une période : 'current', 'previous', 'annual' ou une date de début de bloc. */
+function _blocsDePeriode(period){
+  const blocs=buildBlocs(), today=todayISO();
+  if(period==='current'){ const b=currentBloc(); return b?[b]:[]; }
+  if(period==='previous'){
     const ci=blocs.findIndex(b=>b.semaines.some(sem=>today>=sem.start&&today<=sem.end));
-    if(ci>0) targetBlocs=[blocs[ci-1]];
-  } else {
-    targetBlocs=blocs;
+    return ci>0?[blocs[ci-1]]:[];
   }
+  if(period==='annual') return blocs;
+  const b=blocs.find(x=>x.dateDebut===period);
+  return b?[b]:[];
+}
+function _libellePeriode(period){
+  if(period==='current') return 'Bloc en cours';
+  if(period==='previous') return 'Bloc précédent';
+  if(period==='annual') return 'Bilan annuel';
+  const b=_blocsDePeriode(period)[0];
+  return b?`Bloc du ${formatDateFr(b.semaines[0].start)} au ${formatDateFr(b.semaines[b.semaines.length-1].end)}`:'Bloc';
+}
+
+/* Contenu d'une fiche élève (sans <html>) : réutilisé pour une fiche seule et pour toute une classe. */
+function _ficheEleveHtml(s,period){
+  const classe=DATA.classes.find(c=>getClasseIds(s).includes(c.id));
+  const today=todayISO();
+  const targetBlocs=_blocsDePeriode(period);
 
   const weekRows=targetBlocs.flatMap(bloc=>
     bloc.semaines.map(sem=>{
@@ -4347,9 +4379,9 @@ function exportFichePDF(studentId,period){
 
   const histItems=(s.history||[]).filter(h=>{
     if(period==='annual') return true;
-    const b=period==='current'?targetBlocs[0]:targetBlocs[0];
+    const b=targetBlocs[0];
     if(!b||!b.semaines.length) return true;
-    return h.date>=b.semaines[0].start;
+    return h.date>=b.semaines[0].start && h.date<=b.semaines[b.semaines.length-1].end;
   }).slice().reverse();
 
   const histRows=histItems.map(h=>{
@@ -4373,28 +4405,9 @@ function exportFichePDF(studentId,period){
     </tr>`;
   }).join('');
 
-  const win=window.open('','_blank');
-  if(!win){toast("Pop-up bloquée. Autorise les pop-ups et réessaie.");return;}
-  win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
-    <title>Récapitulatif — ${esc(displayNom(s))}</title>
-    <style>
-    body{font-family:Georgia,serif;color:#23262b;max-width:720px;margin:30px auto;padding:0 20px;}
-    h1{font-size:22px;margin-bottom:2px;}
-    .sub{color:#666;font-size:13px;margin-bottom:24px;}
-    h2{font-size:14px;font-weight:bold;text-transform:uppercase;letter-spacing:.08em;
-       border-bottom:2px solid #23262b;padding-bottom:4px;margin-top:28px;margin-bottom:0;}
-    table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}
-    th{text-align:left;padding:7px 8px;border-bottom:2px solid #ccc;
-       font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#555;background:#f5f4f0;}
-    td{padding:7px 8px;border-bottom:1px solid #e3e3e3;vertical-align:top;}
-    tr:nth-child(even) td{background:#faf9f6;}
-    .legend{margin-top:20px;padding:10px 14px;background:#f5f4f0;border-radius:6px;font-size:11px;color:#555;}
-    .legend span{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:4px;vertical-align:middle;}
-    .footer{margin-top:32px;font-size:11px;color:#999;border-top:1px solid #e3e3e3;padding-top:10px;}
-    @media print{body{margin:0;padding:14px;}}
-    </style></head><body>
+  return `<div class="fiche">
     <h1>Récapitulatif — ${esc(displayNom(s))}</h1>
-    <div class="sub">${classe?esc(classe.nom):'—'} · ${period==='current'?'Bloc en cours':period==='previous'?'Bloc précédent':'Bilan annuel'} · Généré le ${formatDateFr(today)}</div>
+    <div class="sub">${classe?esc(classe.nom):'—'} · ${esc(_libellePeriode(period))} · Généré le ${formatDateFr(today)}</div>
     <h2>Suivi par semaine</h2>
     ${weekRows?`<table><thead><tr><th>Semaine</th><th>Marche</th><th>Points</th><th>Contrat</th></tr></thead><tbody>${weekRows}</tbody></table>`:'<p style="color:#888;font-size:13px;">Aucune donnée.</p>'}
     <h2>Journal des évènements</h2>
@@ -4406,6 +4419,57 @@ function exportFichePDF(studentId,period){
       <span style="background:#fef9ec;border:1px solid #f7dc6f;"></span>Retenue
     </div>`:'<p style="color:#888;font-size:13px;">Aucun évènement.</p>'}
     <div class="footer">Document généré le ${formatDateFr(today)} depuis le carnet de suivi des Marches.</div>
+  </div>`;
+}
+
+function exportFichePDF(studentId,period){
+  const s=DATA.students.find(x=>x.id===studentId);
+  if(!s) return;
+  const win=window.open('','_blank');
+  if(!win){toast("Pop-up bloquée. Autorise les pop-ups et réessaie.");return;}
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+    <title>Récapitulatif — ${esc(displayNom(s))}</title>
+    <style>${FICHE_CSS}</style></head><body>
+    ${_ficheEleveHtml(s,period)}
+    ${PRINT_PAGE_SCRIPT}</body></html>`);
+  win.document.close();
+}
+
+/* Un seul clic : une fiche individuelle par élève de la classe, une par page. */
+function openFichesClasseModal(classeId){
+  const classe=DATA.classes.find(c=>c.id===classeId);
+  const liste=_blocsPourBilan();
+  const opts=liste.map(x=>`<option value="${x.bloc.dateDebut}">${esc(_libelleBloc(x))}</option>`).join('')
+    +'<option value="annual">Bilan général (tous les blocs de l\'année)</option>';
+  const n=DATA.students.filter(s=>getClasseIds(s).includes(classeId)).length;
+  openModal(`
+    <h3>Bilans individuels — ${esc(classe?classe.nom:'')}</h3>
+    <div class="field">
+      <label>Période</label>
+      <select id="fiches-classe-period">${opts}</select>
+    </div>
+    <p class="small muted">Une fiche par élève (${n} élève${n>1?'s':''}), une fiche par page, prêtes à imprimer ou à enregistrer en PDF.</p>
+    <div class="row" style="justify-content:flex-end;margin-top:12px;">
+      <button class="btn" id="modal-cancel">Annuler</button>
+      <button class="btn primary" id="modal-fiches-go" ${n?'':'disabled'}>Générer</button>
+    </div>`);
+  document.getElementById('modal-cancel').addEventListener('click',closeModal);
+  document.getElementById('modal-fiches-go').addEventListener('click',()=>{
+    const period=document.getElementById('fiches-classe-period').value;
+    closeModal(); printFichesClasse(classeId,period);
+  });
+}
+function printFichesClasse(classeId,period){
+  const classe=DATA.classes.find(c=>c.id===classeId);
+  const eleves=DATA.students.filter(s=>getClasseIds(s).includes(classeId))
+    .sort((a,b)=>displayNom(a).localeCompare(displayNom(b),'fr'));
+  if(!eleves.length){toast("Aucun élève dans cette classe.");return;}
+  const win=window.open('','_blank');
+  if(!win){toast("Pop-up bloquée. Autorise les pop-ups et réessaie.");return;}
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+    <title>Bilans individuels — ${esc(classe?classe.nom:'')}</title>
+    <style>${FICHE_CSS}</style></head><body>
+    ${eleves.map(s=>_ficheEleveHtml(s,period)).join('\n')}
     ${PRINT_PAGE_SCRIPT}</body></html>`);
   win.document.close();
 }
@@ -4647,7 +4711,7 @@ function printStaffCode(staffId){
   win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
     <title>Code d'accès — ${esc(s.nom)}</title>
     <style>
-      body{font-family:Georgia,serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f6f3ec;}
+      body{font-family:Georgia,serif;display:flex;align-items:center;justify-content:center;min-height:100vh;box-sizing:border-box;margin:0;background:#f6f3ec;}
       .card{background:#fff;border:2px solid #0f5d4f;border-radius:16px;padding:40px 48px;text-align:center;max-width:320px;box-shadow:0 4px 20px rgba(0,0,0,.1);}
       .label{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#7a7568;margin-bottom:8px;}
       .nom{font-size:22px;font-weight:700;color:#23262b;margin-bottom:4px;}
@@ -4915,11 +4979,12 @@ function downloadStudentQR(studentId){
 const PRINT_PAGE_SCRIPT = `<scri`+`pt>
 window.onload=function(){
   var st=document.createElement('style');
-  st.textContent='@media print{.retour-bar{display:none!important}} .retour-bar{position:sticky;top:0;z-index:99;display:flex;gap:10px;padding:10px;background:#0f5d4f;font-family:sans-serif;margin:-20px -20px 16px -20px} .retour-bar button{padding:10px 16px;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;background:#fff;color:#0f5d4f}';
+  st.textContent='.retour-bar{position:fixed;top:0;left:0;right:0;z-index:2147483647;box-sizing:border-box;display:flex;justify-content:flex-start;align-items:center;margin:0;padding:10px 14px;background:#0f5d4f;font-family:sans-serif} .retour-bar button{margin:0 10px 0 0;padding:10px 16px;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;background:#fff;color:#0f5d4f;font-family:sans-serif;line-height:1.2} @media screen{body.has-retour-bar{padding-top:68px!important}} @media print{.retour-bar{display:none!important}}';
   document.head.appendChild(st);
   var b=document.createElement('div'); b.className='retour-bar';
   b.innerHTML='<button id="rb-back">← Retour</button><button id="rb-print">🖨 Imprimer</button>';
-  document.body.insertBefore(b,document.body.firstChild);
+  document.body.appendChild(b);
+  document.body.classList.add('has-retour-bar');
   document.getElementById('rb-back').onclick=function(){window.close();setTimeout(function(){history.back();},250);};
   document.getElementById('rb-print').onclick=function(){window.print();};
   window.print();
